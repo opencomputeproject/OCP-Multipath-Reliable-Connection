@@ -170,7 +170,17 @@ int mrc_modify_qp(struct mrc_qp *qp,
 		struct mrc_qp_attr *mrc_attr, 
 		enum mrc_qp_attr_mask mrc_attr_mask); 
 
-// Need mrc_destroy_qp() 
+/**
+ * @brief Destroy a QP
+ *
+ * Destroy a QP
+ *
+ * @param qp[in] - MRC QP
+ *
+ * @return
+ * Returns 0 on success. Errors like ibv_destroy_qp()
+ */
+int mrc_destroy_qp(struct mrc_qp *qp);
 
 struct mrc_cq { 
 	struct ibv_cq *cq; 
@@ -195,7 +205,17 @@ int mrc_create_cq(struct mrc_context *mrc_ctx,
 		void *cq_context, 
 		struct mrc_cq **cq); 
 
-// Need mrc_destroy_cq() 
+/**
+ * @brief Destroy a CQ
+ *
+ * Destroy a CQ
+ *
+ * @param cq[in] - MRC CQ
+ *
+ * @return
+ * Returns 0 on success. Errors like ibv_destroy_cq()
+ */
+int mrc_destroy_cq(struct mrc_cq *cq);
 
 /** 
  * @brief Post a receive operation on a QP 
