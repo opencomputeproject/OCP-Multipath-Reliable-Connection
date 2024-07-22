@@ -8,6 +8,9 @@
  * disclosure or distribution of this material and related documentation
  * without an express license agreement from NVIDIA CORPORATION or
  * its affiliates is strictly prohibited.
+ *
+ * Copyright (c) 2024, Broadcom. All rights reserved. The term
+ * Broadcom refers to Broadcom Limited and/or its subsidiaries.
  */
 
 #include <stdint.h>
