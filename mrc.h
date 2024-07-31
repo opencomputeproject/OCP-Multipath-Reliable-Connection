@@ -340,6 +340,33 @@ int mrc_modify_qp(struct mrc_qp *qp,
 
 
 /**
+ * @brief Create a completion channel
+ *
+ * Create a completion channel
+ *
+ * @param mrc_ctx[in] - MRC context
+ * @param channel[out] - Created MRC channel
+ *
+ * @return
+ * Returns 0 on success. Errors like ibv_create_comp_channel().
+ */
+int *mrc_create_comp_channel(struct mrc_context *mrc_ctx,
+		struct mrc_comp_channel **channel);
+
+
+/**
+ * @brief Destroy a completion channel
+ *
+ * Destroy a completion channel
+ *
+ * @param channel[in] - Completion channel
+ *
+ * @return
+ * Returns 0 on success. Errors like ibv_destroy_comp_channel().
+ */
+int mrc_destroy_comp_channel(struct mrc_comp_channel *channel);
+
+/**
  * @brief Retrieve the QP number
  *
  */
@@ -448,7 +475,6 @@ int mrc_post_send(struct mrc_qp *qp,
 
 // TBD... Next step is we need to incorporate the EV APIs
 
-<<<<<<< HEAD
 struct mrc_async_event {
 	union {
 		struct mrc_cq  *cq;
