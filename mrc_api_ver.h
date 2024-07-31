@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /*
  * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
@@ -11,6 +12,8 @@
  *
  */
 
+=======
+>>>>>>> 1c1aea7 (Add a software api versioning scheme)
 #ifndef _MRC_API_VER_H_
 #define _MRC_API_VER_H_
 
