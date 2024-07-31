@@ -13,8 +13,31 @@
  * Broadcom refers to Broadcom Limited and/or its subsidiaries.
  */
 
+#ifndef _MRC_API_H_
+#define _MRC_API_H_
+
 #include <stdint.h>
 #include <verbs.h>
+
+#include <mrc_api_ver.h>
+
+#define MRC_API_CURRENT_VERSION	MRC_API_VER(1, 0, 0)
+
+#define MRC_API_LAST_SUPPORTED_VERSION	MRC_API_VER(0, 0, 0)
+
+#ifndef MRC_API_VER_USED
+#define MRC_API_VER_USED MRC_API_CURRENT_VERSION
+#elif MRC_API_VER_USED == MRC_API_VER_LATEST
+#undef MRC_API_VER_USED
+#define MRC_API_VER_USED MRC_API_CURRENT_VERSION
+#endif
+
+
+#if MRC_API_VER_USED < MRC_API_LAST_SUPPORTED_VERSION
+#error "MRC_API_VER_USED is less than MRC_API_LAST_SUPPORTED version"
+#elif MRC_API_VER_USED == MRC_API_LAST_SUPPORTED_VERSION
+#warning "MRC_API_VER_USED is equal to MRC_API_LAST_SUPPORTED version, may become obsolete"
+#endif
 
 enum mrc_version {
 	MRC_VERSION_0 = 0, /* MRC not supported */
@@ -66,6 +89,7 @@ struct mrc_context {
  * Returns 0 on success, and -1 on failure. Error code in errno.
  */
 int mrc_context_init(struct ibv_context *context,
+			 uint32_t mrc_api_version,
 		     struct mrc_context **mrc_ctx);
 
 /**
@@ -277,3 +301,4 @@ int mrc_post_send(struct mrc_qp *qp,
 
 // TBD... Next step is we need to incorporate the EV APIs
 
+#endif /* _MRC_API_H_ */
