@@ -197,7 +197,38 @@ int mrc_modify_qp(struct mrc_qp *qp,
 		  struct mrc_qp_attr *mrc_attr,
 		  enum mrc_qp_attr_mask mrc_attr_mask);
 
-// Need mrc_destroy_qp()
+struct mrc_comp_channel {
+	struct mrc_context     *context;
+	int	   fd;
+	int	   refcnt;
+};
+
+/**
+ * @brief Create a completion channel
+ *
+ * Create a completion channel
+ *
+ * @param mrc_ctx[in] - MRC context
+ * @param channel[out] - Created MRC channel
+ *
+ * @return
+ * Returns 0 on success. Errors like ibv_create_comp_channel().
+ */
+int *mrc_create_comp_channel(struct mrc_context *mrc_ctx,
+		struct mrc_comp_channel **channel);
+
+
+/**
+ * @brief Destroy a completion channel
+ *
+ * Destroy a completion channel
+ *
+ * @param channel[in] - Completion channel
+ *
+ * @return
+ * Returns 0 on success. Errors like ibv_destroy_comp_channel().
+ */
+int mrc_destroy_comp_channel(struct mrc_comp_channel *channel);
 
 struct mrc_cq {
 	struct ibv_cq *cq;
@@ -212,6 +243,8 @@ struct mrc_cq {
  * @param mrc_ctx[in]    - MRC context to use
  * @param cqe[in]        - Minimum number of entries required for CQ
  * @param cq_context[in] - application context
+ * @param channel[in]	 - completion channel
+ * @param comp_vector[in] - Completion vector to signal completion events
  * @param cq[out]        - Created CQ
  *
  * @return
@@ -220,9 +253,9 @@ struct mrc_cq {
 int mrc_create_cq(struct mrc_context *mrc_ctx,
 		  int cqe,
 		  void *cq_context,
+		  struct mrc_comp_channel *channel,
+		  int comp_vector,
 		  struct mrc_cq **cq);
-
-// Need mrc_destroy_cq()
 
 /**
  * @brief Post a receive operation on a QP
@@ -277,3 +310,41 @@ int mrc_post_send(struct mrc_qp *qp,
 
 // TBD... Next step is we need to incorporate the EV APIs
 
+struct mrc_async_event {
+	union {
+		struct mrc_cq  *cq;
+		struct mrc_qp  *qp;
+		int		port_num;
+	} element;
+	enum ibv_event_type	event_type;
+};
+
+/**
+ * @brief Get next event
+ *
+ * Obtain the next event. All events must be acknowledged by
+ * mrc_ack_async_event().
+ *
+ * @param context[in]	- MRC context
+ * @param event[out]	- Reported event
+ *
+ * @return
+ * Returns 0 on success, and -1 on failure. Error semantics like
+ * ibv_get_async_event().
+ */
+int mrc_get_async_event(struct mrc_context *mrc_ctx,
+			struct mrc_async_event *event);
+
+
+/**
+ * @brief Ack the asynchronous event
+ *
+ * All async events returned by mrc_get_async_event() should be
+ * acknowledged.
+ *
+ * @param event[in]		- MRC async event
+ *
+ * @return
+ * This function does not return any value
+ */
+void mrc_ack_async_event(struct mrc_async_event *event);
