@@ -221,6 +221,11 @@ int mrc_modify_qp(struct mrc_qp *qp,
 		  struct mrc_qp_attr *mrc_attr,
 		  enum mrc_qp_attr_mask mrc_attr_mask);
 
+struct mrc_comp_channel {
+	struct mrc_context     *context;
+	int	   fd;
+	int	   refcnt;
+};
 
 /**
  * @brief Create a completion channel
