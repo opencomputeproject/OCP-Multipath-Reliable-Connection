@@ -214,7 +214,7 @@ struct mrc_comp_channel {
  * @return
  * Returns 0 on success. Errors like ibv_create_comp_channel().
  */
-int *mrc_create_comp_channel(struct mrc_context *mrc_ctx,
+int mrc_create_comp_channel(struct mrc_context *mrc_ctx,
 		struct mrc_comp_channel **channel);
 
 
