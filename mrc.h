@@ -17,7 +17,7 @@
 #define _MRC_API_H_
 
 #include <stdint.h>
-#include <verbs.h>
+#include <infiniband/verbs.h>
 
 #include <mrc_api_ver.h>
 
@@ -518,4 +518,5 @@ int mrc_get_async_event(struct mrc_context *mrc_ctx,
  * This function does not return any value
  */
 void mrc_ack_async_event(struct mrc_async_event *event);
+
 #endif /* _MRC_API_H_ */
