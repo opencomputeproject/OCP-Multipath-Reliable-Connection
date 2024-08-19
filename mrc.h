@@ -21,6 +21,11 @@ enum mrc_version {
 	MRC_VERSION_1 = (1 << 0),
 };
 
+struct mrc_context;
+struct mrc_qp;
+struct mrc_cq;
+struct mrc_comp_channel;
+
 struct mrc_attr {
 	uint32_t version; /* see enum mrc_version */
 	uint16_t max_wimm_dest;
@@ -39,11 +44,6 @@ struct mrc_attr {
  */
 int mrc_query_device(struct ibv_context *context,
 		     struct mrc_attr *attr);
-
-struct mrc_context {
-	struct ibv_context *context;
-	// TBD...
-};
 
 /**
  * @brief Initialize the MRC lib
@@ -89,11 +89,6 @@ struct mrc_qp_init_attr {
 	struct ibv_pd      *pd;
 	/* see enum ibv_qp_create_send_ops_flags */
 	uint64_t            send_ops_flags;
-};
-
-struct mrc_qp {
-	struct ibv_qp *qp;
-	// TBD...
 };
 
 /**
@@ -197,11 +192,13 @@ int mrc_modify_qp(struct mrc_qp *qp,
 		  struct mrc_qp_attr *mrc_attr,
 		  enum mrc_qp_attr_mask mrc_attr_mask);
 
-struct mrc_comp_channel {
-	struct mrc_context     *context;
-	int	   fd;
-	int	   refcnt;
-};
+
+/**
+ * @brief Retrieve the QP number
+ *
+ */
+uint32_t mrc_get_qpn(struct mrc_qp *qp);
+
 
 /**
  * @brief Create a completion channel
@@ -229,11 +226,6 @@ int mrc_create_comp_channel(struct mrc_context *mrc_ctx,
  * Returns 0 on success. Errors like ibv_destroy_comp_channel().
  */
 int mrc_destroy_comp_channel(struct mrc_comp_channel *channel);
-
-struct mrc_cq {
-	struct ibv_cq *cq;
-	// TBD...
-};
 
 /**
  * @brief Create a CQ
