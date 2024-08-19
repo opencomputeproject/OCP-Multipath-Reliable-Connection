@@ -12,8 +12,6 @@
  *
  */
 
-=======
->>>>>>> 1c1aea7 (Add a software api versioning scheme)
 #ifndef _MRC_API_VER_H_
 #define _MRC_API_VER_H_
 
