@@ -17,7 +17,7 @@
 #define _MRC_API_H_
 
 #include <stdint.h>
-#include <verbs.h>
+#include <infiniband/verbs.h>
 
 #include <mrc_api_ver.h>
 
