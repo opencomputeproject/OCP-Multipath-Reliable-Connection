@@ -102,6 +102,7 @@ int mrc_context_init(struct ibv_context *context,
 			uint32_t mrc_api_version,
 			struct mrc_context **mrc_ctx);
 
+
 /**
  * @brief Destroy the MRC lib context
  *
@@ -358,33 +359,6 @@ int mrc_modify_qp(struct mrc_qp *qp,
 		  int vattr_mask,
 		  struct mrc_qp_attr *mrc_attr,
 		  enum mrc_qp_attr_mask mrc_attr_mask);
-
-/**
- * @brief Create a completion channel
- *
- * Create a completion channel
- *
- * @param mrc_ctx[in] - MRC context
- * @param channel[out] - Created MRC channel
- *
- * @return
- * Returns 0 on success. Errors like ibv_create_comp_channel().
- */
-int mrc_create_comp_channel(struct mrc_context *mrc_ctx,
-		struct mrc_comp_channel **channel);
-
-
-/**
- * @brief Destroy a completion channel
- *
- * Destroy a completion channel
- *
- * @param channel[in] - Completion channel
- *
- * @return
- * Returns 0 on success. Errors like ibv_destroy_comp_channel().
- */
-int mrc_destroy_comp_channel(struct mrc_comp_channel *channel);
 
 /**
  * @brief Retrieve the QP number
