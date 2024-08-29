@@ -44,6 +44,15 @@ enum mrc_version {
 	MRC_VERSION_1 = (1 << 0),
 };
 
+/**
+ * Optional features supported by the implementation.
+ */
+enum mrc_opt_caps {
+	/* The implementation supports the capability to update EV values after
+	 * the QP has transitioned past the RTR stage */
+	MRC_OPT_CAP_UPDATE_EV_VAL = (1<<0)
+};
+
 struct mrc_context;
 struct mrc_qp;
 struct mrc_cq;
@@ -52,8 +61,7 @@ struct mrc_comp_channel;
 struct mrc_attr {
 	uint32_t version; /* see enum mrc_version */
 	uint16_t max_wimm_dest;
-	uint16_t max_ev_per_qp; /* max number of EVs per QP */
-	uint32_t max_ev_val; /* maximum value of each EV */
+	uint64_t opt_caps;
 };
 
 /**
@@ -91,8 +99,8 @@ int mrc_query_device(struct ibv_context *context,
  * Returns 0 on success, and -1 on failure. Error code in errno.
  */
 int mrc_context_init(struct ibv_context *context,
-			 uint32_t mrc_api_version,
-		     struct mrc_context **mrc_ctx);
+			uint32_t mrc_api_version,
+			struct mrc_context **mrc_ctx);
 
 /**
  * @brief Destroy the MRC lib context
@@ -153,8 +161,12 @@ enum mrc_qp_attr_mask {
 	MRC_QP_ATTR_MAX_WIMM_DEST = (1<<1),
 	// maximum retry count in exponential range
 	MRC_QP_ATTR_RETRY_CNT_EXP = (1<<2),
-	// EV table attached to the QP
-	MRC_QP_ATTR_EV_TABLE	  = (1<<3),
+	// EV array ID to use for the MODIFY or QUERY operation
+	MRC_QP_ATTR_EV_ARRAY_ID	  = (1<<3),
+	// maximum count of EVs for the QP
+	MRC_QP_ATTR_MAX_EV_PER_QP = (1<<4),
+	// maximum value of the EV for the QP
+	MRC_QP_ATTR_MAX_EV_VALUE  = (1<<5),
 	// vendor specific configuration data
 	MRC_QP_ATTR_VENDOR_CFG    = (1<<31)
 };
@@ -172,107 +184,114 @@ enum mrc_qp_attr_mask {
 int mrc_destroy_cq(struct mrc_cq *cq);
 
 enum mrc_ev_state {
-	MRC_EV_ALLOWED	= 1,
-	MRC_EV_DISABLED = 2
+	MRC_EV_GOOD		= 1,
+	MRC_EV_DENIED		= 2,
+	MRC_EV_ASSUMED_BAD	= 3
 };
 
-struct mrc_ev_table;
+struct mrc_ev_array;
 
 /**
- * @brief Create a table of EVs
+ * @brief Create an array of EVs
  * 
- * Allocates a table of EVs, with the value being uninitialized
+ * Allocates an array of EVs
  * 
  * @param mrc_ctx[in] - MRC context
  * @param count[in] - Number of EVs to allocate
  * @param state[in] - Default state to assign for the EVs
- * @param val_array[in] - Values to assign each EV. Passing NULL allocates 0 as the value.
+ * @param val_array[in] - Values to assign each EV. Passing NULL assigns 0 as the value.
  * 			  The value_tbl array contains `count` elements.
- * @param ev_set[out] - EV set that was allocated
+ * @param ev_array[out] - EV array that was allocated
  * 
  * @return
  * Returns 0 on success.
  */
-int mrc_create_ev_table(struct mrc_context *mrc_ctx, int count, int state, 
-				uint32_t *val_array, struct mrc_ev_table **ev_tbl);
+int mrc_create_ev_array(struct mrc_context *mrc_ctx, int count, int state,
+				uint32_t *val_array, struct mrc_ev_array **ev_array);
 
 /**
- * @brief Destroy a table
+ * @brief Destroy an EV array
  * 
- * Destroy a table
+ * Destroy an EV array
  * 
- * @param ev_tbl[in] - EV table to destroy
+ * @param ev_array[in] - EV array to destroy
  * 
  * @return
  * Returns 0 on success.
  */
-int mrc_destroy_ev_table(struct mrc_ev_table *ev_tbl);
+int mrc_destroy_ev_array(struct mrc_ev_array *ev_array);
 
 /**
- * @brief Get table id
+ * @brief Get array id
  * 
- * Get a table's id
+ * Get an EV array's id
  * 
- * @param ev_tbl[in] - EV table
+ * @param ev_array[in] - EV array
  * 
  * @return
- * Returns the table's id.
+ * Returns the array's id.
  */
-uint64_t mrc_get_table_id(struct mrc_ev_table *ev_tbl);
+uint64_t mrc_get_array_id(struct mrc_ev_array *ev_array);
 
 /**
  * @brief Get the state of an EV
  * 
- * @param ev_tbl[in] - EV table
+ * @param ev_array[in] - EV array
  * @param index[in] - Index of the EV entry
  * @param state[out] - State of the EV
  * 
  * @return
  * Returns 0 on success, -1 on error.
  */
-int mrc_get_ev_state(struct mrc_ev_table *ev_tbl, int index, int *state);
+int mrc_get_ev_state(struct mrc_ev_array *ev_array, int index, int *state);
 
 /**
  * @brief Get the value of an EV
  * 
- * @param ev_tbl[in] - EV table
+ * @param ev_array[in] - EV array
  * @param index[in] - Index of the EV entry
  * @param val[out] - Value of the EV
  * 
  * @return
  * Returns 0 on success, -1 on error.
  */
-uint32_t mrc_get_ev_val(struct mrc_ev_table *ev_tbl, int index, uint32_t *val);
+int mrc_get_ev_val(struct mrc_ev_array *ev_array, int index, uint32_t *val);
 
 /**
  * @brief Update the state of an EV
  * 
- * @param ev_tbl[in] - EV table
+ * @param ev_array[in] - EV array
  * @param index[in] - Index of the EV entry
  * @param state[in] - State to set to
  * 
  * @return
  * Returns 0 on success.
  */
-int mrc_update_ev_state(struct mrc_ev_table *ev_tbl, int index, int state);
+int mrc_update_ev_state(struct mrc_ev_array *ev_array, int index, int state);
 
 /**
  * @brief Update the value of an EV
  * 
- * @param ev_tbl[in] - EV table
+ * NOTE: Updating the value of an EV that is attached to a QP that has
+ * transitioned past the RTR stage is an optional feature.
+ * See MRC_OPT_CAP_UPDATE_EV_VAL.
+ *
+ * @param ev_array[in] - EV array
  * @param index[in] - Index of the EV entry
  * @param val[in] - value to set for the entry
  * 
  * @return
  * Returns 0 on success.
  */
-int mrc_update_ev_val(struct mrc_ev_table *ev_tbl, int index, uint32_t val);
+int mrc_update_ev_val(struct mrc_ev_array *ev_array, int index, uint32_t val);
 
 struct mrc_qp_attr {
 	uint16_t max_wimm;
 	uint16_t max_wimm_dest;
 	uint8_t  retry_cnt_exp;
-	uint64_t ev_tbl_id;
+	uint16_t max_ev_per_qp; /* max number of EVs per QP */
+	uint32_t max_ev_val; /* maximum value of each EV */
+	uint64_t ev_array_id;
 	uint8_t  vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
 
@@ -281,13 +300,13 @@ struct mrc_qp_attr {
  *
  * Queries a QP.
  * 
- * MRC_QP_ATTR_EV_TABLE mask is used as follows:
+ * MRC_QP_ATTR_EV_ARRAY_ID mask is used as follows:
  * 
  * 1. Only supported on a QP after it is in RTR state.
- * 2. When a QP is in RTR or RTS state, the ev_tbl_id
- *    should point to a table that is appropriately sized
+ * 2. When a QP is in RTR or RTS state, the ev_array_id
+ *    should point to an array that is appropriately sized
  *    to contain the EV entries. The EV values and state
- *    will be copied into the EV entries in the table. The
+ *    will be copied into the EV entries in the array. The
  *    application can read the state/values using
  *    mrc_ev_get_state() / mrc_ev_get_val().
  *
@@ -313,15 +332,17 @@ int mrc_query_qp(struct mrc_qp *qp,
  *
  * Modify a QP.
  * 
- * MRC_QP_ATTR_EV_TABLE is supported during the following transitions:
+ * MRC_QP_ATTR_EV_ARRAY_ID is supported during the following transitions:
  * 1. INIT -> RTR - provides the initial set of EVs for the QP
  *    Note: after the QP has been modified to RTR state, the number of
  *    EVs used by this QP is fixed to the number of entries in the EV
- *    table.
- * 2. RTS -> RTS - provides the updated set of EVs for the QP
+ *    array.
+ * 2. RTS -> RTS - provides the updated set of EVs for the QP.
+ *    Note: updating the EV values in this stage is an optional feature.
+ *    See MRC_OPT_CAP_UPDATE_EV_VAL.
  * 
- * The table entries are copied by value during the modify operations,
- * such that the EV table can be destroyed if so desired by the application.
+ * The array entries are copied by value during the modify operations,
+ * such that the EV array can be destroyed if so desired by the application.
  *
  * @param qp[in]            - MRC QP
  * @param vattr[in]         - Libibverbs attributes to modify
@@ -338,12 +359,6 @@ int mrc_modify_qp(struct mrc_qp *qp,
 		  struct mrc_qp_attr *mrc_attr,
 		  enum mrc_qp_attr_mask mrc_attr_mask);
 
-struct mrc_comp_channel {
-	struct mrc_context     *context;
-	int	   fd;
-	int	   refcnt;
-};
-
 /**
  * @brief Create a completion channel
  *
@@ -355,7 +370,7 @@ struct mrc_comp_channel {
  * @return
  * Returns 0 on success. Errors like ibv_create_comp_channel().
  */
-int *mrc_create_comp_channel(struct mrc_context *mrc_ctx,
+int mrc_create_comp_channel(struct mrc_context *mrc_ctx,
 		struct mrc_comp_channel **channel);
 
 
@@ -477,8 +492,6 @@ int mrc_poll_cq(struct mrc_cq *cq,
 int mrc_post_send(struct mrc_qp *qp,
 		  struct ibv_send_wr *wr,
 		  struct ibv_send_wr **bad_wr);
-
-// TBD... Next step is we need to incorporate the EV APIs
 
 struct mrc_async_event {
 	union {
