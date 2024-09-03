@@ -199,15 +199,17 @@ struct mrc_ev_array;
  * 
  * @param mrc_ctx[in] - MRC context
  * @param count[in] - Number of EVs to allocate
- * @param state[in] - Default state to assign for the EVs
+ * @param state_array[in] - States to assign to the EVs.
+ *				Passing NULL assigns MRC_EV_GOOD as the state.
+ *				The state_array contains `count` elements.
  * @param val_array[in] - Values to assign each EV. Passing NULL assigns 0 as the value.
- * 			  The value_tbl array contains `count` elements.
+ * 			  The value_array array contains `count` elements.
  * @param ev_array[out] - EV array that was allocated
  * 
  * @return
  * Returns 0 on success.
  */
-int mrc_create_ev_array(struct mrc_context *mrc_ctx, int count, int state,
+int mrc_create_ev_array(struct mrc_context *mrc_ctx, int count, enum mrc_ev_state *state_array,
 				uint32_t *val_array, struct mrc_ev_array **ev_array);
 
 /**
@@ -244,7 +246,7 @@ uint64_t mrc_get_array_id(struct mrc_ev_array *ev_array);
  * @return
  * Returns 0 on success, -1 on error.
  */
-int mrc_get_ev_state(struct mrc_ev_array *ev_array, int index, int *state);
+int mrc_get_ev_state(struct mrc_ev_array *ev_array, int index, enum mrc_ev_state *state);
 
 /**
  * @brief Get the value of an EV
@@ -260,6 +262,8 @@ int mrc_get_ev_val(struct mrc_ev_array *ev_array, int index, uint32_t *val);
 
 /**
  * @brief Update the state of an EV
+ *
+ * The valid values of the state are: MRC_EV_GOOD and MRC_EV_DENIED.
  * 
  * @param ev_array[in] - EV array
  * @param index[in] - Index of the EV entry
@@ -268,7 +272,7 @@ int mrc_get_ev_val(struct mrc_ev_array *ev_array, int index, uint32_t *val);
  * @return
  * Returns 0 on success.
  */
-int mrc_update_ev_state(struct mrc_ev_array *ev_array, int index, int state);
+int mrc_update_ev_state(struct mrc_ev_array *ev_array, int index, enum mrc_ev_state state);
 
 /**
  * @brief Update the value of an EV
@@ -282,7 +286,7 @@ int mrc_update_ev_state(struct mrc_ev_array *ev_array, int index, int state);
  * @param val[in] - value to set for the entry
  * 
  * @return
- * Returns 0 on success.
+ * Returns 0 on success, -ENOTSUP when not supported and -1 on error.
  */
 int mrc_update_ev_val(struct mrc_ev_array *ev_array, int index, uint32_t val);
 
