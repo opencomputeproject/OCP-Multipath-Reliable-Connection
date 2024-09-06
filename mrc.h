@@ -47,10 +47,10 @@ enum mrc_version {
 /**
  * Optional features supported by the implementation.
  */
-enum mrc_opt_caps {
+enum mrc_attr_opt {
 	/* The implementation supports the capability to update EV values after
 	 * the QP has transitioned past the RTR stage */
-	MRC_OPT_CAP_UPDATE_EV_VAL = (1<<0)
+	MRC_OPT_CAP_UPDATE_EV_VAL_RTS = (1<<0)
 };
 
 struct mrc_context;
@@ -59,9 +59,9 @@ struct mrc_cq;
 struct mrc_comp_channel;
 
 struct mrc_attr {
-	uint32_t version; /* see enum mrc_version */
+	enum mrc_version version; /* see enum mrc_version */
 	uint16_t max_wimm_dest;
-	uint64_t opt_caps;
+	enum mrc_attr_opt opt_attr;
 };
 
 /**
@@ -165,7 +165,7 @@ enum mrc_qp_attr_mask {
 	// EV array ID to use for the MODIFY or QUERY operation
 	MRC_QP_ATTR_EV_ARRAY_ID	  = (1<<3),
 	// maximum count of EVs for the QP
-	MRC_QP_ATTR_MAX_EV_PER_QP = (1<<4),
+	MRC_QP_ATTR_MAX_EV_COUNT  = (1<<4),
 	// maximum value of the EV for the QP
 	MRC_QP_ATTR_MAX_EV_VALUE  = (1<<5),
 	// vendor specific configuration data
@@ -279,7 +279,7 @@ int mrc_update_ev_state(struct mrc_ev_array *ev_array, int index, enum mrc_ev_st
  * 
  * NOTE: Updating the value of an EV that is attached to a QP that has
  * transitioned past the RTR stage is an optional feature.
- * See MRC_OPT_CAP_UPDATE_EV_VAL.
+ * See MRC_OPT_CAP_UPDATE_EV_VAL_RTS.
  *
  * @param ev_array[in] - EV array
  * @param index[in] - Index of the EV entry
@@ -344,7 +344,7 @@ int mrc_query_qp(struct mrc_qp *qp,
  *    array.
  * 2. RTS -> RTS - provides the updated set of EVs for the QP.
  *    Note: updating the EV values in this stage is an optional feature.
- *    See MRC_OPT_CAP_UPDATE_EV_VAL.
+ *    See MRC_OPT_CAP_UPDATE_EV_VAL_RTS.
  * 
  * The array entries are copied by value during the modify operations,
  * such that the EV array can be destroyed if so desired by the application.
