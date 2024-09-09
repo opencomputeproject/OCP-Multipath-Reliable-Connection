@@ -57,6 +57,7 @@ struct mrc_context;
 struct mrc_qp;
 struct mrc_cq;
 struct mrc_comp_channel;
+struct mrc_ev_array;
 
 struct mrc_attr {
 	enum mrc_version version; /* see enum mrc_version */
@@ -162,8 +163,8 @@ enum mrc_qp_attr_mask {
 	MRC_QP_ATTR_MAX_WIMM_DEST = (1<<1),
 	// maximum retry count in exponential range
 	MRC_QP_ATTR_RETRY_CNT_EXP = (1<<2),
-	// EV array ID to use for the MODIFY or QUERY operation
-	MRC_QP_ATTR_EV_ARRAY_ID	  = (1<<3),
+	// EV array to use for the MODIFY or QUERY operation
+	MRC_QP_ATTR_EV_ARRAY	  = (1<<3),
 	// maximum count of EVs for the QP
 	MRC_QP_ATTR_MAX_EV_COUNT  = (1<<4),
 	// maximum value of the EV for the QP
@@ -189,8 +190,6 @@ enum mrc_ev_state {
 	MRC_EV_DENIED		= 2,
 	MRC_EV_ASSUMED_BAD	= 3
 };
-
-struct mrc_ev_array;
 
 /**
  * @brief Create an array of EVs
@@ -223,18 +222,6 @@ int mrc_create_ev_array(struct mrc_context *mrc_ctx, int count, enum mrc_ev_stat
  * Returns 0 on success.
  */
 int mrc_destroy_ev_array(struct mrc_ev_array *ev_array);
-
-/**
- * @brief Get array id
- * 
- * Get an EV array's id
- * 
- * @param ev_array[in] - EV array
- * 
- * @return
- * Returns the array's id.
- */
-uint64_t mrc_get_array_id(struct mrc_ev_array *ev_array);
 
 /**
  * @brief Get the state of an EV
@@ -296,7 +283,7 @@ struct mrc_qp_attr {
 	uint8_t  retry_cnt_exp;
 	uint16_t max_ev_per_qp; /* max number of EVs per QP */
 	uint32_t max_ev_val; /* maximum value of each EV */
-	uint64_t ev_array_id;
+	struct mrc_ev_array *ev_array;
 	uint8_t  vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
 
@@ -305,10 +292,10 @@ struct mrc_qp_attr {
  *
  * Queries a QP.
  * 
- * MRC_QP_ATTR_EV_ARRAY_ID mask is used as follows:
+ * MRC_QP_ATTR_EV_ARRAY mask is used as follows:
  * 
  * 1. Only supported on a QP after it is in RTR state.
- * 2. When a QP is in RTR or RTS state, the ev_array_id
+ * 2. When a QP is in RTR or RTS state, the ev_array
  *    should point to an array that is appropriately sized
  *    to contain the EV entries. The EV values and state
  *    will be copied into the EV entries in the array. The
@@ -337,7 +324,7 @@ int mrc_query_qp(struct mrc_qp *qp,
  *
  * Modify a QP.
  * 
- * MRC_QP_ATTR_EV_ARRAY_ID is supported during the following transitions:
+ * MRC_QP_ATTR_EV_ARRAY is supported during the following transitions:
  * 1. INIT -> RTR - provides the initial set of EVs for the QP
  *    Note: after the QP has been modified to RTR state, the number of
  *    EVs used by this QP is fixed to the number of entries in the EV
