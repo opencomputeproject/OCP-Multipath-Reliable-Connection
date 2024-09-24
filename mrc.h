@@ -468,6 +468,20 @@ struct mrc_async_event {
 };
 
 /**
+ * @brief Request notifications
+ *
+ * Requests notifications on the CQ, like ibv_req_notify_cq().
+ *
+ * @param cq[in]	- MRC CQ
+ * @param solicited_only[in]	- Request event only on "solicited" events
+ *
+ * @return
+ * Returns 0 on success, and -1 on failure. Error semantics like
+ * ibv_req_notify_cq().
+ */
+int mrc_req_notify_cq(struct mrc_cq *cq, int solicited_only);
+
+/**
  * @brief Get next event
  *
  * Obtain the next event. All events must be acknowledged by
