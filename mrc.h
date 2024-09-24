@@ -372,6 +372,16 @@ uint32_t mrc_get_qpn(struct mrc_qp *qp);
 int mrc_create_comp_channel(struct mrc_context *mrc_ctx,
 		struct mrc_comp_channel **channel);
 
+/**
+ * @brief Retrieve the completion channel's file descriptor
+ *
+ * @param channel[in] 	- MRC completion channel
+ * @param fd[out] 	- fd underlying the completion channel
+ *
+ * @return
+ * Returns 0 on success, -1 on error.
+ */
+int mrc_get_comp_channel_fd(struct mrc_comp_channel *channel, int *fd);
 
 /**
  * @brief Destroy a completion channel
