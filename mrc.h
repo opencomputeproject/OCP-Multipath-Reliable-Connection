@@ -181,17 +181,6 @@ enum mrc_qp_attr_mask {
 };
 
 /**
- * @brief Destroy a CQ
- *
- * Destroy a CQ
- *
- * @param cq[in] - MRC CQ
- *
- * @return
- * Returns 0 on success. Errors like ibv_destroy_cq()
- */
-
-/**
  * @brief Supported EV states.
  *
  */
@@ -201,6 +190,16 @@ enum mrc_ev_state {
 	MRC_EV_DENIED	        = 0x04,
 };
 
+/**
+ * @brief Destroy a CQ
+ *
+ * Destroy a CQ
+ *
+ * @param cq[in] - MRC CQ
+ *
+ * @return
+ * Returns 0 on success. Errors like ibv_destroy_cq()
+ */
 int mrc_destroy_cq(struct mrc_cq *cq);
 
 /**
@@ -417,7 +416,7 @@ int mrc_destroy_comp_channel(struct mrc_comp_channel *channel);
  * Create a CQ
  *
  * @param mrc_ctx[in]    - MRC context to use
- * @param sup_overrun[in] - Detect and report CQ overruns if true
+ * @param detect_overrun[in] - If true, detect CQ overrun
  * @param cqe[in]        - Minimum number of entries required for CQ
  * @param cq_context[in] - application context
  * @param channel[in]	 - completion channel
@@ -427,9 +426,8 @@ int mrc_destroy_comp_channel(struct mrc_comp_channel *channel);
  * @return
  * Returns 0 on success. Errors like ibv_create_cq()
  */
-
 int mrc_create_cq(struct mrc_context *mrc_ctx,
-		  bool sup_overrun,
+		  bool detect_overrun,
 		  int cqe,
 		  void *cq_context,
 		  struct mrc_comp_channel *channel,
@@ -560,8 +558,7 @@ struct mrc_ev_event {
  * @return
  * Like mrc_poll_cq().
  */
-
-int mrc_poll_ev_event(struct mrc_cq *cq, int num_entries, struct mrc_ev_event *ev_evt);
+int mrc_poll_ev_event(struct mrc_cq *ev_cq, int num_entries, struct mrc_ev_event *ev_evt);
 
 #endif /* _MRC_API_H_ */
 
