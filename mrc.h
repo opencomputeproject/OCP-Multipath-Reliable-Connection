@@ -61,7 +61,6 @@ struct mrc_qp;
 struct mrc_cq;
 struct mrc_comp_channel;
 struct mrc_ev_array;
-struct mrc_ev_evq;
 
 struct mrc_attr {
 	enum mrc_version version; /* see enum mrc_version */
@@ -114,7 +113,7 @@ int mrc_context_init(struct ibv_context *context,
  * Destroy the MRC lib context.
  *
  * @param[in] mrc_ctx - MRC context
- *
+ * @param[in] ev_cq   - CQ where EV Events are reported
  * @return
  * Returns 0 on success, and -1 on failure. Error code in errno.
  */
@@ -124,7 +123,7 @@ struct mrc_qp_init_attr {
 	void               *qp_context;
 	struct mrc_cq      *send_cq;
 	struct mrc_cq      *recv_cq;
-	struct mrc_ev_evq  *ev_evq;
+	struct mrc_cq      *ev_cq;
 	struct ibv_qp_cap   cap;
 	int                 sq_sig_all;
 	struct ibv_pd      *pd;
@@ -296,8 +295,9 @@ struct mrc_qp_attr {
 	uint16_t max_ev_per_qp; /* max number of EVs per QP */
 	uint32_t max_ev_val; /* maximum value of each EV */
 	struct mrc_ev_array *ev_array;
-	/** Hardware generates an event when any EV's state
-	 * transitions to a monitored state in the mask. */
+	/** Hardware generates an event when any EV's state *
+	 transitions to a monitored state in the mask.  Only
+	 EV_ASSUMED_BAD and EV_GOOD masking is supported. */
 	enum mrc_ev_state  ev_mon_st_mask;
 	uint8_t  vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
@@ -416,6 +416,7 @@ int mrc_destroy_comp_channel(struct mrc_comp_channel *channel);
  * Create a CQ
  *
  * @param mrc_ctx[in]    - MRC context to use
+ * @param rep_overrun[in] - Detect and report CQ overruns if true
  * @param cqe[in]        - Minimum number of entries required for CQ
  * @param cq_context[in] - application context
  * @param channel[in]	 - completion channel
@@ -425,7 +426,9 @@ int mrc_destroy_comp_channel(struct mrc_comp_channel *channel);
  * @return
  * Returns 0 on success. Errors like ibv_create_cq()
  */
+
 int mrc_create_cq(struct mrc_context *mrc_ctx,
+		  bool sup_overrun,
 		  int cqe,
 		  void *cq_context,
 		  struct mrc_comp_channel *channel,
@@ -542,7 +545,6 @@ void mrc_ack_async_event(struct mrc_async_event *event);
  * EV Event structure. Hardware generates an EV Event for every EV
  * state change that matches monitored EV states in the QP's EV monitored
  * state mask field.
- *
  */
 struct mrc_ev_evt {
   uint32_t qpn;
@@ -550,40 +552,6 @@ struct mrc_ev_evt {
   enum mrc_ev_state state;
   bool prev_evt_drop; /**< True if one or more events before this one were dropped. */
 };
-
-/**
- * @brief Create EV Event Queue.
- *
- * Create an EV Event Queue.
- *
- * @param mrc_contex[in]     - MRC context
- * @param evte[in]	     - Minimum queue size in number of entries
- * @param ev_evq_context[in] - Opaque pointer returned in mrc_get_ev_evq_evt()
- * @param channel[in]	     - Optional pointer to MRC completion channel
- * @param comp_vector[in]    - Completion vector number. At least zero.
- *
- * @return
- * Returns 0 on success or the value of errno on failure.
- */
-struct mrc_ev_evq *mrc_create_ev_evq(struct mrc_context *mrc_ctx,
-				     int evte,
-				     void *ev_evq_context,
-				     struct mrc_comp_channel *channel,
-				     int comp_vector);
-
-int mrc_destroy_ev_evq(struct mrc_ev_evq *ev_evq);
-
-int mrc_poll_ev_evq(struct mrc_ev_evq *ev_evq,
-		    int num_entries,
-		    struct mrc_ev_evt *ev_evt);
-
-int mrc_req_notify_ev_evq(struct mrc_ev_evq *ev_evq);
-
-int mrc_get_ev_evq_evt(struct mrc_comp_channel *channel,
-		       struct mrc_ev_evq **ev_evq,
-		       void **ev_evq_context);
-
-void mrc_ack_evq_events(struct mrc_ev_evq *ev_evq, unsigned int nevents);
 
 #endif /* _MRC_API_H_ */
 
