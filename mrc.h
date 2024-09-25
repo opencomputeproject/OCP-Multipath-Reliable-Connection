@@ -12,7 +12,8 @@
  * Copyright (c) 2024, Broadcom. All rights reserved. The term
  * Broadcom refers to Broadcom Limited and/or its subsidiaries.
  *
- * Copyright (c) 2024, Advanced Micro Devices (AMD), Inc.
+ * Copyright (c) 2024, Advanced Micro Devices (AMD), Inc.  All rights
+ * reserved.
  */
 
 #ifndef _MRC_API_H_
