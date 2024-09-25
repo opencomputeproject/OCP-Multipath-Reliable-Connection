@@ -162,21 +162,21 @@ int mrc_create_qp(struct mrc_context *mrc_ctx,
 
 enum mrc_qp_attr_mask {
 	// maximum inflight WriteIMM operations as Requester
-	MRC_QP_ATTR_MAX_WIMM      = (1<<0),
+	MRC_QP_ATTR_MAX_WIMM		  = (1<<0),
 	// maximum inflight WriteIMM operations as Responder
-	MRC_QP_ATTR_MAX_WIMM_DEST = (1<<1),
+	MRC_QP_ATTR_MAX_WIMM_DEST	  = (1<<1),
 	// maximum retry count in exponential range
-	MRC_QP_ATTR_RETRY_CNT_EXP = (1<<2),
+	MRC_QP_ATTR_RETRY_CNT_EXP	  = (1<<2),
 	// EV array to use for the MODIFY or QUERY operation
-	MRC_QP_ATTR_EV_ARRAY	  = (1<<3),
+	MRC_QP_ATTR_EV_ARRAY		  = (1<<3),
 	// maximum count of EVs for the QP
-	MRC_QP_ATTR_MAX_EV_COUNT  = (1<<4),
+	MRC_QP_ATTR_MAX_EV_COUNT	  = (1<<4),
 	// maximum value of the EV for the QP
-	MRC_QP_ATTR_MAX_EV_VALUE  = (1<<5),
+	MRC_QP_ATTR_MAX_EV_VALUE	  = (1<<5),
 	// manipulate EV monitored state mask
-	MRC_QP_ATTR_EV_MON_ST_MASK = (1<<6),
+	MRC_QP_ATTR_EV_STATE_MONITOR_MASK = (1<<6),
         // vendor specific configuration data
-	MRC_QP_ATTR_VENDOR_CFG    = (1<<31)
+	MRC_QP_ATTR_VENDOR_CFG		  = (1<<31)
 };
 
 /**
@@ -298,7 +298,7 @@ struct mrc_qp_attr {
 	/** Hardware generates an event when any EV's state *
 	 transitions to a monitored state in the mask.  Only
 	 EV_ASSUMED_BAD and EV_GOOD masking is supported. */
-	enum mrc_ev_state  ev_mon_st_mask;
+	enum mrc_ev_state  ev_state_monitor_mask;
 	uint8_t  vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
 
@@ -546,11 +546,11 @@ void mrc_ack_async_event(struct mrc_async_event *event);
  * state change that matches monitored EV states in the QP's EV monitored
  * state mask field.
  */
-struct mrc_ev_evt {
+struct mrc_ev_event {
   uint32_t qpn;
   uint32_t ev;
   enum mrc_ev_state state;
-  bool prev_evt_drop; /**< True if one or more events before this one were dropped. */
+  bool drop; /**< True if one or more events before this one were dropped. */
 };
 
 #endif /* _MRC_API_H_ */
