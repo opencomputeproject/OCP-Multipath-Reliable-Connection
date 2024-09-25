@@ -553,5 +553,14 @@ struct mrc_ev_event {
   bool drop; /**< True if one or more events before this one were dropped. */
 };
 
+/**
+ * @brief Poll for EV Events
+ * 
+ * @return
+ * Like mrc_poll_cq().
+ */
+
+int mrc_poll_ev_event(struct mrc_cq *cq, int num_entries, struct mrc_ev_event *ev_evt);
+
 #endif /* _MRC_API_H_ */
 
