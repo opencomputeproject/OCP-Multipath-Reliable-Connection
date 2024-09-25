@@ -11,12 +11,15 @@
  *
  * Copyright (c) 2024, Broadcom. All rights reserved. The term
  * Broadcom refers to Broadcom Limited and/or its subsidiaries.
+ *
+ * Copyright (c) 2024, Advanced Micro Devices (AMD), Inc.
  */
 
 #ifndef _MRC_API_H_
 #define _MRC_API_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <infiniband/verbs.h>
 
 #include <mrc_api_ver.h>
@@ -58,6 +61,7 @@ struct mrc_qp;
 struct mrc_cq;
 struct mrc_comp_channel;
 struct mrc_ev_array;
+struct mrc_ev_evq;
 
 struct mrc_attr {
 	enum mrc_version version; /* see enum mrc_version */
@@ -120,6 +124,7 @@ struct mrc_qp_init_attr {
 	void               *qp_context;
 	struct mrc_cq      *send_cq;
 	struct mrc_cq      *recv_cq;
+	struct mrc_ev_evq  *ev_evq;
 	struct ibv_qp_cap   cap;
 	int                 sq_sig_all;
 	struct ibv_pd      *pd;
@@ -169,7 +174,9 @@ enum mrc_qp_attr_mask {
 	MRC_QP_ATTR_MAX_EV_COUNT  = (1<<4),
 	// maximum value of the EV for the QP
 	MRC_QP_ATTR_MAX_EV_VALUE  = (1<<5),
-	// vendor specific configuration data
+	// manipulate EV monitored state mask
+	MRC_QP_ATTR_EV_MON_ST_MASK = (1<<6),
+        // vendor specific configuration data
 	MRC_QP_ATTR_VENDOR_CFG    = (1<<31)
 };
 
@@ -183,13 +190,18 @@ enum mrc_qp_attr_mask {
  * @return
  * Returns 0 on success. Errors like ibv_destroy_cq()
  */
-int mrc_destroy_cq(struct mrc_cq *cq);
 
+/**
+ * @brief Supported EV states.
+ *
+ */
 enum mrc_ev_state {
-	MRC_EV_GOOD		= 1,
-	MRC_EV_DENIED		= 2,
-	MRC_EV_ASSUMED_BAD	= 3
+	MRC_EV_GOOD             = 0x01,
+	MRC_EV_ASSUMED_BAD      = 0x02,
+	MRC_EV_DENIED	        = 0x04,
 };
+
+int mrc_destroy_cq(struct mrc_cq *cq);
 
 /**
  * @brief Create an array of EVs
@@ -284,6 +296,9 @@ struct mrc_qp_attr {
 	uint16_t max_ev_per_qp; /* max number of EVs per QP */
 	uint32_t max_ev_val; /* maximum value of each EV */
 	struct mrc_ev_array *ev_array;
+	/** Hardware generates an event when any EV's state
+	 * transitions to a monitored state in the mask. */
+	enum mrc_ev_state  ev_mon_st_mask;
 	uint8_t  vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
 
@@ -521,4 +536,54 @@ int mrc_get_async_event(struct mrc_context *mrc_ctx,
  */
 void mrc_ack_async_event(struct mrc_async_event *event);
 
+/**
+ * @brief EV Event structure.
+ *
+ * EV Event structure. Hardware generates an EV Event for every EV
+ * state change that matches monitored EV states in the QP's EV monitored
+ * state mask field.
+ *
+ */
+struct mrc_ev_evt {
+  uint32_t qpn;
+  uint32_t ev;
+  enum mrc_ev_state state;
+  bool prev_evt_drop; /**< True if one or more events before this one were dropped. */
+};
+
+/**
+ * @brief Create EV Event Queue.
+ *
+ * Create an EV Event Queue.
+ *
+ * @param mrc_contex[in]     - MRC context
+ * @param evte[in]	     - Minimum queue size in number of entries
+ * @param ev_evq_context[in] - Opaque pointer returned in mrc_get_ev_evq_evt()
+ * @param channel[in]	     - Optional pointer to MRC completion channel
+ * @param comp_vector[in]    - Completion vector number. At least zero.
+ *
+ * @return
+ * Returns 0 on success or the value of errno on failure.
+ */
+struct mrc_ev_evq *mrc_create_ev_evq(struct mrc_context *mrc_ctx,
+				     int evte,
+				     void *ev_evq_context,
+				     struct mrc_comp_channel *channel,
+				     int comp_vector);
+
+int mrc_destroy_ev_evq(struct mrc_ev_evq *ev_evq);
+
+int mrc_poll_ev_evq(struct mrc_ev_evq *ev_evq,
+		    int num_entries,
+		    struct mrc_ev_evt *ev_evt);
+
+int mrc_req_notify_ev_evq(struct mrc_ev_evq *ev_evq);
+
+int mrc_get_ev_evq_evt(struct mrc_comp_channel *channel,
+		       struct mrc_ev_evq **ev_evq,
+		       void **ev_evq_context);
+
+void mrc_ack_evq_events(struct mrc_ev_evq *ev_evq, unsigned int nevents);
+
 #endif /* _MRC_API_H_ */
+
