@@ -416,7 +416,7 @@ int mrc_destroy_comp_channel(struct mrc_comp_channel *channel);
  * Create a CQ
  *
  * @param mrc_ctx[in]    - MRC context to use
- * @param rep_overrun[in] - Detect and report CQ overruns if true
+ * @param sup_overrun[in] - Detect and report CQ overruns if true
  * @param cqe[in]        - Minimum number of entries required for CQ
  * @param cq_context[in] - application context
  * @param channel[in]	 - completion channel
