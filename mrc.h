@@ -561,4 +561,3 @@ struct mrc_ev_event {
 int mrc_poll_ev_event(struct mrc_cq *ev_cq, int num_entries, struct mrc_ev_event *ev_evt);
 
 #endif /* _MRC_API_H_ */
-
