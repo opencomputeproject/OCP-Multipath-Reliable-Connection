@@ -70,6 +70,14 @@ struct mrc_attr {
 };
 
 /**
+ * @brief MRC CQ attributes
+ *
+ */
+struct mrc_cq_attr {
+	bool ignore_overrun; 	/**< If true CQ overruns are ignored */
+};
+
+/**
  * @brief Query Device
  *
  * Query the device to check MRC support.
@@ -416,7 +424,7 @@ int mrc_destroy_comp_channel(struct mrc_comp_channel *channel);
  * Create a CQ
  *
  * @param mrc_ctx[in]    - MRC context to use
- * @param detect_overrun[in] - If true, detect CQ overrun
+ * @param cq_attr[in]    - CQ attributes
  * @param cqe[in]        - Minimum number of entries required for CQ
  * @param cq_context[in] - application context
  * @param channel[in]	 - completion channel
@@ -427,7 +435,7 @@ int mrc_destroy_comp_channel(struct mrc_comp_channel *channel);
  * Returns 0 on success. Errors like ibv_create_cq()
  */
 int mrc_create_cq(struct mrc_context *mrc_ctx,
-		  bool detect_overrun,
+		  struct mrc_cq_attr *attr,
 		  int cqe,
 		  void *cq_context,
 		  struct mrc_comp_channel *channel,
