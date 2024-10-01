@@ -122,7 +122,6 @@ int mrc_context_init(struct ibv_context *context,
  * Destroy the MRC lib context.
  *
  * @param[in] mrc_ctx - MRC context
- * @param[in] ev_cq   - CQ where EV Events are reported
  * @return
  * Returns 0 on success, and -1 on failure. Error code in errno.
  */
