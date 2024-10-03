@@ -304,8 +304,9 @@ struct mrc_qp_attr {
 	struct mrc_ev_array *ev_array;
 	/** Hardware generates an event when any EV's state *
 	 transitions to a monitored state in the mask.  Only
-	 EV_ASSUMED_BAD and EV_GOOD masking is supported. */
-	enum mrc_ev_state  ev_state_monitor_mask;
+	 EV_ASSUMED_BAD and EV_GOOD masking is supported.  Bit offsets
+	 for states match the corresponding value in mrc_ev_state.*/
+	int ev_state_monitor_mask;
 	uint8_t  vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
 
