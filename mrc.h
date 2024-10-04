@@ -70,14 +70,6 @@ struct mrc_attr {
 };
 
 /**
- * @brief MRC CQ attributes
- *
- */
-struct mrc_cq_attr {
-	bool ignore_overrun; 	/**< If true CQ overruns are ignored */
-};
-
-/**
  * @brief Query Device
  *
  * Query the device to check MRC support.
@@ -424,7 +416,6 @@ int mrc_destroy_comp_channel(struct mrc_comp_channel *channel);
  * Create a CQ
  *
  * @param mrc_ctx[in]    - MRC context to use
- * @param cq_attr[in]    - CQ attributes
  * @param cqe[in]        - Minimum number of entries required for CQ
  * @param cq_context[in] - application context
  * @param channel[in]	 - completion channel
@@ -435,7 +426,6 @@ int mrc_destroy_comp_channel(struct mrc_comp_channel *channel);
  * Returns 0 on success. Errors like ibv_create_cq()
  */
 int mrc_create_cq(struct mrc_context *mrc_ctx,
-		  struct mrc_cq_attr *attr,
 		  int cqe,
 		  void *cq_context,
 		  struct mrc_comp_channel *channel,
@@ -559,6 +549,22 @@ struct mrc_ev_event {
   enum mrc_ev_state state;
   bool drop; /**< True if one or more events before this one were dropped. */
 };
+
+/**
+ * @brief Create an EV Event CQ
+ *
+ * EV CQs are used to obtain EV Events from hardware.  They differ
+ * from other CQs in that they do not support CQ overruns.
+ *
+ * @return
+ * Like mrc_create_cq()
+ */
+int mrc_create_ev_event_cq(struct mrc_context *mrc_ctx,
+			   int cqe,
+			   void *cq_context,
+			   struct mrc_comp_channel *channel,
+			   int comp_vector,
+			   struct mrc_cq **ev_cq);
 
 /**
  * @brief Poll for EV Events
