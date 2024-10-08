@@ -54,7 +54,9 @@ enum mrc_version {
 enum mrc_attr_opt {
 	/* The implementation supports the capability to update EV values after
 	 * the QP has transitioned past the RTR stage */
-	MRC_OPT_CAP_UPDATE_EV_VAL_RTS = (1<<0)
+	MRC_OPT_CAP_UPDATE_EV_VAL_RTS = (1<<0),
+	/* The implementation supports EV Event CQs */
+	MRC_OPT_CAP_EV_EVENT_CQ = (1<<1),
 };
 
 struct mrc_context;
