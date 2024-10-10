@@ -523,7 +523,43 @@ int mrc_req_notify_cq(struct mrc_cq *cq, int solicited_only);
  */
 int mrc_get_async_event(struct mrc_context *mrc_ctx,
 			struct mrc_async_event *event);
+/**
+ * @brief Get next CQ event
+ *
+ * Read the next CQ event.
+ * All completion events returned by mrc_get_cq_event() must
+ * eventually be acknowledged with mrc_ack_cq_events().
+ *
+ * @param channel[in] 	- MRC channel
+ * @param cq[out] 	- Returned CQ that has the event
+ * @param cq_context[out] - Returned application CQ context
+ *
+ * @return
+ * Returns 0 on success, and -1 on failure. Error semantics like
+ * mrc_get_cq_event().
+ */
+int mrc_get_cq_event(struct mrc_comp_channel *channel,
+			struct mrc_cq **cq, void **cq_context);
 
+/**
+ * @brief Acknowledge CQ completion events
+ *
+ * All completion events which are returned by mrc_get_cq_event() must
+ * be acknowledged.  To avoid races, mrc_destroy_cq() will wait for
+ * all completion events to be acknowledged, so there should be a
+ * one-to-one correspondence between acks and successful gets.  An
+ * application may accumulate multiple completion events and
+ * acknowledge them in a single call to mrc_ack_cq_events() by passing
+ * the number of events to ack in @nevents.
+ *
+ * @param cq[in]	- MRC CQ
+ * @param nevents[in]	- Number of events to acknowledge
+ *
+ * @return
+ * Returns 0 on success, and -1 on failure. Error semantics like
+ * ibv_ack_cq_events();
+ */
+int mrc_ack_cq_events(struct mrc_cq *cq, unsigned int nevents);
 
 /**
  * @brief Ack the asynchronous event
