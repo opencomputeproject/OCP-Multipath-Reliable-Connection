@@ -25,6 +25,10 @@
 
 #include <mrc_api_ver.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MRC_API_CURRENT_VERSION	MRC_API_VER(1, 0, 0)
 
 #define MRC_API_LAST_SUPPORTED_VERSION	MRC_API_VER(0, 0, 0)
@@ -575,5 +579,9 @@ int mrc_create_ev_event_cq(struct mrc_context *mrc_ctx,
  * Like mrc_poll_cq().
  */
 int mrc_poll_ev_event(struct mrc_cq *ev_cq, int num_entries, struct mrc_ev_event *ev_event);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _MRC_API_H_ */

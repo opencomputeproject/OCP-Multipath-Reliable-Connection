@@ -91,7 +91,7 @@ int main(int argc, char **argv)
 	ctx_t *ctx = NULL;
 	int op;
 
-	ctx = calloc(1, sizeof(*ctx));
+	ctx = (ctx_t *) calloc(1, sizeof(*ctx));
 	CHK_ERR(!ctx, "Failed to alloc ctx");
 
 	ctx->ib_port = 1; /* XXX static for now */
