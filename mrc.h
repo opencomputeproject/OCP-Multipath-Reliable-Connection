@@ -48,19 +48,19 @@ extern "C" {
 #endif
 
 enum mrc_version {
-	MRC_VERSION_0 = 0, /* MRC not supported */
-	MRC_VERSION_1 = (1 << 0),
+	MRC_VERSION_0 	= 0, /* MRC not supported */
+	MRC_VERSION_1 	= (1 << 0),
 };
 
 /**
  * Optional features supported by the implementation.
  */
 enum mrc_attr_opt {
-	/* The implementation supports the capability to update EV values after
+	/* The implementation supports the capability to update EV after
 	 * the QP has transitioned past the RTR stage */
-	MRC_OPT_CAP_UPDATE_EV_VAL_RTS = (1<<0),
+	MRC_OPT_CAP_UPDATE_EV_RTS 	= (1<<0),
 	/* The implementation supports EV Event CQs */
-	MRC_OPT_CAP_EV_EVENT_CQ = (1<<1),
+	MRC_OPT_CAP_EV_EVENT_CQ 	= (1<<1),
 };
 
 struct mrc_context;
@@ -70,15 +70,18 @@ struct mrc_comp_channel;
 struct mrc_ev_array;
 
 struct mrc_attr {
-	enum mrc_version version; /* see enum mrc_version */
+	/* bitmap indicating all versions supported. see enum mrc_version */
+	uint32_t mrc_version;
 	uint16_t max_wimm_dest;
-	enum mrc_attr_opt opt_attr;
+	/* bitmap indicating all optional features supported. see mrc_attr_opt */
+	uint32_t opt_attr;
 };
 
 /**
  * @brief Query Device
  *
- * Query the device to check MRC support.
+ * Query the device to check MRC support and other
+ * attributes.
  *
  * @param context[in] - IB Verbs context
  * @param attrs[out]  - MRC attributes
@@ -90,28 +93,29 @@ int mrc_query_device(struct ibv_context *context,
 		     struct mrc_attr *attr);
 
 /**
- * @brief Initialize the MRC lib
+ * @brief Create a MRC lib context
  *
- * Initialize the MRC library. struct mrc_context provides a container for all
- * objects created under the MRC library. The primary function of this is to
- * track the objects and clean up when required.
- *
+ * Create an MRC library context.
+ * `struct mrc_context` provides an instance of the MRC library.
+ * It is the parent object for all other objects.
+ * The primary function of this is to track the objects and clean up.
+ * The context structure eliminates the need for any global objects
+ * within the MRC library and supports multiple user libraries using MRC.
  * Additionally, it provides the implementation an opportunity to allocate
  * any system resources.
  *
- * This context supports layered applications where different libraries inside
- * one application can create / manage their own MRC objects, removing the
- * requirement of global variables in MRC lib.
+ * The application provides the version of the API that is in use.
+ * This allows the underlying implementation to adapt accordingly.
  *
  * @param context[in]  - IB Verbs context
- * @param mrc_ctx[out] - MRC context, if successful
+ * @param mrc_api_version_used[in] - MRC version used by the application
  *
  * @return
- * Returns 0 on success, and -1 on failure. Error code in errno.
+ * Returns a pointer to the allocated context on success or NULL if
+ * the request fails.
  */
-int mrc_context_init(struct ibv_context *context,
-			uint32_t mrc_api_version,
-			struct mrc_context **mrc_ctx);
+struct mrc_context* mrc_create_context(struct ibv_context *context,
+			uint32_t mrc_api_version_used);
 
 
 /**
@@ -121,9 +125,9 @@ int mrc_context_init(struct ibv_context *context,
  *
  * @param[in] mrc_ctx - MRC context
  * @return
- * Returns 0 on success, and -1 on failure. Error code in errno.
+ * Returns 0 on success or -1 on failure.
  */
-int mrc_context_destroy(struct mrc_context *mrc_ctx);
+int mrc_destroy_context(struct mrc_context *mrc_ctx);
 
 struct mrc_qp_init_attr {
 	void               *qp_context;
@@ -158,30 +162,30 @@ int mrc_destroy_qp(struct mrc_qp *qp);
  * @param qp_init_attr_ex - QP init attributes
  *
  * @return
- * Returns 0 on success. Errors like ibv_create_qp().
+ * Returns a pointer to the created QP on success or NULL if
+ * the request fails. Errors like ibv_create_qp().
  */
-int mrc_create_qp(struct mrc_context *mrc_ctx,
-		  struct mrc_qp_init_attr *mrc_qp_attr,
-		  struct mrc_qp **qp);
+struct mrc_qp* mrc_create_qp(struct mrc_context *mrc_ctx,
+		  struct mrc_qp_init_attr *mrc_qp_attr);
 
 #define MRC_MAX_VENDOR_CFG_SIZE 128
 
 enum mrc_qp_attr_mask {
-	// maximum inflight WriteIMM operations as Requester
+	/* maximum inflight WriteIMM operations as Requester */
 	MRC_QP_ATTR_MAX_WIMM		  = (1<<0),
-	// maximum inflight WriteIMM operations as Responder
+	/* maximum inflight WriteIMM operations as Responder */
 	MRC_QP_ATTR_MAX_WIMM_DEST	  = (1<<1),
-	// maximum retry count in exponential range
+	/* maximum retry count in exponential range */
 	MRC_QP_ATTR_RETRY_CNT_EXP	  = (1<<2),
-	// EV array to use for the MODIFY or QUERY operation
+	/* EV array to use for the MODIFY or QUERY operation */
 	MRC_QP_ATTR_EV_ARRAY		  = (1<<3),
-	// maximum count of EVs for the QP
+	/* maximum count of EVs for the QP */
 	MRC_QP_ATTR_MAX_EV_COUNT	  = (1<<4),
-	// maximum value of the EV for the QP
-	MRC_QP_ATTR_MAX_EV_VALUE	  = (1<<5),
-	// manipulate EV monitored state mask
+	/* maximum value of the EV for the QP */
+	MRC_QP_ATTR_MAX_EV	          = (1<<5),
+	/* manipulate EV monitored state mask */
 	MRC_QP_ATTR_EV_STATE_MONITOR_MASK = (1<<6),
-        // vendor specific configuration data
+        /* vendor specific configuration data */
 	MRC_QP_ATTR_VENDOR_CFG		  = (1<<31)
 };
 
@@ -190,9 +194,9 @@ enum mrc_qp_attr_mask {
  *
  */
 enum mrc_ev_state {
-	MRC_EV_GOOD             = 0x01,
-	MRC_EV_ASSUMED_BAD      = 0x02,
-	MRC_EV_DENIED	        = 0x04,
+	MRC_EV_GOOD             = (1<<0),
+	MRC_EV_ASSUMED_BAD      = (1<<1),
+	MRC_EV_DENIED	        = (1<<2),
 };
 
 /**
@@ -219,13 +223,14 @@ int mrc_destroy_cq(struct mrc_cq *cq);
  *				The state_array contains `count` elements.
  * @param val_array[in] - Values to assign each EV. Passing NULL assigns 0 as the value.
  * 			  The value_array array contains `count` elements.
- * @param ev_array[out] - EV array that was allocated
  * 
  * @return
- * Returns 0 on success.
+ * Returns a pointer to the created array on success or NULL if
+ * the request fails.
  */
-int mrc_create_ev_array(struct mrc_context *mrc_ctx, int count, enum mrc_ev_state *state_array,
-				uint32_t *val_array, struct mrc_ev_array **ev_array);
+struct mrc_ev_array* mrc_create_ev_array(struct mrc_context *mrc_ctx, int count,
+				enum mrc_ev_state *state_array,
+				uint32_t *val_array);
 
 /**
  * @brief Destroy an EV array
@@ -235,7 +240,7 @@ int mrc_create_ev_array(struct mrc_context *mrc_ctx, int count, enum mrc_ev_stat
  * @param ev_array[in] - EV array to destroy
  * 
  * @return
- * Returns 0 on success.
+ * Returns 0 on success or -1 on failure.
  */
 int mrc_destroy_ev_array(struct mrc_ev_array *ev_array);
 
@@ -247,7 +252,7 @@ int mrc_destroy_ev_array(struct mrc_ev_array *ev_array);
  * @param state[out] - State of the EV
  * 
  * @return
- * Returns 0 on success, -1 on error.
+ * Returns 0 on success or -1 on error.
  */
 int mrc_get_ev_state(struct mrc_ev_array *ev_array, int index, enum mrc_ev_state *state);
 
@@ -256,12 +261,12 @@ int mrc_get_ev_state(struct mrc_ev_array *ev_array, int index, enum mrc_ev_state
  * 
  * @param ev_array[in] - EV array
  * @param index[in] - Index of the EV entry
- * @param val[out] - Value of the EV
+ * @param ev[out] - Value of the EV
  * 
  * @return
- * Returns 0 on success, -1 on error.
+ * Returns 0 on success or -1 on error.
  */
-int mrc_get_ev_val(struct mrc_ev_array *ev_array, int index, uint32_t *val);
+int mrc_get_ev(struct mrc_ev_array *ev_array, int index, uint32_t *ev);
 
 /**
  * @brief Update the state of an EV
@@ -273,7 +278,7 @@ int mrc_get_ev_val(struct mrc_ev_array *ev_array, int index, uint32_t *val);
  * @param state[in] - State to set to
  * 
  * @return
- * Returns 0 on success.
+ * Returns 0 on success or -1 on error.
  */
 int mrc_update_ev_state(struct mrc_ev_array *ev_array, int index, enum mrc_ev_state state);
 
@@ -282,25 +287,26 @@ int mrc_update_ev_state(struct mrc_ev_array *ev_array, int index, enum mrc_ev_st
  * 
  * NOTE: Updating the value of an EV that is attached to a QP that has
  * transitioned past the RTR stage is an optional feature.
- * See MRC_OPT_CAP_UPDATE_EV_VAL_RTS.
+ * See MRC_OPT_CAP_UPDATE_EV_RTS.
  *
  * @param ev_array[in] - EV array
  * @param index[in] - Index of the EV entry
- * @param val[in] - value to set for the entry
+ * @param ev[in] - value to set for the entry
  * 
  * @return
- * Returns 0 on success, -ENOTSUP when not supported and -1 on error.
+ * Returns 0 on success or -1 on error. When the feature is not supported,
+ * returns -ENOTSUP.
  */
-int mrc_update_ev_val(struct mrc_ev_array *ev_array, int index, uint32_t val);
+int mrc_update_ev(struct mrc_ev_array *ev_array, int index, uint32_t ev);
 
 struct mrc_qp_attr {
 	uint16_t max_wimm;
 	uint16_t max_wimm_dest;
 	uint8_t  retry_cnt_exp;
 	uint16_t max_ev_per_qp; /* max number of EVs per QP */
-	uint32_t max_ev_val; /* maximum value of each EV */
+	uint32_t max_ev; 	/* maximum value of each EV */
 	struct mrc_ev_array *ev_array;
-	/** Hardware generates an event when any EV's state *
+	/** An event is generated when any EV's state *
 	 transitions to a monitored state in the mask.  Only
 	 EV_ASSUMED_BAD and EV_GOOD masking is supported.  Bit offsets
 	 for states match the corresponding value in mrc_ev_state.*/
@@ -321,7 +327,7 @@ struct mrc_qp_attr {
  *    to contain the EV entries. The EV values and state
  *    will be copied into the EV entries in the array. The
  *    application can read the state/values using
- *    mrc_ev_get_state() / mrc_ev_get_val().
+ *    mrc_get_ev_state() / mrc_get_ev().
  *
  * @param qp[in]            - MRC QP
  * @param vattr[out]        - Libibverbs attributes returned
@@ -331,7 +337,7 @@ struct mrc_qp_attr {
  * @param init_attr[in]     - Additional MRC attributes returned
  *
  * @return
- * Returns 0 on success. Errors like ibv_query_qp()
+ * Returns 0 on success and errors like ibv_query_qp()
  */
 int mrc_query_qp(struct mrc_qp *qp,
 		 struct ibv_qp_attr *vattr,
@@ -352,7 +358,7 @@ int mrc_query_qp(struct mrc_qp *qp,
  *    array.
  * 2. RTS -> RTS - provides the updated set of EVs for the QP.
  *    Note: updating the EV values in this stage is an optional feature.
- *    See MRC_OPT_CAP_UPDATE_EV_VAL_RTS.
+ *    See MRC_OPT_CAP_UPDATE_EV_RTS.
  * 
  * The array entries are copied by value during the modify operations,
  * such that the EV array can be destroyed if so desired by the application.
@@ -375,8 +381,13 @@ int mrc_modify_qp(struct mrc_qp *qp,
 /**
  * @brief Retrieve the QP number
  *
+ * @param qp[in] 	- MRC QP
+ * @param qpn[out] 	- Returned QP number
+ *
+ * @return
+ * Returns 0 on success or -1 on error
  */
-uint32_t mrc_get_qpn(struct mrc_qp *qp);
+int mrc_get_qpn(struct mrc_qp *qp, uint32_t *qpn);
 
 
 /**
@@ -397,10 +408,10 @@ int mrc_create_comp_channel(struct mrc_context *mrc_ctx,
  * @brief Retrieve the completion channel's file descriptor
  *
  * @param channel[in] 	- MRC completion channel
- * @param fd[out] 	- fd underlying the completion channel
+ * @param fd[out]	- Returned file descriptor
  *
  * @return
- * Returns 0 on success, -1 on error.
+ * Returns 0 on success or -1 on error.
  */
 int mrc_get_comp_channel_fd(struct mrc_comp_channel *channel, int *fd);
 
@@ -426,17 +437,15 @@ int mrc_destroy_comp_channel(struct mrc_comp_channel *channel);
  * @param cq_context[in] - application context
  * @param channel[in]	 - completion channel
  * @param comp_vector[in] - Completion vector to signal completion events
- * @param cq[out]        - Created CQ
  *
  * @return
  * Returns 0 on success. Errors like ibv_create_cq()
  */
-int mrc_create_cq(struct mrc_context *mrc_ctx,
+struct mrc_cq* mrc_create_cq(struct mrc_context *mrc_ctx,
 		  int cqe,
 		  void *cq_context,
 		  struct mrc_comp_channel *channel,
-		  int comp_vector,
-		  struct mrc_cq **cq);
+		  int comp_vector);
 
 /**
  * @brief Post a receive operation on a QP
@@ -449,7 +458,7 @@ int mrc_create_cq(struct mrc_context *mrc_ctx,
  * @param bad_wr[out] - Error receive request
  *
  * @return
- * Returns 0 on success, and -1 on failure. Error semantics like
+ * Returns 0 on success or -1 on failure. Error semantics like
  * ibv_post_recv().
  */
 int mrc_post_recv(struct mrc_qp *qp,
@@ -466,7 +475,9 @@ int mrc_post_recv(struct mrc_qp *qp,
  * @param wc[out]         - Obtained completion entries
  *
  * @return
- * Like ibv_poll_cq().
+ * Returns the number of completions found on success or -1 on error.
+ * If the return value is >=0 and less than num_entries, then the CQ
+ * was emptied.
  */
 int mrc_poll_cq(struct mrc_cq *cq,
 		int num_entries,
@@ -482,8 +493,7 @@ int mrc_poll_cq(struct mrc_cq *cq,
  * @param bad_wr[out] - Error WR
  *
  * @return
- * Returns 0 on success, and -1 on failure. Error semantics like
- * ibv_post_send().
+ * Returns 0 on success. Error semantics like ibv_post_send().
  */
 int mrc_post_send(struct mrc_qp *qp,
 		  struct ibv_send_wr *wr,
@@ -507,8 +517,7 @@ struct mrc_async_event {
  * @param solicited_only[in]	- Request event only on "solicited" events
  *
  * @return
- * Returns 0 on success, and -1 on failure. Error semantics like
- * ibv_req_notify_cq().
+ * Returns 0 on success. Error semantics like ibv_req_notify_cq().
  */
 int mrc_req_notify_cq(struct mrc_cq *cq, int solicited_only);
 
@@ -522,11 +531,11 @@ int mrc_req_notify_cq(struct mrc_cq *cq, int solicited_only);
  * @param event[out]	- Reported event
  *
  * @return
- * Returns 0 on success, and -1 on failure. Error semantics like
- * ibv_get_async_event().
+ * Returns 0 on success. Error semantics like ibv_get_async_event().
  */
 int mrc_get_async_event(struct mrc_context *mrc_ctx,
 			struct mrc_async_event *event);
+
 /**
  * @brief Get next CQ event
  *
@@ -540,7 +549,7 @@ int mrc_get_async_event(struct mrc_context *mrc_ctx,
  *
  * @return
  * Returns 0 on success, and -1 on failure. Error semantics like
- * mrc_get_cq_event().
+ * ibv_get_cq_event().
  */
 int mrc_get_cq_event(struct mrc_comp_channel *channel,
 			struct mrc_cq **cq, void **cq_context);
@@ -560,10 +569,9 @@ int mrc_get_cq_event(struct mrc_comp_channel *channel,
  * @param nevents[in]	- Number of events to acknowledge
  *
  * @return
- * Returns 0 on success, and -1 on failure. Error semantics like
- * ibv_ack_cq_events();
+ * Returns no value
  */
-int mrc_ack_cq_events(struct mrc_cq *cq, unsigned int nevents);
+void mrc_ack_cq_events(struct mrc_cq *cq, unsigned int nevents);
 
 /**
  * @brief Ack the asynchronous event
@@ -586,33 +594,46 @@ void mrc_ack_async_event(struct mrc_async_event *event);
  * state mask field.
  */
 struct mrc_ev_event {
-  uint32_t qpn;
-  uint32_t ev;
-  enum mrc_ev_state state;
-  bool drop; /**< True if one or more events before this one were dropped. */
+	uint32_t qpn;
+	uint32_t ev;
+	enum mrc_ev_state state;
+	bool drop; /**< True if one or more events before this one were dropped. */
 };
 
 /**
  * @brief Create an EV Event CQ
  *
- * EV CQs are used to obtain EV Events from hardware.  They differ
+ * EV CQs are used to obtain EV Events. They differ
  * from other CQs in that they do not support CQ overruns.
  *
+ * @param mrc_ctx[in]    - MRC context to use
+ * @param cqe[in]        - Minimum number of entries required for CQ
+ * @param cq_context[in] - application context
+ * @param channel[in]	 - completion channel
+ * @param comp_vector[in] - Completion vector to signal completion events
+ *
  * @return
- * Like mrc_create_cq()
+ * Returns 0 on success. Errors like ibv_create_cq()
  */
-int mrc_create_ev_event_cq(struct mrc_context *mrc_ctx,
+struct mrc_cq* mrc_create_ev_event_cq(struct mrc_context *mrc_ctx,
 			   int cqe,
 			   void *cq_context,
 			   struct mrc_comp_channel *channel,
-			   int comp_vector,
-			   struct mrc_cq **ev_cq);
+			   int comp_vector);
 
 /**
  * @brief Poll for EV Events
  * 
+ * Polls for an EV event
+ *
+ * @param ev_cq[in]       - EV event completion queue
+ * @param num_entries[in] - Number of completion entries
+ * @param ev_event[out]   - Obtained EV event completion entries
+ *
  * @return
- * Like mrc_poll_cq().
+ * Returns the number of completions found on success or -1 on error.
+ * If the return value is >=0 and less than num_entries, then the CQ
+ * was emptied.
  */
 int mrc_poll_ev_event(struct mrc_cq *ev_cq, int num_entries, struct mrc_ev_event *ev_event);
 
