@@ -129,6 +129,94 @@ struct mrc_context* mrc_create_context(struct ibv_context *context,
  */
 int mrc_destroy_context(struct mrc_context *mrc_ctx);
 
+/**
+ * @brief Create a completion channel
+ *
+ * Create a completion channel
+ *
+ * @param mrc_ctx[in] - MRC context
+ * @param channel[out] - Created MRC channel
+ *
+ * @return
+ * Returns 0 on success. Errors like ibv_create_comp_channel().
+ */
+int mrc_create_comp_channel(struct mrc_context *mrc_ctx,
+		struct mrc_comp_channel **channel);
+
+/**
+ * @brief Retrieve the completion channel's file descriptor
+ *
+ * @param channel[in] 	- MRC completion channel
+ * @param fd[out]	- Returned file descriptor
+ *
+ * @return
+ * Returns 0 on success or -1 on error.
+ */
+int mrc_get_comp_channel_fd(struct mrc_comp_channel *channel, int *fd);
+
+/**
+ * @brief Destroy a completion channel
+ *
+ * Destroy a completion channel
+ *
+ * @param channel[in] - Completion channel
+ *
+ * @return
+ * Returns 0 on success. Errors like ibv_destroy_comp_channel().
+ */
+int mrc_destroy_comp_channel(struct mrc_comp_channel *channel);
+
+/**
+ * @brief Create a CQ
+ *
+ * Create a CQ
+ *
+ * @param mrc_ctx[in]    - MRC context to use
+ * @param cqe[in]        - Minimum number of entries required for CQ
+ * @param cq_context[in] - application context
+ * @param channel[in]	 - completion channel
+ * @param comp_vector[in] - Completion vector to signal completion events
+ *
+ * @return
+ * Returns a pointer to the allocated CQ on success or NULL if
+ * the request fails. Errors like ibv_create_cq().
+ */
+struct mrc_cq* mrc_create_cq(struct mrc_context *mrc_ctx,
+		  int cqe,
+		  void *cq_context,
+		  struct mrc_comp_channel *channel,
+		  int comp_vector);
+
+/**
+ * @brief Poll for a Completion
+ *
+ * Polls for a completion entry, like ibv_poll_cq()
+ *
+ * @param cq[in]          - Completion queue
+ * @param num_entries[in] - Number of completion entries
+ * @param wc[out]         - Obtained completion entries
+ *
+ * @return
+ * Returns the number of completions found on success or -1 on error.
+ * If the return value is >=0 and less than num_entries, then the CQ
+ * was emptied.
+ */
+int mrc_poll_cq(struct mrc_cq *cq,
+		int num_entries,
+		struct ibv_wc *wc);
+
+/**
+ * @brief Destroy a CQ
+ *
+ * Destroy a CQ
+ *
+ * @param cq[in] - MRC CQ
+ *
+ * @return
+ * Returns 0 on success. Errors like ibv_destroy_cq()
+ */
+int mrc_destroy_cq(struct mrc_cq *cq);
+
 struct mrc_qp_init_attr {
 	void               *qp_context;
 	struct mrc_cq      *send_cq;
@@ -140,18 +228,6 @@ struct mrc_qp_init_attr {
 	/* see enum ibv_qp_create_send_ops_flags */
 	uint64_t            send_ops_flags;
 };
-
-/**
- * @brief Destroy a QP
- *
- * Destroy a QP
- *
- * @param qp[in] - MRC QP
- *
- * @return
- * Returns 0 on success. Errors like ibv_destroy_qp()
- */
-int mrc_destroy_qp(struct mrc_qp *qp);
 
 /**
  * @brief Create an MRC QP
@@ -168,6 +244,18 @@ int mrc_destroy_qp(struct mrc_qp *qp);
 struct mrc_qp* mrc_create_qp(struct mrc_context *mrc_ctx,
 		  struct mrc_qp_init_attr *mrc_qp_attr);
 
+/**
+ * @brief Destroy a QP
+ *
+ * Destroy a QP
+ *
+ * @param qp[in] - MRC QP
+ *
+ * @return
+ * Returns 0 on success. Errors like ibv_destroy_qp()
+ */
+int mrc_destroy_qp(struct mrc_qp *qp);
+
 #define MRC_MAX_VENDOR_CFG_SIZE 128
 
 enum mrc_qp_attr_mask {
@@ -182,12 +270,13 @@ enum mrc_qp_attr_mask {
 	/* maximum count of EVs for the QP */
 	MRC_QP_ATTR_MAX_EV_COUNT	  = (1<<4),
 	/* maximum value of the EV for the QP */
-	MRC_QP_ATTR_MAX_EV	          = (1<<5),
+	MRC_QP_ATTR_MAX_EV_VAL	          = (1<<5),
 	/* manipulate EV monitored state mask */
 	MRC_QP_ATTR_EV_STATE_MONITOR_MASK = (1<<6),
         /* vendor specific configuration data */
 	MRC_QP_ATTR_VENDOR_CFG		  = (1<<31)
 };
+
 
 /**
  * @brief Supported EV states.
@@ -198,18 +287,6 @@ enum mrc_ev_state {
 	MRC_EV_ASSUMED_BAD      = (1<<1),
 	MRC_EV_DENIED	        = (1<<2),
 };
-
-/**
- * @brief Destroy a CQ
- *
- * Destroy a CQ
- *
- * @param cq[in] - MRC CQ
- *
- * @return
- * Returns 0 on success. Errors like ibv_destroy_cq()
- */
-int mrc_destroy_cq(struct mrc_cq *cq);
 
 /**
  * @brief Create an array of EVs
@@ -391,63 +468,6 @@ int mrc_get_qpn(struct mrc_qp *qp, uint32_t *qpn);
 
 
 /**
- * @brief Create a completion channel
- *
- * Create a completion channel
- *
- * @param mrc_ctx[in] - MRC context
- * @param channel[out] - Created MRC channel
- *
- * @return
- * Returns 0 on success. Errors like ibv_create_comp_channel().
- */
-int mrc_create_comp_channel(struct mrc_context *mrc_ctx,
-		struct mrc_comp_channel **channel);
-
-/**
- * @brief Retrieve the completion channel's file descriptor
- *
- * @param channel[in] 	- MRC completion channel
- * @param fd[out]	- Returned file descriptor
- *
- * @return
- * Returns 0 on success or -1 on error.
- */
-int mrc_get_comp_channel_fd(struct mrc_comp_channel *channel, int *fd);
-
-/**
- * @brief Destroy a completion channel
- *
- * Destroy a completion channel
- *
- * @param channel[in] - Completion channel
- *
- * @return
- * Returns 0 on success. Errors like ibv_destroy_comp_channel().
- */
-int mrc_destroy_comp_channel(struct mrc_comp_channel *channel);
-
-/**
- * @brief Create a CQ
- *
- * Create a CQ
- *
- * @param mrc_ctx[in]    - MRC context to use
- * @param cqe[in]        - Minimum number of entries required for CQ
- * @param cq_context[in] - application context
- * @param channel[in]	 - completion channel
- * @param comp_vector[in] - Completion vector to signal completion events
- *
- * @return
- * Returns 0 on success. Errors like ibv_create_cq()
- */
-struct mrc_cq* mrc_create_cq(struct mrc_context *mrc_ctx,
-		  int cqe,
-		  void *cq_context,
-		  struct mrc_comp_channel *channel,
-		  int comp_vector);
-
-/**
  * @brief Post a receive operation on a QP
  *
  * Posts a receive operation for RDMA w/ IMM operations on the specified
@@ -464,24 +484,6 @@ struct mrc_cq* mrc_create_cq(struct mrc_context *mrc_ctx,
 int mrc_post_recv(struct mrc_qp *qp,
 		  struct ibv_recv_wr *wr,
 		  struct ibv_recv_wr **bad_wr);
-
-/**
- * @brief Poll for a Completion
- *
- * Polls for a completion entry, like ibv_poll_cq()
- *
- * @param cq[in]          - Completion queue
- * @param num_entries[in] - Number of completion entries
- * @param wc[out]         - Obtained completion entries
- *
- * @return
- * Returns the number of completions found on success or -1 on error.
- * If the return value is >=0 and less than num_entries, then the CQ
- * was emptied.
- */
-int mrc_poll_cq(struct mrc_cq *cq,
-		int num_entries,
-		struct ibv_wc *wc);
 
 /**
  * @brief Post an MRC operation
@@ -509,19 +511,6 @@ struct mrc_async_event {
 };
 
 /**
- * @brief Request notifications
- *
- * Requests notifications on the CQ, like ibv_req_notify_cq().
- *
- * @param cq[in]	- MRC CQ
- * @param solicited_only[in]	- Request event only on "solicited" events
- *
- * @return
- * Returns 0 on success. Error semantics like ibv_req_notify_cq().
- */
-int mrc_req_notify_cq(struct mrc_cq *cq, int solicited_only);
-
-/**
  * @brief Get next event
  *
  * Obtain the next event. All events must be acknowledged by
@@ -535,6 +524,33 @@ int mrc_req_notify_cq(struct mrc_cq *cq, int solicited_only);
  */
 int mrc_get_async_event(struct mrc_context *mrc_ctx,
 			struct mrc_async_event *event);
+
+/**
+ * @brief Ack the asynchronous event
+ *
+ * All async events returned by mrc_get_async_event() should be
+ * acknowledged.
+ *
+ * @param event[in]		- MRC async event
+ *
+ * @return
+ * This function does not return any value
+ */
+void mrc_ack_async_event(struct mrc_async_event *event);
+
+/**
+ * @brief Request notifications
+ *
+ * Requests notifications on the CQ, like ibv_req_notify_cq().
+ *
+ * @param cq[in]	- MRC CQ
+ * @param solicited_only[in]	- Request event only on "solicited" events
+ *
+ * @return
+ * Returns 0 on success. Error semantics like ibv_req_notify_cq().
+ */
+
+int mrc_req_notify_cq(struct mrc_cq *cq, int solicited_only);
 
 /**
  * @brief Get next CQ event
@@ -574,19 +590,6 @@ int mrc_get_cq_event(struct mrc_comp_channel *channel,
 void mrc_ack_cq_events(struct mrc_cq *cq, unsigned int nevents);
 
 /**
- * @brief Ack the asynchronous event
- *
- * All async events returned by mrc_get_async_event() should be
- * acknowledged.
- *
- * @param event[in]		- MRC async event
- *
- * @return
- * This function does not return any value
- */
-void mrc_ack_async_event(struct mrc_async_event *event);
-
-/**
  * @brief EV Event structure.
  *
  * EV Event structure. Hardware generates an EV Event for every EV
@@ -613,7 +616,8 @@ struct mrc_ev_event {
  * @param comp_vector[in] - Completion vector to signal completion events
  *
  * @return
- * Returns 0 on success. Errors like ibv_create_cq()
+ * Returns a pointer to the allocated CQ on success or NULL if
+ * the request fails. Errors like ibv_create_cq().
  */
 struct mrc_cq* mrc_create_ev_event_cq(struct mrc_context *mrc_ctx,
 			   int cqe,
