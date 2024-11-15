@@ -975,8 +975,8 @@ struct mrc_ev_probe_rsp {
  * @param req_tc[in]     - Request traffic class
  * @param req[in]	 - An array of requests
  * @param num_req[in]    - length of request array
- * @param rsp[out]	 - An array of response structures
  * @param rsp_timeout[in]- Waiting period for responses; units = 1ns
+ * @param rsp[out]	 - An array of response structures
  * @param num_rsp[out]   - Number of responses returned
  *
  * @retval 0 Success
@@ -991,8 +991,8 @@ int mrc_probe_ev(struct mrc_context *mrc_ctx,
 		 enum mrc_ev_probe_tc req_tc,
 		 struct mrc_ev_probe_req *req,
 		 int num_req,
-		 struct mrc_ev_probe_rsp *rsp,
 		 unsigned int rsp_timeout,
+		 struct mrc_ev_probe_rsp *rsp,
 		 int *num_rsp);
 
 #ifdef __cplusplus
