@@ -937,6 +937,64 @@ struct mrc_cq* mrc_create_ev_event_cq(struct mrc_context *mrc_ctx,
  */
 int mrc_poll_ev_event(struct mrc_cq *ev_cq, int num_entries, struct mrc_ev_event *ev_event);
 
+enum mrc_ev_probe_tc {
+	MRC_EV_PROBE_TC_DATA,
+	MRC_EV_PROBE_TC_CTRL
+};
+
+/**
+ * @brief EV Probe Request
+ */
+struct mrc_ev_probe_req {
+	uint16_t probe_id;  /**< Application provided ID. */
+	uint8_t sgid_index; /**< Index into plane GID table; plane encoded in req_ev. */
+	union ibv_gid dgid; /**< Destination GID. */
+	uint32_t req_ev;    /**< Probe request EV. */
+	uint32_t rsp_ev;    /**< Probe response EV. */
+};
+
+/**
+ * @brief EV Probe Response
+ */
+struct mrc_ev_probe_rsp {
+	uint16_t probe_id; /**< Associated req. ID for this response. */
+	unsigned int rtt;  /**< RTT; units = 128ns. */
+	bool afs;          /**< True if rtt has been adjusted for responder service time. */
+};
+
+/**
+ * @brief Send EV Probe requests and wait for responses.
+ *
+ * Send EV Probe requests and wait for responses. The calling function
+ * provides an array of requests for transmission.  Responses are
+ * delivered into an array of response structures in order of arrival.
+ * The function exits when all responses have been received or a
+ * timeout occurs.
+ *
+ * @param mrc_ctx[in]    - MRC context to use
+ * @param req_tc[in]     - Request traffic class
+ * @param req[in]	 - An array of requests
+ * @param num_req[in]    - length of request array
+ * @param rsp[out]	 - An array of response structures
+ * @param rsp_timeout[in]- Waiting period for responses; units = 1ns
+ * @param num_rsp[out]   - Number of responses returned
+ *
+ * @retval 0 Success
+ * @retval EINVAL One or more supplied arguments are invalid.
+ * @retval EIO Implementation specific error occurred.
+ * @retval ENOMEM Error allocating memory for function.
+ * @retval ENOTSUP Function not supported.
+ * @retval EPERM Process lacks sufficient permissions.
+ * @retval ETIMEDOUT Response timeout occurred before all responses received.
+ */
+int mrc_probe_ev(struct mrc_context *mrc_ctx,
+		 enum mrc_ev_probe_tc req_tc,
+		 struct mrc_ev_probe_req *req,
+		 int num_req,
+		 struct mrc_ev_probe_rsp *rsp,
+		 unsigned int rsp_timeout,
+		 int *num_rsp);
+
 #ifdef __cplusplus
 }
 #endif
