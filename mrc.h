@@ -651,11 +651,11 @@ struct mrc_qp_attr {
 
 				   Value of 0 means any EV count increment is supported by the provider. */
 	struct mrc_ev_array *ev_array;
-	/** An event is generated when any EV's state *
-	 transitions to a monitored state in the mask.  Only
-	 EV_ASSUMED_BAD and EV_GOOD masking is supported.  Bit offsets
-	 for states match the corresponding value in mrc_ev_state.*/
-	int ev_state_monitor_mask;
+	/** Events are generated when a QP's EV state transitions to a 
+	* state set in ev_event_mask.  For MRC_VERSION_1 QPs, only 
+	* EV_ASSUMED_BAD and EV_GOOD is supported.
+	* Bit offsets in ev_event_mask match those in mr_ev_state.*/
+	unsigned int ev_event_mask;
 	uint8_t  vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
 
