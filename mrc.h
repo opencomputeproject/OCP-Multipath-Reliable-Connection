@@ -901,7 +901,7 @@ struct mrc_ev_event {
 };
 
 /**
- * @brief Create an EV Event CQ
+ * @brief Create an EV Event CQ.
  *
  * EV CQs are used to obtain EV Events. They differ
  * from other CQs in that they do not support CQ overruns.
@@ -925,7 +925,7 @@ struct mrc_cq* mrc_create_ev_event_cq(struct mrc_context *mrc_ctx,
 /**
  * @brief Destroy an EV Event CQ
  *
- * Destroy an EV Event CQ
+ * Destroy an EV Event CQ.
  *
  * @param ev_cq[in] - MRC EV Event CQ
  *
@@ -935,12 +935,12 @@ struct mrc_cq* mrc_create_ev_event_cq(struct mrc_context *mrc_ctx,
 int mrc_destroy_ev_event_cq(struct mrc_cq *ev_cq);
 
 /**
- * @brief Poll for EV Events
+ * @brief Poll for EV Events.
  * 
- * Polls for an EV event
+ * Polls an EV Event CQ for EV Events.
  *
- * @param ev_cq[in]       	- EV event completion queue
- * @param num_entries[in] 	- Number of completion entries
+ * @param ev_cq[in]       	- EV Event CQ to poll
+ * @param num_entries[in] 	- Number of EV Events to poll
  * @param ev_event[out]  	- Array of EV Event structures
  *
  * @return
