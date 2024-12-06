@@ -927,14 +927,18 @@ struct mrc_cq* mrc_create_ev_event_cq(struct mrc_context *mrc_ctx,
  * 
  * Polls for an EV event
  *
- * @param ev_cq[in]       - EV event completion queue
- * @param num_entries[in] - Number of completion entries
- * @param ev_event[out]   - Obtained EV event completion entries
+ * @param ev_cq[in]       	- EV event completion queue
+ * @param num_entries[in] 	- Number of completion entries
+ * @param ev_event[out]  	- Array of EV Event structures
  *
  * @return
- * Returns the number of completions found on success or -1 on error.
- * If the return value is >=0 and less than num_entries, then the CQ
- * was emptied.
+ * Polls the EV Event CQ @c ev_cq for EV Events and returns the first
+ * @c num_entries (or all Events if the CQ contains fewer than @c num_entries)
+ * in the array ev_event.
+ *
+ * On success a non-negative value indicating the number of entries written
+ * to @c ev_event is returned.  On failure, a negative value corresponding
+ * to the @c errno is returned.
  */
 int mrc_poll_ev_event(struct mrc_cq *ev_cq, int num_entries, struct mrc_ev_event *ev_event);
 
