@@ -100,6 +100,8 @@ enum mrc_attr_opt {
 	/* The implementation supports ev_min_allowed_vals in
 	 * mrc_ev_gen_allow_fmt. */
 	MRC_OPT_CAP_EV_MIN_ALLOWED_VALS = (1<<8),
+	/* The implementation supports EV Probe */
+	MRC_OPT_CAP_EV_PROBE = (1<<9),
 };
 
 struct mrc_attr {
