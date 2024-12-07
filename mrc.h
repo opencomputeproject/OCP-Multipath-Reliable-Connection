@@ -63,8 +63,9 @@ struct mrc_ev_array;
  *
  */
 enum mrc_tc {
-	MRC_TC_DATA,
-	MRC_TC_CTRL
+	MRC_TC_REQ,
+	MRC_TC_RSP,
+	MRC_TC_CTL
 };
 
 /**
