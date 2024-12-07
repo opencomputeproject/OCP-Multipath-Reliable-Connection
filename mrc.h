@@ -947,9 +947,9 @@ enum mrc_ev_probe_tc {
  */
 struct mrc_ev_probe_req {
 	uint16_t probe_id;  /**< Application provided ID. */
-	uint8_t sgid_index; /**< Index into plane GID table; plane encoded in req_ev. */
+	uint8_t sgid_index; /**< Index of SGID in plane GID table; plane encoded in req_ev. */
 	union ibv_gid dgid; /**< Destination GID. */
-	uint32_t req_ev;    /**< Probe request EV. */
+	uint32_t req_ev;    /**< Probe request EV. Plane encoded in LSBs. */
 	uint32_t rsp_ev;    /**< Probe response EV. */
 };
 
@@ -959,25 +959,24 @@ struct mrc_ev_probe_req {
 struct mrc_ev_probe_rsp {
 	uint16_t probe_id; /**< Associated req. ID for this response. */
 	unsigned int rtt;  /**< RTT; units = 128ns. */
-	bool afs;          /**< True if rtt has been adjusted for responder service time. */
+	bool adj_svc_time; /**< True if rtt has been adjusted for responder service time. */
 };
 
 /**
  * @brief Send EV Probe requests and wait for responses.
  *
- * Send EV Probe requests and wait for responses. The calling function
- * provides an array of requests for transmission.  Responses are
- * delivered into an array of response structures in order of arrival.
- * The function exits when all responses have been received or a
- * timeout occurs.
+ * Send EV Probe requests and wait for responses. The caller
+ * provides an array of requests for transmission and waits until either
+ * all responses have been received or the function times out.  Responses
+ * are delivered into an array of response structures in order of arrival.
  *
- * @param mrc_ctx[in]    - MRC context to use
- * @param req_tc[in]     - Request traffic class
- * @param req[in]	 - An array of requests
- * @param num_req[in]    - length of request array
- * @param rsp_timeout[in]- Waiting period for responses; units = 1ns
- * @param rsp[out]	 - An array of response structures
- * @param num_rsp[out]   - Number of responses returned
+ * @param mrc_ctx[in]      - MRC context to use
+ * @param req_tc[in]       - Request traffic class
+ * @param req[in]          - An array of requests
+ * @param num_req[in]      - length of request array
+ * @param rsp_timeout[in]  - Waiting period for responses; units = 1ns
+ * @param rsp[out]         - An array of response structures
+ * @param num_rsp[out]     - Number of responses returned
  *
  * @retval 0 Success
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -985,7 +984,7 @@ struct mrc_ev_probe_rsp {
  * @retval ENOMEM Error allocating memory for function.
  * @retval ENOTSUP Function not supported.
  * @retval EPERM Process lacks sufficient permissions.
- * @retval ETIMEDOUT Response timeout occurred before all responses received.
+ * @retval ETIMEDOUT Timeout occurred before all responses received.
  */
 int mrc_probe_ev(struct mrc_context *mrc_ctx,
 		 enum mrc_ev_probe_tc req_tc,
