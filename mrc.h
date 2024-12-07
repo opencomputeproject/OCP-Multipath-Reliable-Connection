@@ -72,8 +72,10 @@ struct mrc_ev_array;
 struct mrc_attr {
 	/* bitmap indicating all versions supported. see enum mrc_version */
 	uint32_t mrc_version;
-	uint16_t max_wimm; /**< Maximum configurable wimm value as requestor.  */
-	uint16_t max_wimm_dest; /**< Max configurable wimm value as responder. */
+	struct {
+		uint16_t max_wimm; /**< Max configurable wimm value as requestor.  */
+		uint16_t max_wimm_dest; /**< Max configurable wimm value as responder. */
+	} wimm_attr;
 	/* bitmap indicating all optional features supported. see mrc_attr_opt */
 	uint32_t opt_attr;
 };
