@@ -72,7 +72,8 @@ struct mrc_ev_array;
 struct mrc_attr {
 	/* bitmap indicating all versions supported. see enum mrc_version */
 	uint32_t mrc_version;
-	uint16_t max_wimm_dest;
+	uint16_t max_wimm; /**< Maximum configurable wimm value as requestor.  */
+	uint16_t max_wimm_dest; /**< Max configurable wimm value as responder. */
 	/* bitmap indicating all optional features supported. see mrc_attr_opt */
 	uint32_t opt_attr;
 };
@@ -259,9 +260,17 @@ int mrc_destroy_qp(struct mrc_qp *qp);
 #define MRC_MAX_VENDOR_CFG_SIZE 128
 
 enum mrc_qp_attr_mask {
-	/* maximum inflight WriteIMM operations as Requester */
+	/**
+	 * @brief Attribute to set the maximum number of inflight WIMM operations when the QP is acting in requestor role.
+	 *
+	 * Modifiable in RTR state only. Implementations may optionally pre-populate the field with a value.
+	 */
 	MRC_QP_ATTR_MAX_WIMM		  = (1<<0),
-	/* maximum inflight WriteIMM operations as Responder */
+	/**
+	 * @brief Attribute to set the maximum number of inflight WIMM operations when the QP is acting in responder role.
+	 *
+	 * Modifiable Init state only. Implementations may optionally pre-populate the field with a value.
+	 */
 	MRC_QP_ATTR_MAX_WIMM_DEST	  = (1<<1),
 	/* maximum retry count in exponential range */
 	MRC_QP_ATTR_RETRY_CNT_EXP	  = (1<<2),
@@ -377,8 +386,8 @@ int mrc_update_ev_state(struct mrc_ev_array *ev_array, int index, enum mrc_ev_st
 int mrc_update_ev(struct mrc_ev_array *ev_array, int index, uint32_t ev);
 
 struct mrc_qp_attr {
-	uint16_t max_wimm;
-	uint16_t max_wimm_dest;
+	uint16_t max_wimm; /**< Must be in the range [0, mrc_attr.wimm]. */
+	uint16_t max_wimm_dest; /**Must be in the range [0, mrc_attr.wimm_dest]. */
 	uint8_t  retry_cnt_exp;
 	uint16_t max_ev_per_qp; /* max number of EVs per QP */
 	uint32_t max_ev; 	/* maximum value of each EV */
