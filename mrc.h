@@ -263,13 +263,13 @@ enum mrc_qp_attr_mask {
 	/**
 	 * @brief Attribute to set the maximum number of inflight WIMM operations when the QP is acting in requestor role.
 	 *
-	 * Modifiable in RTR state only. Implementations may optionally pre-populate the field with a value.
+	 * Modifiable in RTS state only. Implementations may optionally pre-populate the field with a value.
 	 */
 	MRC_QP_ATTR_MAX_WIMM		  = (1<<0),
 	/**
 	 * @brief Attribute to set the maximum number of inflight WIMM operations when the QP is acting in responder role.
 	 *
-	 * Modifiable Init state only. Implementations may optionally pre-populate the field with a value.
+	 * Modifiable in RTR state only. Implementations may optionally pre-populate the field with a value.
 	 */
 	MRC_QP_ATTR_MAX_WIMM_DEST	  = (1<<1),
 	/* maximum retry count in exponential range */
