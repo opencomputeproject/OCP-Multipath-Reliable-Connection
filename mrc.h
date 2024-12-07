@@ -59,6 +59,15 @@ struct mrc_comp_channel;
 struct mrc_ev_array;
 
 /**
+ * @brief Logical per-QP traffic classes supported by MRC.
+ *
+ */
+enum mrc_tc {
+	MRC_TC_DATA,
+	MRC_TC_CTRL
+};
+
+/**
  * Optional features supported by the implementation.
  */
 enum mrc_attr_opt {
@@ -937,11 +946,6 @@ struct mrc_cq* mrc_create_ev_event_cq(struct mrc_context *mrc_ctx,
  */
 int mrc_poll_ev_event(struct mrc_cq *ev_cq, int num_entries, struct mrc_ev_event *ev_event);
 
-enum mrc_ev_probe_tc {
-	MRC_EV_PROBE_TC_DATA,
-	MRC_EV_PROBE_TC_CTRL
-};
-
 /**
  * @brief EV Probe Request
  */
@@ -987,7 +991,7 @@ struct mrc_ev_probe_rsp {
  * @retval ETIMEDOUT Timeout occurred before all responses received.
  */
 int mrc_probe_ev(struct mrc_context *mrc_ctx,
-		 enum mrc_ev_probe_tc req_tc,
+		 enum mrc_tc req_tc,
 		 struct mrc_ev_probe_req *req,
 		 int num_req,
 		 unsigned int rsp_timeout,
