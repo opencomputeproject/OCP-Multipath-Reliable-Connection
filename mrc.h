@@ -402,27 +402,31 @@ int mrc_update_ev_state(struct mrc_ev_array *ev_array, int index, enum mrc_ev_st
 int mrc_update_ev(struct mrc_ev_array *ev_array, int index, uint32_t ev);
 
 struct mrc_qp_attr {
-	uint16_t max_wimm; /**< Must be in the range [0, mrc_attr.wimm]. */
-	uint16_t max_wimm_dest; /**Must be in the range [0, mrc_attr.wimm_dest]. */
-	struct {
-		uint8_t fixed_retry_cnt; /**< Fixed interval retry count. Max value = 8. */
-		uint8_t exp_retry_cnt; /**< Exponential retry count. Max val = 32 (infinite retry) */
-	} retry_cnt;
-	uint8_t ack_timeout; /**< Local ack timeout for all paths in 1.024us units. Max val = 26 (68.7s) */
-	uint16_t max_ev_per_qp; /* max number of EVs per QP */
-	uint32_t max_ev; 	/* maximum value of each EV */
-	struct mrc_ev_array *ev_array;
-	/** An event is generated when any EV's state *
-	 transitions to a monitored state in the mask.  Only
-	 EV_ASSUMED_BAD and EV_GOOD masking is supported.  Bit offsets
-	 for states match the corresponding value in mrc_ev_state.*/
-	int ev_state_monitor_mask;
 	struct {
 		uint16_t mpr; /**< Requestor MPR value; unit=128 PSNs. */
 		uint16_t mpr_dest; /**< Responder MPR value; unit=128 PSNs. */
 		bool disable_dyn_mpr_dest; /**< Disable responder dynamic MPR support. */
 	} mpr;
-	bool ign_rsp_flow_ctrl; /**< Ignore responder flow control. */
+
+	struct {
+		uint16_t max_ev_per_qp; /* max number of EVs per QP */
+		uint32_t max_ev; 	/* maximum value of each EV */
+		struct mrc_ev_array *ev_array;
+	} ev;
+
+	struct {
+		uint16_t max_wimm; /**< Max inflight WIMMs as requestor; */
+		uint16_t max_wimm_dest; /**Max inflight WIMMs as responder. */
+	} wimm;
+
+	struct {
+		uint8_t fixed_retry_cnt; /**< Fixed interval retry count. Max value = 8. */
+		uint8_t exp_retry_cnt; /**< Exponential retry count. Max val = 32 (infinite retry) */
+	} retry_cnt;
+
+	int ev_state_monitor_mask; /**< EV state monitor mask. Only EV_ASSUMED_BAD, EV_GOOD supported. */
+	uint8_t ack_timeout; /**< Local ack timeout for all paths in 1.024us units. Max val = 26 (68.7s) */
+	bool ign_rsp_flow_ctl; /**< Ignore responder flow control signals. */
 	uint8_t  vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
 
