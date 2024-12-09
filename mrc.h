@@ -61,7 +61,7 @@ enum mrc_attr_opt {
 	MRC_OPT_CAP_UPDATE_EV_RTS 	= (1<<0),
 	/* The implementation supports EV Event CQs */
 	MRC_OPT_CAP_EV_EVENT_CQ 	= (1<<1),
-	/* The implementation supports dynamic MPR (requestor or responder role). */
+	/* The implementation supports dynamic MPR (requestor and/or responder role). */
 	MRC_OPT_CAP_DYNAMIC_MPR 	= (1<<2),
 };
 
@@ -417,8 +417,11 @@ struct mrc_qp_attr {
 	 EV_ASSUMED_BAD and EV_GOOD masking is supported.  Bit offsets
 	 for states match the corresponding value in mrc_ev_state.*/
 	int ev_state_monitor_mask;
-	uint16_t mpr; /**< Requestor and responder MPR value; unit=128 PSNs. */
-	bool rsp_dyn_mpr_en; /**< Responder dynamic MPR support. */
+	struct {
+		uint16_t mpr; /**< Requestor MPR value; unit=128 PSNs. */
+		uint16_t mpr_dest; /**< Responder MPR value; unit=128 PSNs. */
+		bool disable_dyn_mpr_dest; /**< Disable responder dynamic MPR support. */
+	} mpr;
 	bool ign_rsp_flow_ctrl; /**< Ignore responder flow control. */
 	uint8_t  vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
