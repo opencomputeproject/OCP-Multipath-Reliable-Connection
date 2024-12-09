@@ -293,9 +293,9 @@ enum mrc_qp_attr_mask {
 	/* MPR attributes */
 	MRC_QP_ATTR_MPR =               (1<<7),
 	/* QP fixed/exponential retry counter */
-	MRC_QP_RETRY_CNT =              (1<<8),
+	MRC_QP_ATTR_RETRY_CNT =         (1<<8),
 	/* QP ack timeout */
-	MRC_QP_ACK_TIMEOUT =            (1<<9),
+	MRC_QP_ATTR_ACK_TIMEOUT =       (1<<9),
 	/* Requestor handling of responder flow control */
 	MRC_QP_ATTR_RSP_FLOW_CTL =      (1<<10),
         /* vendor specific configuration data */
