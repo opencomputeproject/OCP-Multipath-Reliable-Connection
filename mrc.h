@@ -292,6 +292,8 @@ enum mrc_qp_attr_mask {
 	MRC_QP_ATTR_EV_STATE_MONITOR_MASK = (1<<6),
 	/* MPR attributes */
 	MRC_QP_ATTR_MPR =               (1<<7),
+	/* QP fixed/exponential retry counter */
+	MRC_QP_RETRY_CNT =              (1<<8),
         /* vendor specific configuration data */
 	MRC_QP_ATTR_VENDOR_CFG		  = (1<<31)
 };
@@ -398,7 +400,10 @@ int mrc_update_ev(struct mrc_ev_array *ev_array, int index, uint32_t ev);
 struct mrc_qp_attr {
 	uint16_t max_wimm; /**< Must be in the range [0, mrc_attr.wimm]. */
 	uint16_t max_wimm_dest; /**Must be in the range [0, mrc_attr.wimm_dest]. */
-	uint8_t  retry_cnt_exp;
+	struct {
+		uint8_t fixed_retry_cnt; /**< Fixed interval retry count. Max value = 8. */
+		uint8_t exp_retry_cnt; /**< Exponential retry count. Max val = 32 (infinite retry) */
+	} retry_cnt;
 	uint16_t max_ev_per_qp; /* max number of EVs per QP */
 	uint32_t max_ev; 	/* maximum value of each EV */
 	struct mrc_ev_array *ev_array;
