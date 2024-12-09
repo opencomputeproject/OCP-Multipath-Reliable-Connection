@@ -294,6 +294,8 @@ enum mrc_qp_attr_mask {
 	MRC_QP_ATTR_MPR =               (1<<7),
 	/* QP fixed/exponential retry counter */
 	MRC_QP_RETRY_CNT =              (1<<8),
+	/* QP ack timeout */
+	MRC_QP_ACK_TIMEOUT =            (1<<9),
         /* vendor specific configuration data */
 	MRC_QP_ATTR_VENDOR_CFG		  = (1<<31)
 };
@@ -404,6 +406,7 @@ struct mrc_qp_attr {
 		uint8_t fixed_retry_cnt; /**< Fixed interval retry count. Max value = 8. */
 		uint8_t exp_retry_cnt; /**< Exponential retry count. Max val = 32 (infinite retry) */
 	} retry_cnt;
+	uint8_t ack_timeout; /**< Local ack timeout for all paths in 1.024us units. Max val = 26 (68.7s) */
 	uint16_t max_ev_per_qp; /* max number of EVs per QP */
 	uint32_t max_ev; 	/* maximum value of each EV */
 	struct mrc_ev_array *ev_array;
