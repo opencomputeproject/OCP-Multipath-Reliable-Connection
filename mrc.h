@@ -296,6 +296,8 @@ enum mrc_qp_attr_mask {
 	MRC_QP_RETRY_CNT =              (1<<8),
 	/* QP ack timeout */
 	MRC_QP_ACK_TIMEOUT =            (1<<9),
+	/* Requestor handling of responder flow control */
+	MRC_QP_ATTR_RSP_FLOW_CTL =      (1<<10),
         /* vendor specific configuration data */
 	MRC_QP_ATTR_VENDOR_CFG		  = (1<<31)
 };
@@ -417,6 +419,7 @@ struct mrc_qp_attr {
 	int ev_state_monitor_mask;
 	uint16_t mpr; /**< Requestor and responder MPR value; unit=128 PSNs. */
 	bool rsp_dyn_mpr_en; /**< Responder dynamic MPR support. */
+	bool ign_rsp_flow_ctrl; /**< Ignore responder flow control. */
 	uint8_t  vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
 
