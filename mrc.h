@@ -61,6 +61,8 @@ enum mrc_attr_opt {
 	MRC_OPT_CAP_UPDATE_EV_RTS 	= (1<<0),
 	/* The implementation supports EV Event CQs */
 	MRC_OPT_CAP_EV_EVENT_CQ 	= (1<<1),
+	/* The implementation supports dynamic MPR (requestor or responder role). */
+	MRC_OPT_CAP_DYNAMIC_MPR 	= (1<<2),
 };
 
 struct mrc_context;
@@ -76,6 +78,10 @@ struct mrc_attr {
 		uint16_t max_wimm; /**< Max configurable wimm value as requestor.  */
 		uint16_t max_wimm_dest; /**< Max configurable wimm value as responder. */
 	} wimm_attr;
+	struct {
+		uint16_t default_mpr; /**< Default MPR as requestor and/or responder; unit = 128 PSNs. */
+		uint16_t max_mpr; /**< Max configurable MPR as requestor and/or responder; unit = 128 PSNs. */
+	} mpr_attr;
 	/* bitmap indicating all optional features supported. see mrc_attr_opt */
 	uint32_t opt_attr;
 };
@@ -284,6 +290,8 @@ enum mrc_qp_attr_mask {
 	MRC_QP_ATTR_MAX_EV_VAL	          = (1<<5),
 	/* manipulate EV monitored state mask */
 	MRC_QP_ATTR_EV_STATE_MONITOR_MASK = (1<<6),
+	/* MPR attributes */
+	MRC_QP_ATTR_MPR =               (1<<7),
         /* vendor specific configuration data */
 	MRC_QP_ATTR_VENDOR_CFG		  = (1<<31)
 };
@@ -399,6 +407,8 @@ struct mrc_qp_attr {
 	 EV_ASSUMED_BAD and EV_GOOD masking is supported.  Bit offsets
 	 for states match the corresponding value in mrc_ev_state.*/
 	int ev_state_monitor_mask;
+	uint16_t mpr; /**< Requestor and responder MPR value; unit=128 PSNs. */
+	bool rsp_dyn_mpr_en; /**< Responder dynamic MPR support. */
 	uint8_t  vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
 
