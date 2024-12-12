@@ -59,16 +59,6 @@ struct mrc_comp_channel;
 struct mrc_ev_array;
 
 /**
- * @brief Logical per-QP traffic classes supported by MRC.
- *
- */
-enum mrc_tc {
-	MRC_TC_REQ,
-	MRC_TC_RSP,
-	MRC_TC_CTL
-};
-
-/**
  * Optional features supported by the implementation.
  */
 enum mrc_attr_opt {
@@ -978,7 +968,7 @@ struct mrc_ev_probe_rsp {
  * are delivered into an array of response structures in order of arrival.
  *
  * @param mrc_ctx[in]      - MRC context to use
- * @param req_tc[in]       - Request traffic class
+ * @param req_tc[in]       - Request (DSCP) traffic class
  * @param req[in]          - An array of requests
  * @param num_req[in]      - length of request array
  * @param rsp_timeout[in]  - Waiting period for responses; units = 1ns
@@ -994,7 +984,7 @@ struct mrc_ev_probe_rsp {
  * @retval ETIMEDOUT Timeout occurred before all responses received.
  */
 int mrc_probe_ev(struct mrc_context *mrc_ctx,
-		 enum mrc_tc req_tc,
+		 unsigned req_tc,
 		 struct mrc_ev_probe_req *req,
 		 int num_req,
 		 unsigned int rsp_timeout,
