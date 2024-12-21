@@ -314,13 +314,6 @@ if (mrc_modify_qp(mrc_qp,
 
 ## Get the EV Array via Query QP
 
-- EV_ARRAY
-- MAX_EV_COUNT
-- MAX_EV_VAL
-- EV_MIN_ACTIVE
-- EV_IN_USE
-- EV_DENY_LIST_LEN
-
 The application can retrieve a copy of the current EV in use on the QP. The
 returned `mrc_ev_array` returned is ephemeral and must be destroyed by the
 application when done with it.
