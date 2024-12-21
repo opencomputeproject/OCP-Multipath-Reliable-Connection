@@ -68,19 +68,21 @@ that occurs at this phase of QP bringup.
 
 ```C
 struct ibv_qp_attr ibv_qp_attr;
-int                ibv_qp_attr_mask = 0;
+int                ibv_qp_attr_mask;
 struct mrc_qp_attr mrc_qp_attr;
-enum               mrc_qp_attr_mask = 0;
+enum               mrc_qp_attr_mask;
 
+/* fill in QP attributes... */
 memset(&ibv_qp_attr, 0, sizeof(ibv_qp_attr));
 ibv_qp_attr.state = IBV_QPS_INIT;
-/* fill in QP attributes... */
-ibv_qp_attr_mask |= IBV_QP_STATE;
 /* set QP attributes mask... */
+ibv_qp_attr_mask  = 0;
+ibv_qp_attr_mask |= IBV_QP_STATE;
 
-memset(&mrc_qp_attr, 0, sizeof(mrc_qp_attr));
 /* fill in MRC QP attributes... */
+memset(&mrc_qp_attr, 0, sizeof(mrc_qp_attr));
 /* set MRC QP attributes mask... */
+mrc_qp_attr_mask = 0;
 
 if (mrc_modify_qp(mrc_qp,
                   &ibv_qp_attr, ibv_qp_attr_mask,
@@ -88,11 +90,47 @@ if (mrc_modify_qp(mrc_qp,
     return ERROR;
 ```
 
+## Get the Maximum EV Values via Query QP
+
+In order for the application to provision the EV array, it must learn the
+maximum number of EVs supported and the maximum value for each EV.
+
+```C
+/* clear the QP attributes... */
+memset(&ibv_qp_attr, 0, sizeof(ibv_qp_attr));
+
+/* clear the MRC QP attributes... */
+memset(&mrc_qp_attr, 0, sizeof(mrc_qp_attr));
+/* set MRC QP attributes mask... */
+mrc_qp_attr_mask  = 0;
+mrc_qp_attr_mask |= MRC_QP_ATTR_MAX_EV_COUNT;
+mrc_qp_attr_mask |= MRC_QP_ATTR_MAX_EV_VAL;
+
+/* clear the QP init attributes... */
+memset(&mrc_qp_init_attr, 0, sizeof(mrc_qp_init_attr));
+
+if (mrc_query_qp(mrc_qp,
+                 &ibv_qp_attr, ibv_qp_attr_mask,
+                 &mrc_qp_attr, mrc_qp_attr_mask,
+                 &mrc_qp_init_attr) != 0)
+    return ERROR;
+
+/*
+ * Maximum values:
+ *   mrc_qp_attr.max_ev_per_qp
+ *   mrc_qp_attr.max_ev_val
+ */
+```
+
 ## Create an EV Array
 
 Before moving the QP to the `RTR` state, the application must provision the
-EV array. This example here details creating a 128 entry EV array and filling
-each entry with a random 32b value.
+EV array. This example here details creating and EV array and filling
+each entry with a random value.
+
+*Note: The maximum EVs and maximum EV value are learned from the prior
+call to `mrc_query_qp()`. The example continued here assumes these values are
+128 entries and full 32b values.*
 
 ```C
 int                      num_ev = 128, actual_ev;
@@ -137,23 +175,23 @@ With the EV array ready to go, the QP can now be programmed with the EVs and
 moved to the `RTR` state.
 
 ```C
+/* fill in QP attributes... */
 memset(&ibv_qp_attr, 0, sizeof(ibv_qp_attr));
 ibv_qp_attr.state = IBV_QPS_RTR;
-/* fill in QP attributes... */
-ibv_qp_attr_mask |= IBV_QP_STATE;
 /* set QP attributes mask... */
+ibv_qp_attr_mask  = 0;
+ibv_qp_attr_mask |= IBV_QP_STATE;
 
-memset(&mrc_qp_attr, 0, sizeof(mrc_qp_attr));
 /* fill in MRC QP attributes... */
+memset(&mrc_qp_attr, 0, sizeof(mrc_qp_attr));
 mrc_qp_attr.max_ev_per_qp        = num_ev;
-mrc_qp_attr.max_ev_val           = 0xffffffff; // ??? What is this...
 mrc_qp_attr.min_active_ev_per_qp = 4;
 mrc_qp_attr.ev_array             = mrc_ev_array;
 /* set MRC QP attributes mask... */
+mrc_qp_attr_mask  = 0;
 mrc_qp_attr_mask |= MRC_QP_ATTR_MAX_EV_COUNT;
-mrc_qp_attr_mask |= MRC_QP_ATTR_MAX_EV_VAL;
+mrc_qp_attr_mask |= MRC_QP_ATTR_EV_MIN_ACTIVE;
 mrc_qp_attr_mask |= MRC_QP_ATTR_EV_ARRAY;
-/* ??? Missing attr for min_active_ev_per_qp... */
 
 if (mrc_modify_qp(mrc_qp,
                   &ibv_qp_attr, ibv_qp_attr_mask,
@@ -167,15 +205,17 @@ if (mrc_modify_qp(mrc_qp,
 No EV configuration occurs during this QP state transition.
 
 ```C
+/* fill in QP attributes... */
 memset(&ibv_qp_attr, 0, sizeof(ibv_qp_attr));
 ibv_qp_attr.state = IBV_QPS_RTS;
-/* fill in QP attributes... */
-ibv_qp_attr_mask |= IBV_QP_STATE;
 /* set QP attributes mask... */
+ibv_qp_attr_mask  = 0;
+ibv_qp_attr_mask |= IBV_QP_STATE;
 
-memset(&mrc_qp_attr, 0, sizeof(mrc_qp_attr));
 /* fill in MRC QP attributes... */
+memset(&mrc_qp_attr, 0, sizeof(mrc_qp_attr));
 /* set MRC QP attributes mask... */
+mrc_qp_attr_mask = 0;
 
 if (mrc_modify_qp(mrc_qp,
                   &ibv_qp_attr, ibv_qp_attr_mask,
@@ -199,16 +239,18 @@ for (int i; i < num_ev; i++) {
         return ERROR;
 }
 
+/* fill in QP attributes... */
 memset(&ibv_qp_attr, 0, sizeof(ibv_qp_attr));
 ibv_qp_attr.state = IBV_QPS_RTS;
-/* fill in QP attributes... */
-ibv_qp_attr_mask |= IBV_QP_STATE;
 /* set QP attributes mask... */
+ibv_qp_attr_mask  = 0;
+ibv_qp_attr_mask |= IBV_QP_STATE;
 
-memset(&mrc_qp_attr, 0, sizeof(mrc_qp_attr));
 /* fill in MRC QP attributes... */
+memset(&mrc_qp_attr, 0, sizeof(mrc_qp_attr));
 mrc_qp_attr.ev_array = mrc_ev_array;
 /* set MRC QP attributes mask... */
+mrc_qp_attr_mask  = 0;
 mrc_qp_attr_mask |= MRC_QP_ATTR_EV_ARRAY_VALUES;
 
 if (mrc_modify_qp(mrc_qp,
@@ -250,21 +292,64 @@ mrc_ev_deny[2].deny_value = 0x00800000;
 if (mrc_udpate_ev_deny_array(mrc_ev_array, mrc_ev_deny, num_deny_ev) == -1)
     return ERROR;
 
+/* fill in QP attributes... */
 memset(&ibv_qp_attr, 0, sizeof(ibv_qp_attr));
 ibv_qp_attr.state = IBV_QPS_RTS;
-/* fill in QP attributes... */
-ibv_qp_attr_mask |= IBV_QP_STATE;
 /* set QP attributes mask... */
+ibv_qp_attr_mask  = 0;
+ibv_qp_attr_mask |= IBV_QP_STATE;
 
-memset(&mrc_qp_attr, 0, sizeof(mrc_qp_attr));
 /* fill in MRC QP attributes... */
+memset(&mrc_qp_attr, 0, sizeof(mrc_qp_attr));
 mrc_qp_attr.ev_array = mrc_ev_array;
 /* set MRC QP attributes mask... */
-mrc_qp_attr_mask |= MRC_QP_ATTR_EV_DENY_ARRAY;
+mrc_qp_attr_mask  = 0;
+mrc_qp_attr_mask |= MRC_QP_ATTR_EV_DENY_LIST;
 
 if (mrc_modify_qp(mrc_qp,
                   &ibv_qp_attr, ibv_qp_attr_mask,
                   &mrc_qp_attr, mrc_qp_attr_mask) != 0)
+    return ERROR;
+```
+
+## Get the EV Array via Query QP
+
+- EV_ARRAY
+- MAX_EV_COUNT
+- MAX_EV_VAL
+- EV_MIN_ACTIVE
+- EV_IN_USE
+- EV_DENY_LIST_LEN
+
+The application can retrieve a copy of the current EV in use on the QP. The
+returned `mrc_ev_array` returned is ephemeral and must be destroyed by the
+application when done with it.
+
+```C
+/* clear the QP attributes... */
+memset(&ibv_qp_attr, 0, sizeof(ibv_qp_attr));
+
+/* clear the MRC QP attributes... */
+memset(&mrc_qp_attr, 0, sizeof(mrc_qp_attr));
+/* set MRC QP attributes mask... */
+mrc_qp_attr_mask  = 0;
+mrc_qp_attr_mask |= MRC_QP_ATTR_EV_ARRAY;
+
+/* clear the QP init attributes... */
+memset(&mrc_qp_init_attr, 0, sizeof(mrc_qp_init_attr));
+
+if (mrc_query_qp(mrc_qp,
+                 &ibv_qp_attr, ibv_qp_attr_mask,
+                 &mrc_qp_attr, mrc_qp_attr_mask,
+                 &mrc_qp_init_attr) != 0)
+    return ERROR;
+
+/*
+ * Do something with the EV array...
+ *   mrc_qp_attr.ev_array
+ */
+
+if (mrc_destroy_ev_array(mrc_qp_attr.ev_array) != 0)
     return ERROR;
 ```
 
