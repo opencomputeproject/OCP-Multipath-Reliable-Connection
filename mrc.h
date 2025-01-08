@@ -65,8 +65,8 @@ enum mrc_attr_opt {
 	/* The implementation supports the capability to update EV after
 	 * the QP has transitioned past the RTR stage */
 	MRC_OPT_CAP_UPDATE_EV_RTS 	= (1<<0),
-	/* The implementation supports EV Event CQs */
-	MRC_OPT_CAP_EV_EVENT_CQ 	= (1<<1),
+	/* The implementation supports EV Events */
+	MRC_OPT_CAP_EV_EVENT    	= (1<<1),
 	/* The implementation supports explicit EV array */
 	MRC_OPT_CAP_EV_EXP_ARRAY	= (1<<2),
 	/* The implementation supports generated EV array,
@@ -91,8 +91,6 @@ enum mrc_attr_opt {
 	/* The implementation supports ev_min_allowed_vals in
 	 * mrc_ev_gen_allow_fmt. */
 	MRC_OPT_CAP_EV_MIN_ALLOWED_VALS = (1<<8),
-	/* The implementation supports EV Events */
-	MRC_OPT_CAP_EV_EVENT 		= (1<<9),
 };
 
 struct mrc_attr {
