@@ -944,8 +944,8 @@ int mrc_poll_ev_event(struct mrc_cq *ev_cq, int num_entries, struct mrc_ev_event
  */
 struct mrc_ev_probe_req {
 	uint16_t probe_id;  /**< Application provided (request) probe ID. */
-	uint8_t sgid_index; /**< Index of SGID in plane GID table; plane encoded in req_ev. */
-	union ibv_gid dgid; /**< Destination GID. */
+	union ibv_gid sgid; /**< Source GID; only ROCE_V2 GID type supported. */
+	union ibv_gid dgid; /**< Destination GID; only ROCE_V2 GID type supported. */
 	uint32_t req_ev;    /**< Probe request EV. */
 	uint32_t rsp_ev;    /**< Probe response EV. */
 };
