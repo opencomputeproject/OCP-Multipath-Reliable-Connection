@@ -943,10 +943,10 @@ int mrc_poll_ev_event(struct mrc_cq *ev_cq, int num_entries, struct mrc_ev_event
  * @brief EV Probe Request
  */
 struct mrc_ev_probe_req {
-	uint16_t probe_id;  /**< Application provided ID. */
+	uint16_t probe_id;  /**< Application provided (request) probe ID. */
 	uint8_t sgid_index; /**< Index of SGID in plane GID table; plane encoded in req_ev. */
 	union ibv_gid dgid; /**< Destination GID. */
-	uint32_t req_ev;    /**< Probe request EV. Plane encoded in LSBs. */
+	uint32_t req_ev;    /**< Probe request EV. */
 	uint32_t rsp_ev;    /**< Probe response EV. */
 };
 
@@ -954,8 +954,8 @@ struct mrc_ev_probe_req {
  * @brief EV Probe Response
  */
 struct mrc_ev_probe_rsp {
-	uint16_t probe_id; /**< Associated req. ID for this response. */
-	unsigned int rtt;  /**< RTT; units = 128ns. */
+	uint16_t probe_id; /**< Associated request probe ID for this response. */
+	unsigned int rtt;  /**< RTT; units = 1ns. */
 	bool adj_svc_time; /**< True if rtt has been adjusted for responder service time. */
 };
 
