@@ -897,7 +897,6 @@ struct mrc_ev_event {
 	uint32_t ev;
 	enum mrc_ev_state state;
 	bool drop; /**< True if one or more events before this one were dropped. */
-	uint8_t pad[18]; /**< Padding to align the structure to 32 bytes. */
 };
 
 /**
