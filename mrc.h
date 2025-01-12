@@ -896,7 +896,7 @@ struct mrc_ev_event {
 	uint32_t qpn;
 	uint32_t ev;
 	enum mrc_ev_state state;
-	bool drop; /**< True if one or more events before this one were dropped. */
+	uint32_t drop_count; /**< Number of events dropped before this one. */
 };
 
 /**
