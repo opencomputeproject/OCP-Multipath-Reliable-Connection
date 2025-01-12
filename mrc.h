@@ -318,7 +318,7 @@ int mrc_poll_cq(struct mrc_cq *cq,
 /**
  * @brief Destroy a CQ
  *
- * Destroy a CQ
+ * Destroy a completion or EV Event CQ
  *
  * @param cq[in] - MRC CQ
  *
@@ -923,19 +923,7 @@ struct mrc_cq* mrc_create_ev_event_cq(struct mrc_context *mrc_ctx,
 			   int comp_vector);
 
 /**
- * @brief Destroy an EV Event CQ
- *
- * Destroy an EV Event CQ.
- *
- * @param ev_cq[in] - MRC EV Event CQ
- *
- * @return
- * Returns 0 on success. Errors like ibv_destroy_cq()
- */
-int mrc_destroy_ev_event_cq(struct mrc_cq *ev_cq);
-
-/**
- * @brief Poll for EV Events.
+ * @brief Poll for EV Events
  * 
  * Polls an EV Event CQ for EV Events.
  *
