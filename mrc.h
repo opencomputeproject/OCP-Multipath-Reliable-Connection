@@ -899,7 +899,6 @@ struct mrc_ev_event {
 	uint32_t qpn;
 	uint32_t ev;
 	enum mrc_ev_state state;
-
        /**
 	* If MRC_OPT_CAP_ACC_DROP_CNT is set, this field contains the
 	* number of EV Events dropped between the last and current
