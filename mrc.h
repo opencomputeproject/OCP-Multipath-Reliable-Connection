@@ -93,7 +93,7 @@ enum mrc_attr_opt {
 	MRC_OPT_CAP_EV_MIN_ALLOWED_VALS = (1<<8),
 	/* The implementation supports accurate counting of dropped EV
 	 * Events. */
-	MRC_OPT_CAP_ACC_DROP_CNT = (1<<9),
+	MRC_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT = (1<<9),
 };
 
 struct mrc_attr {
@@ -904,7 +904,7 @@ struct mrc_ev_event {
 	* number of EV Events dropped between the last and current
 	* event delivered to the queue.  If not set, this field is 1
 	* if any events were dropped between the last and current
-	* event.
+	* event and 0 otherwise.
 	*/
 	uint32_t drop_count;
 };
