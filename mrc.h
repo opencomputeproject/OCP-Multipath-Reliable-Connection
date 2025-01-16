@@ -40,7 +40,6 @@ extern "C" {
 #define MRC_API_VER_USED MRC_API_CURRENT_VERSION
 #endif
 
-
 #if MRC_API_VER_USED < MRC_API_LAST_SUPPORTED_VERSION
 #error "MRC_API_VER_USED is less than MRC_API_LAST_SUPPORTED version"
 #elif MRC_API_VER_USED == MRC_API_LAST_SUPPORTED_VERSION
@@ -255,7 +254,6 @@ struct mrc_context_attr {
  */
 struct mrc_context *mrc_create_context(struct ibv_context *vcontext,
 				       struct mrc_context_attr *context_attr);
-
 
 /**
  * @brief Destroy the MRC lib context
@@ -833,7 +831,6 @@ int mrc_modify_qp(struct mrc_qp *qp,
 int mrc_get_qpn(struct mrc_qp *qp,
 		uint32_t *qpn);
 
-
 /**
  * @brief Post a receive operation on a QP
  *
@@ -916,7 +913,6 @@ void mrc_ack_async_event(struct mrc_async_event *event);
  * @return
  * Returns 0 on success. Error semantics like ibv_req_notify_cq().
  */
-
 int mrc_req_notify_cq(struct mrc_cq *cq,
 		      int solicited_only);
 
@@ -970,13 +966,13 @@ struct mrc_ev_event {
 	uint32_t qpn;
 	uint32_t ev;
 	enum mrc_ev_state state;
-       /*
-	* If MRC_OPT_CAP_ACC_DROP_CNT is set, this field contains the
-	* number of EV Events dropped between the last and current
-	* event delivered to the queue.  If not set, this field is 1
-	* if any events were dropped between the last and current
-	* event and 0 otherwise.
-	*/
+	/*
+	 * If MRC_OPT_CAP_ACC_DROP_CNT is set, this field contains the
+	 * number of EV Events dropped between the last and current
+	 * event delivered to the queue.  If not set, this field is 1
+	 * if any events were dropped between the last and current
+	 * event and 0 otherwise.
+	 */
 	uint32_t drop_count;
 };
 
