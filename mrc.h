@@ -65,8 +65,8 @@ enum mrc_attr_opt {
 	/* The implementation supports the capability to update EV after
 	 * the QP has transitioned past the RTR stage */
 	MRC_OPT_CAP_UPDATE_EV_RTS 	= (1<<0),
-	/* The implementation supports EV Event CQs */
-	MRC_OPT_CAP_EV_EVENT_CQ 	= (1<<1),
+	/* The implementation supports EV Events */
+	MRC_OPT_CAP_EV_EVENT    	= (1<<1),
 	/* The implementation supports explicit EV array */
 	MRC_OPT_CAP_EV_EXP_ARRAY	= (1<<2),
 	/* The implementation supports generated EV array,
@@ -91,6 +91,9 @@ enum mrc_attr_opt {
 	/* The implementation supports ev_min_allowed_vals in
 	 * mrc_ev_gen_allow_fmt. */
 	MRC_OPT_CAP_EV_MIN_ALLOWED_VALS = (1<<8),
+	/* The implementation supports accurate counting of dropped EV
+	 * Events. */
+	MRC_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT = (1<<9),
 };
 
 struct mrc_attr {
@@ -318,7 +321,7 @@ int mrc_poll_cq(struct mrc_cq *cq,
 /**
  * @brief Destroy a CQ
  *
- * Destroy a CQ
+ * Destroy a completion or EV Event CQ
  *
  * @param cq[in] - MRC CQ
  *
@@ -651,11 +654,11 @@ struct mrc_qp_attr {
 
 				   Value of 0 means any EV count increment is supported by the provider. */
 	struct mrc_ev_array *ev_array;
-	/** An event is generated when any EV's state *
-	 transitions to a monitored state in the mask.  Only
-	 EV_ASSUMED_BAD and EV_GOOD masking is supported.  Bit offsets
-	 for states match the corresponding value in mrc_ev_state.*/
-	int ev_state_monitor_mask;
+	/** Events are generated when a QP's EV state transitions to a 
+	* state set in ev_event_mask.  For MRC_VERSION_1 QPs, only 
+	* EV_ASSUMED_BAD and EV_GOOD is supported.
+	* Bit offsets in ev_event_mask match those in mr_ev_state.*/
+	unsigned int ev_event_mask;
 	uint8_t  vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
 
@@ -896,11 +899,18 @@ struct mrc_ev_event {
 	uint32_t qpn;
 	uint32_t ev;
 	enum mrc_ev_state state;
-	bool drop; /**< True if one or more events before this one were dropped. */
+       /**
+	* If MRC_OPT_CAP_ACC_DROP_CNT is set, this field contains the
+	* number of EV Events dropped between the last and current
+	* event delivered to the queue.  If not set, this field is 1
+	* if any events were dropped between the last and current
+	* event and 0 otherwise.
+	*/
+	uint32_t drop_count;
 };
 
 /**
- * @brief Create an EV Event CQ
+ * @brief Create an EV Event CQ.
  *
  * EV CQs are used to obtain EV Events. They differ
  * from other CQs in that they do not support CQ overruns.
@@ -924,16 +934,20 @@ struct mrc_cq* mrc_create_ev_event_cq(struct mrc_context *mrc_ctx,
 /**
  * @brief Poll for EV Events
  * 
- * Polls for an EV event
+ * Polls an EV Event CQ for EV Events.
  *
- * @param ev_cq[in]       - EV event completion queue
- * @param num_entries[in] - Number of completion entries
- * @param ev_event[out]   - Obtained EV event completion entries
+ * @param ev_cq[in]       	- EV Event CQ to poll
+ * @param num_entries[in] 	- Number of EV Events to poll
+ * @param ev_event[out]  	- Array of EV Event structures
  *
  * @return
- * Returns the number of completions found on success or -1 on error.
- * If the return value is >=0 and less than num_entries, then the CQ
- * was emptied.
+ * Polls the EV Event CQ @c ev_cq for EV Events and returns the first
+ * @c num_entries (or all Events if the CQ contains fewer than @c num_entries)
+ * in the array ev_event.
+ *
+ * On success a non-negative value indicating the number of entries written
+ * to @c ev_event is returned.  On failure, a negative value corresponding
+ * to the @c errno is returned.
  */
 int mrc_poll_ev_event(struct mrc_cq *ev_cq, int num_entries, struct mrc_ev_event *ev_event);
 
