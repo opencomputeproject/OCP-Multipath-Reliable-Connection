@@ -645,14 +645,18 @@ enum mrc_qp_attr_mask {
 	 * If the application is supplying an EV array, then the
 	 * array should be sized as: min_num_ev + (k * num_ev_align) */
 	MRC_QP_ATTR_NUM_EV_ALIGN	 = (1<<15),
-	/* Set requestor & responder MPR */
+	/* Requestor MPR */
 	MRC_QP_ATTR_MPR =               (1<<16),
-	/* QP fixed/exponential retry counter */
-	MRC_QP_ATTR_RETRY_CNT =         (1<<17),
+    /* Responder MPR */
+    MRC_QP_ATTR_MPR_DEST = (1<<17),
+    /* Responder dynamic MPR support */
+    MRC_QP_ATTR_DYNAMIC_MPR_DEST = (1<<18),
+	/* QP (fixed+exponential) retry counter */
+	MRC_QP_ATTR_RETRY_CNT = (1<<17),
 	/* QP ack timeout */
-	MRC_QP_ATTR_ACK_TIMEOUT =       (1<<18),
-	/* Requestor handling of responder flow control */
-	MRC_QP_ATTR_RSP_FLOW_CTL =      (1<<19),
+	MRC_QP_ATTR_ACK_TIMEOUT = (1<<18),
+	/* Requestor consideration of responder flow control signals */
+	MRC_QP_ATTR_IGNORE_RSP_FLOW_CTL = (1<<19),
     /* vendor specific configuration data */	
 	MRC_QP_ATTR_VENDOR_CFG		  = (1<<31)
 };
@@ -661,7 +665,7 @@ struct mrc_qp_attr {
 	struct {
 		uint16_t mpr; /**< Requestor MPR value; unit=128 PSNs. */
 		uint16_t mpr_dest; /**< Responder MPR value; unit=128 PSNs. */
-		bool disable_dyn_mpr_dest; /**< Disable responder dynamic MPR support. */
+		bool dynamic_mpr_dest; /**< Responder dynamic MPR support; if True enable support. */
 	} mpr;
 
 	struct {
@@ -690,7 +694,7 @@ struct mrc_qp_attr {
                                            The total number of EVs is subject to a maximum of max_ev_per_qp.
  
                                            Value of 0 means any EV count increment is supported by the provider. */
-		struct mrc_ev_array *ev_array;						  
+		struct mrc_ev_array *ev_array;
 	} ev;
 
 	struct {
@@ -705,7 +709,7 @@ struct mrc_qp_attr {
 
 	int ev_event_mask; /**< EV Event mask.  Only EV_ASSUMED_BAD, EV_GOOD supported. */
 	uint8_t ack_timeout; /**< Local ack timeout for all paths in 1.024us units. Max val = 26 (68.7s) */
-	bool ign_rsp_flow_ctl; /**< Ignore responder flow control signals. */
+	bool ignore_rsp_flow_ctl; /**< Ignore responder flow control signals; if True ignore responder signal. */
 	uint8_t  vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
 
