@@ -590,29 +590,38 @@ int mrc_update_ev_array_allowed_bits(struct mrc_ev_array *ev_array,
 int mrc_update_ev_deny_list(struct mrc_ev_array *ev_array,
 				struct mrc_ev_deny *deny, uint32_t length);
 
+/**
+ * @brief MRC QP attribute mask
+ *
+ * The list of attributes that may be changed upon transitioning QP
+ * state from Reset->Init->RTR->RTS are:
+ *
+ * Next State		Required Attributes
+ * ----------		-------------------
+ * RTR				MRC_QP_ATTR_MAX_WIMM_DEST, MRC_QP_ATTR_MPR
+ *
+ * RTS				MRC_QP_ATTR_WIMM, MRC_QP_ATTR_RETRY_CNT, MRC_QP_ATTR_ACK_TIMEOUT,
+ * 					MRC_QP_ATTR_EV_ARRAY_ALLOWED_BITS [bitmask] ||
+ * 					(MRC_QP_ATTR_EV_ARRAY_VALUES, MRC_QP_ATTR_MAX_EV_COUNT) [array],
+ * 					MRC_QP_ATTR_EV_ARRAY,
+ * 					MRC_QP_ATTR_EV_DENY_LIST,
+ * 					MRC_QP_ATTR_EV_EVENT_MASK
+ */
+
+
 enum mrc_qp_attr_mask {
-	/**
-	 * @brief Attribute to set the maximum number of inflight WIMM operations when the QP is acting in requestor role.
-	 *
-	 * Modifiable in RTS state only. Implementations may optionally pre-populate the field with a value.
-	 */
+	/* Max WIMM as requestor */
 	MRC_QP_ATTR_MAX_WIMM		  = (1<<0),
-	/**
-	 * @brief Attribute to set the maximum number of inflight WIMM operations when the QP is acting in responder role.
-	 *
-	 * Modifiable in RTR state only. Implementations may optionally pre-populate the field with a value.
-	 */
+	/* Max WIMM as responder */
 	MRC_QP_ATTR_MAX_WIMM_DEST	  = (1<<1),
-	/* maximum retry count in exponential range */
-	MRC_QP_ATTR_RETRY_CNT_EXP	  = (1<<2),
 	/* EV array to use for the MODIFY or QUERY operation */
 	MRC_QP_ATTR_EV_ARRAY		  = (1<<3),
 	/* maximum count of EVs for the QP */
 	MRC_QP_ATTR_MAX_EV_COUNT	  = (1<<4),
 	/* (Query only) maximum value of the EV for the QP */
 	MRC_QP_ATTR_MAX_EV_VAL	          = (1<<5),
-	/* manipulate EV monitored state mask */
-	MRC_QP_ATTR_EV_STATE_MONITOR_MASK = (1<<6),
+	/* manipulate EV Event state mask */
+	MRC_QP_ATTR_EV_EVENT_MASK = (1<<6),
 	/* (Modify only) EV array values are updated */
 	MRC_QP_ATTR_EV_ARRAY_VALUES	  = (1<<7),
 	/* (Modify only) EV generation bitmasks are updated */
@@ -636,7 +645,7 @@ enum mrc_qp_attr_mask {
 	 * If the application is supplying an EV array, then the
 	 * array should be sized as: min_num_ev + (k * num_ev_align) */
 	MRC_QP_ATTR_NUM_EV_ALIGN	 = (1<<15),
-        /* vendor specific configuration data */
+	/* Set requestor & responder MPR */
 	MRC_QP_ATTR_MPR =               (1<<16),
 	/* QP fixed/exponential retry counter */
 	MRC_QP_ATTR_RETRY_CNT =         (1<<17),
@@ -656,33 +665,32 @@ struct mrc_qp_attr {
 	} mpr;
 
 	struct {
-		uint32_t max_primed_ev_per_qp;	/**< Max number of primed EVs per QP (QUERY) */
-		uint32_t max_ev_bits;   		/**< maximum number of valid bits EV.
-                           					This is an output value that the provider
+		uint32_t max_primed_ev_per_qp;	/*  Max number of primed EVs per QP (QUERY) */
+		uint32_t max_ev_bits;   		/*	Maximum number of valid bits EV.
+											This is an output value that the provider
  											sets during QUERY operation.
                                   			This applies to explict as well as generated EVs. */
-       	uint32_t min_active_ev_per_qp; /* min number of active EVs per QPs
-                                       to avoid the situation of marking many
-                                       EVs to ASSUMED_BAD. The mrc_ev_array
-                                       provided to the QP must have num_evs
-                                       greater than this value. */
-		uint32_t num_ev;        /* EV array size being used by the QP (QUERY) */
-       	uint32_t ev_deny_list_len; /* EV deny list length currently in use (QUERY)*/
-       	uint32_t min_num_ev;    /* Minimum number of EVs that the EV array should contain.
-                                  If the application is using EV APIs, then each array
-                                  should contain at least these many EVs.
-                                  Value of 0 means any EV count is supported by the provider. */
-       uint32_t num_ev_align;  /* Alignment requirements for number of EVs required by the provider.
-                                  Together with min_num_ev, it provides the EV array sizing requirements
-                                  The EV array size should be = min_num_ev + (k*num_ev_align),
-                                  where 'k' is a multiple chosen by the application.
-                                  For example, if a provider supports EVs in multiples of 8, it would
-                                  set the values min_num_ev = 8, and num_ev_align = 8.
-                                  The total number of EVs is subject to a maximum of max_ev_per_qp.
+		uint32_t min_active_ev_per_qp; 	/* 	Min number of active EVs per QPs
+											to avoid the situation of marking many
+											EVs to ASSUMED_BAD. The mrc_ev_array
+											provided to the QP must have num_evs
+											greater than this value. */
+		uint32_t num_ev;        		/* EV array size being used by the QP (QUERY) */
+		uint32_t ev_deny_list_len; 		/* EV deny list length currently in use (QUERY)*/
+		uint32_t min_num_ev;    		/* Minimum number of EVs that the EV array should contain.
+                                           If the application is using EV APIs, then each array
+                                           should contain at least these many EVs.
+                                           Value of 0 means any EV count is supported by the provider. */
+		uint32_t num_ev_align;          /* Alignment requirements for number of EVs required by the provider.
+                                           Together with min_num_ev, it provides the EV array sizing requirements
+                                           The EV array size should be = min_num_ev + (k*num_ev_align),
+                                           where 'k' is a multiple chosen by the application.
+                                           For example, if a provider supports EVs in multiples of 8, it would
+                                           set the values min_num_ev = 8, and num_ev_align = 8.
+                                           The total number of EVs is subject to a maximum of max_ev_per_qp.
  
-                                  Value of 0 means any EV count increment is supported by the provider. */
+                                           Value of 0 means any EV count increment is supported by the provider. */
 		struct mrc_ev_array *ev_array;						  
-       
 	} ev;
 
 	struct {
