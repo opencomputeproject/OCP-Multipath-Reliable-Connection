@@ -596,16 +596,16 @@ int mrc_update_ev_deny_list(struct mrc_ev_array *ev_array,
  * The list of attributes that may be changed upon transitioning QP
  * state from Reset->Init->RTR->RTS are:
  *
- * Next State		Required Attributes
- * ----------		-------------------
- * RTR				MRC_QP_ATTR_MAX_WIMM_DEST, MRC_QP_ATTR_MPR
+ * Next State        Required Attributes
+ * ----------        -------------------
+ * RTR                MRC_QP_ATTR_MAX_WIMM_DEST, MRC_QP_ATTR_MPR
  *
-* RTS				MRC_QP_ATTR_WIMM, MRC_QP_ATTR_RETRY_CNT, MRC_QP_ATTR_ACK_TIMEOUT,
-* 					MRC_QP_ATTR_EV_ARRAY_ALLOWED_BITS [bitmask] ||
-* 					(MRC_QP_ATTR_EV_ARRAY_VALUES, MRC_QP_ATTR_MAX_EV_COUNT) [array],
-* 					MRC_QP_ATTR_EV_ARRAY,
-* 					MRC_QP_ATTR_EV_DENY_LIST,
-* 					MRC_QP_ATTR_EV_EVENT_MASK
+ * RTS                MRC_QP_ATTR_WIMM, MRC_QP_ATTR_RETRY_CNT, MRC_QP_ATTR_ACK_TIMEOUT,
+ *                    MRC_QP_ATTR_EV_ARRAY_ALLOWED_BITS [bitmask] ||
+ *                    (MRC_QP_ATTR_EV_ARRAY_VALUES, MRC_QP_ATTR_MAX_EV_COUNT) [array],
+ *                    MRC_QP_ATTR_EV_ARRAY,
+ *                    MRC_QP_ATTR_EV_DENY_LIST,
+ *                    MRC_QP_ATTR_EV_EVENT_MASK
  */
 
 
