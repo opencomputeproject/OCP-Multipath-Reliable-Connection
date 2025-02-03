@@ -710,14 +710,19 @@ struct mrc_qp_attr {
 		uint16_t max_wimm_dest; /**Max inflight WIMMs as responder. */
 	} wimm;
 
-	struct {
-		uint8_t fixed_retry_cnt; /**< Fixed interval retry count. Max value = 8. */
-		uint8_t exp_retry_cnt; /**< Exponential retry count. Max val = 32 (infinite retry) */
-	} retry_cnt;
+// This structure will be uncommented once the HW spec has been updated to reflect it.
+//
+//	struct {
+//		uint8_t retry_cnt_fixed; /**< Fixed interval retry count. Max value = 8. */
+//		uint8_t retry_cnt_exp; /**< Exponential retry count. Max val = 32 (infinite retry) */
+//	} retry_cnt;
 
 	int ev_event_mask; /**< EV Event mask.  Only EV_ASSUMED_BAD, EV_GOOD supported. */
 	uint8_t ack_timeout; /**< Local ack timeout for all paths in 1.024us units. Max val = 26 (68.7s) */
-	bool ignore_rsp_flow_ctl; /**< Ignore responder flow control signals; if True ignore responder signal. */
+
+// This field will be uncommented once the HW spec has been updated to reflect it.
+//	bool ignore_rsp_flow_ctl; /**< Ignore responder flow control signals; if True ignore responder signal. */
+
 	uint8_t  vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
 
