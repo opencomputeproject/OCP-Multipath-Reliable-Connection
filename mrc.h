@@ -106,8 +106,9 @@ struct mrc_attr {
 		uint16_t max_wimm_dest; /**< Max configurable wimm value as responder. */
 	} wimm_attr;
 	struct {
-		uint16_t default_mpr; /**< Default MPR as requestor and/or responder; unit = 128 PSNs. */
-		uint16_t max_mpr; /**< Max configurable MPR as requestor and/or responder; unit = 128 PSNs. */
+		uint16_t default_mpr; /**< Default MPR as requestor and/or responder; unit = 1 PSN. */
+		uint16_t max_mpr; /**< Max configurable MPR as requestor and/or responder; unit = 1 PSN. */
+		uint16_t mpr_align; /**< HW MPR alignment; unit = 1 PSN. */
 	} mpr_attr;
 	/* bitmap indicating all optional features supported. see mrc_attr_opt */
 	uint32_t opt_attr;
@@ -662,9 +663,11 @@ enum mrc_qp_attr_mask {
 };
 
 struct mrc_qp_attr {
+	/** MPR values may be aligned to the device's mrc_attr.mpr_align value 
+	 * for maximum resource efficiency. */
 	struct {
-		uint16_t mpr; /**< Requestor MPR value; unit=128 PSNs. */
-		uint16_t mpr_dest; /**< Responder MPR value; unit=128 PSNs. */
+		uint16_t mpr; /**< Requestor MPR value; unit=1 PSN. */
+		uint16_t mpr_dest; /**< Responder MPR value; unit=1 PSN. */
 		bool dynamic_mpr_dest; /**< Responder dynamic MPR support; if True enable support. */
 	} mpr;
 
