@@ -655,7 +655,7 @@ enum mrc_qp_attr_mask {
 	/* QP (fixed+exponential) retry counter */
 	MRC_QP_ATTR_RETRY_CNT = (1<<17),
 	/* QP ack timeout */
-	MRC_QP_ATTR_ACK_TIMEOUT = (1<<18),
+	MRC_QP_ATTR_TIMEOUT = (1<<18),
 	/* Requestor consideration of responder flow control signals */
 	MRC_QP_ATTR_IGNORE_RSP_FLOW_CTL = (1<<19),
 	/* vendor specific configuration data */
@@ -718,7 +718,8 @@ struct mrc_qp_attr {
 //	} retry_cnt;
 
 	int ev_event_mask; /**< EV Event mask.  Only EV_ASSUMED_BAD, EV_GOOD supported. */
-	uint8_t ack_timeout; /**< Local ack timeout for all paths in 1.024us units. Max val = 26 (68.7s) */
+	uint8_t timeout; /**< Local ACK timeout for all paths in 1.024us units. Max value: 26 (68.7s).
+                          Functions as primary ACK timeout for MRC QPs. */
 
 // This field will be uncommented once the HW spec has been updated to reflect it.
 //	bool ignore_rsp_flow_ctl; /**< Ignore responder flow control signals; if True ignore responder signal. */
