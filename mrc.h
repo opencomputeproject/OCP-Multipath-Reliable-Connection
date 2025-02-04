@@ -108,6 +108,27 @@ enum mrc_attr_opt {
 	 * Events.
 	 */
 	MRC_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= (1<<9),
+	/*
+	 * The implementation supports sharing of EV arrays between QPs.
+	 *
+	 * Sharing of EV arrays between QPs allows sharing of the
+	 * EV states across QPs. This could be more efficient depending
+	 * on the use case. Additionally, when multiple QPs are sharing
+	 * the EV array, then the application is required to only modify
+	 * one of the QPs (RTS2RTS), to reflect any EV array updates for
+	 * all the QPs that are sharing the EV array. Sharing of the
+	 * EV array enables the provider to allocate less resources, with
+	 * the additional constraint of addressing concurrent
+	 * updates to shared EV states that happen from multiple QPs.
+	 *
+	 * When this capability is not supported, the application
+	 * must allocate separate EV arrays for each QP.
+	 *
+	 * When this capability is supported, the application must
+	 * create the EV array with `shared` attribute set
+	 * for the EV array it intends to share between QPs.
+	 */
+	MRC_OPT_CAP_SHARED_EV_ARRAYS		= (1<<10),
 };
 
 struct mrc_attr {
@@ -455,6 +476,8 @@ struct mrc_ev_entry {
  *
  * @param mrc_ctx[in] - MRC context
  * @param num_ev[in]  - Number of EVs
+ * @param shared[in] - Whether the EV array may be shared between QPs
+ *                     (see MRC_OPT_CAP_SHARED_EV_ARRAYS)
  * @param entries[in] - Array of EVs (should be >= num_ev)
  *
  * @return
@@ -464,6 +487,7 @@ struct mrc_ev_entry {
 struct mrc_ev_array *mrc_create_ev_array_explicit(
 			struct mrc_context *mrc_ctx,
 			int num_ev,
+			bool shared,
 			struct mrc_ev_entry *entries);
 
 /**
@@ -475,6 +499,8 @@ struct mrc_ev_array *mrc_create_ev_array_explicit(
  * @param mrc_ctx[in]  - MRC context
  * @param num_ev[in]   - Number of EVs that will be generated and used by
  *                       the provider according to the bitmask.
+ * @param shared[in]   - Whether the EV array may be shared between QPs
+ *                       (see MRC_OPT_CAP_SHARED_EV_ARRAYS)
  * @param gen_attr[in] - EV generation attributes
  *
  * @return
@@ -484,6 +510,7 @@ struct mrc_ev_array *mrc_create_ev_array_explicit(
 struct mrc_ev_array *mrc_create_ev_array_generated(
 			struct mrc_context *mrc_ctx,
 			int num_ev,
+			bool shared,
 			struct mrc_ev_gen_attr *gen_attr);
 
 /**
@@ -499,6 +526,8 @@ struct mrc_ev_array *mrc_create_ev_array_generated(
  * @param num_ev[in]   - Number of EVs that will be generated and used by
  *                       the provider according to the bitmask.
  * @param entries[in]  - Primed array of EVs (should be >= num_ev)
+ * @param shared[in]   - Whether the EV array may be shared between QPs
+ *                       (see MRC_OPT_CAP_SHARED_EV_ARRAYS)
  * @param gen_attr[in] - EV generation attributes
  *
  * @return
@@ -508,13 +537,15 @@ struct mrc_ev_array *mrc_create_ev_array_generated(
 struct mrc_ev_array *mrc_create_ev_array_primed_generated(
 			struct mrc_context *mrc_ctx,
 			int num_ev,
+			bool shared,
 			struct mrc_ev_entry *entries,
 			struct mrc_ev_gen_attr *gen_attr);
 
 /**
  * @brief Destroy an EV array
  *
- * Destroy an EV array
+ * Destroy an EV array. The QPs that are using the EV arrays must be
+ * destroyed before the EV array is destroyed.
  *
  * @param ev_array[in] - EV array to destroy
  *
@@ -798,9 +829,10 @@ int mrc_query_qp(struct mrc_qp *qp,
  * The array entries are copied by value during the modify operations,
  * such that the EV array can be destroyed if so desired by the application.
  *
- * If the same mrc_ev_array is shared between multiple QPs, then the provider
- * can update the EVs associated with the other QPs to reflect any changes
- * before the application modifies the other QPs.
+ * If the EV array is shared between multiple QPs (see parameter `shared` in
+ * mrc_create_ev_array_*()), then the application can update all QPs using
+ * the array by modifying any of the QPs using the array. Non-shared arrays
+ * only modify the associated QP.
  *
  * modify_qp() uses the full set of EV entries (if provided) to use for the QP.
  *
