@@ -188,7 +188,7 @@ struct mrc_ev_gen_allow_fmt {
 	uint32_t ev_min_allowed_vals;
 
 	/*
-	 * An realistic example in source routed mode:
+	 * A realistic example in source routed mode:
 	 * Construct an ev_allow_mask and ev_max_allowed_vals for 4 hops (includes
 	 * the plane). Since the number of hops is even, the first field mask is 0's
 	 * and the last is 1's.
