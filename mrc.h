@@ -249,9 +249,8 @@ struct mrc_context_attr {
 /**
  * @brief Create a MRC lib context
  *
- * Create an MRC library context.
- * `struct mrc_context` provides an instance of the MRC library.
- * It is the parent object for all other objects.
+ * Create an MRC library context. `struct mrc_context` provides an instance
+ * of the MRC library. It is the parent object for all other objects.
  * The primary function of this is to track the objects and clean up.
  * The context structure eliminates the need for any global objects
  * within the MRC library and supports multiple user libraries using MRC.
@@ -282,6 +281,7 @@ struct mrc_context *mrc_create_context(struct ibv_context *vcontext,
  * Destroy the MRC lib context.
  *
  * @param[in] mrc_ctx - MRC context
+ *
  * @return
  * Returns 0 on success or -1 on failure.
  */
@@ -397,8 +397,8 @@ struct mrc_qp_init_attr {
  * @param qp_init_attr_ex - QP init attributes
  *
  * @return
- * Returns a pointer to the created QP on success or NULL if
- * the request fails. Errors like ibv_create_qp().
+ * Returns a pointer to the created QP on success or NULL if the request
+ * fails. Errors like ibv_create_qp().
  */
 struct mrc_qp *mrc_create_qp(struct mrc_context *mrc_ctx,
 			     struct mrc_qp_init_attr *mrc_qp_attr);
@@ -419,7 +419,6 @@ int mrc_destroy_qp(struct mrc_qp *qp);
 
 /**
  * @brief Supported EV states.
- *
  */
 enum mrc_ev_state {
 	MRC_EV_GOOD		= (1<<0),
