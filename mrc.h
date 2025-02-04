@@ -615,48 +615,48 @@ enum mrc_qp_attr_mask {
 	/* Max WIMM as responder */
 	MRC_QP_ATTR_MAX_WIMM_DEST = (1<<1),
 	/* EV array to use for the MODIFY or QUERY operation */
-	MRC_QP_ATTR_EV_ARRAY = (1<<3),
+	MRC_QP_ATTR_EV_ARRAY = (1<<2),
 	/* maximum count of EVs for the QP */
-	MRC_QP_ATTR_MAX_EV_COUNT = (1<<4),
+	MRC_QP_ATTR_MAX_EV_COUNT = (1<<3),
 	/* (Query only) maximum value of the EV for the QP */
-	MRC_QP_ATTR_MAX_EV_VAL = (1<<5),
+	MRC_QP_ATTR_MAX_EV_VAL = (1<<4),
 	/* manipulate EV Event state mask */
-	MRC_QP_ATTR_EV_EVENT_MASK = (1<<6),
+	MRC_QP_ATTR_EV_EVENT_MASK = (1<<5),
 	/* (Modify only) EV array values are updated */
-	MRC_QP_ATTR_EV_ARRAY_VALUES = (1<<7),
+	MRC_QP_ATTR_EV_ARRAY_VALUES = (1<<6),
 	/* (Modify only) EV generation bitmasks are updated */
-	MRC_QP_ATTR_EV_ARRAY_ALLOWED_BITS = (1<<8),
+	MRC_QP_ATTR_EV_ARRAY_ALLOWED_BITS = (1<<7),
 	/* (Modify only) EV deny list is updated */
-	MRC_QP_ATTR_EV_DENY_LIST = (1<<9),
+	MRC_QP_ATTR_EV_DENY_LIST = (1<<8),
 	/* (Query only) Minimum number of EVs that are required to be
 	   active, not ASSUMED_BAD for operation of the QP */
-	MRC_QP_ATTR_EV_MIN_ACTIVE = (1<<10),
+	MRC_QP_ATTR_EV_MIN_ACTIVE = (1<<9),
 	/* (Query only) EV array size being used by the QP.
 	 * See mrc_create_ev_array_*() and mrc_get_ev_array_len(). */
-	MRC_QP_ATTR_EV_ARRAY_SIZE = (1<<11),
+	MRC_QP_ATTR_EV_ARRAY_SIZE = (1<<10),
 	/* (Query only) Deny list length currently in use */
-	MRC_QP_ATTR_EV_DENY_LIST_LEN = (1<<12),
+	MRC_QP_ATTR_EV_DENY_LIST_LEN = (1<<11),
 	/* (Query only) Maximum number of primed EVs for the QP */
-	MRC_QP_ATTR_MAX_EV_PRIMED_COUNT = (1<<13),
+	MRC_QP_ATTR_MAX_EV_PRIMED_COUNT = (1<<12),
 	/* (Query only) Minimum number of EVs for the QP that the
 	 * application must provide if it is supplying an EV array. */
-	MRC_QP_ATTR_MIN_NUM_EV = (1<<14),
+	MRC_QP_ATTR_MIN_NUM_EV = (1<<13),
 	/* (Query only) Number of EVs for alignment.
 	 * If the application is supplying an EV array, then the
 	 * array should be sized as: min_num_ev + (k * num_ev_align) */
-	MRC_QP_ATTR_NUM_EV_ALIGN = (1<<15),
+	MRC_QP_ATTR_NUM_EV_ALIGN = (1<<14),
 	/* Requestor MPR */
-	MRC_QP_ATTR_MPR = (1<<16),
+	MRC_QP_ATTR_MPR = (1<<15),
 	/* Responder MPR */
-	MRC_QP_ATTR_MPR_DEST = (1<<17),
+	MRC_QP_ATTR_MPR_DEST = (1<<16),
 	/* Responder dynamic MPR support */
-	MRC_QP_ATTR_DYNAMIC_MPR_DEST = (1<<18),
+	MRC_QP_ATTR_DYNAMIC_MPR_DEST = (1<<17),
 	/* QP (fixed+exponential) retry counter */
-	MRC_QP_ATTR_RETRY_CNT = (1<<19),
+	MRC_QP_ATTR_RETRY_CNT = (1<<18),
 	/* QP ack timeout */
-	MRC_QP_ATTR_TIMEOUT = (1<<20),
+	MRC_QP_ATTR_TIMEOUT = (1<<19),
 	/* Requestor consideration of responder flow control signals */
-	MRC_QP_ATTR_IGNORE_RSP_FLOW_CTL = (1<<21),
+	MRC_QP_ATTR_IGNORE_RSP_FLOW_CTL = (1<<20),
 	/* vendor specific configuration data */
 	MRC_QP_ATTR_VENDOR_CFG = (1<<31)
 };
