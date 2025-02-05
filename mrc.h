@@ -652,11 +652,14 @@ enum mrc_qp_attr_mask {
 	/* Responder dynamic MPR support */
 	MRC_QP_ATTR_DYNAMIC_MPR_DEST = (1<<17),
 	/* QP (fixed+exponential) retry counter */
-	MRC_QP_ATTR_RETRY_CNT = (1<<18),
+	// TODO: Uncomment after HW spec is updated (1.09)
+	// MRC_QP_ATTR_RETRY_CNT = (1<<18),
 	/* QP ack timeout */
-	MRC_QP_ATTR_TIMEOUT = (1<<19),
+	// TODO: Uncomment after HW spec is updated (1.09)
+	// MRC_QP_ATTR_TIMEOUT = (1<<19),
 	/* Requestor consideration of responder flow control signals */
-	MRC_QP_ATTR_IGNORE_RSP_FLOW_CTL = (1<<20),
+	// TODO: Uncomment after HW spec is updated (1.09)
+	// MRC_QP_ATTR_IGNORE_RSP_FLOW_CTL = (1<<20),
 	/* vendor specific configuration data */
 	MRC_QP_ATTR_VENDOR_CFG = (1<<31)
 };
@@ -709,18 +712,18 @@ struct mrc_qp_attr {
 		uint16_t max_wimm_dest; /**Max inflight WIMMs as responder. */
 	} wimm;
 
-// This structure will be uncommented once the HW spec has been updated to reflect it.
-//
+// TODO: Uncomment after HW spec is updated (1.09)
 //	struct {
 //		uint8_t retry_cnt_fixed; /**< Fixed interval retry count. Max value = 8. */
 //		uint8_t retry_cnt_exp; /**< Exponential retry count. Max val = 32 (infinite retry) */
 //	} retry_cnt;
 
 	int ev_event_mask; /**< EV Event mask.  Only EV_ASSUMED_BAD, EV_GOOD supported. */
-	uint8_t timeout; /**< Local ACK timeout for all paths in 1.024us units. Max value: 26 (68.7s).
-                          Functions as primary ACK timeout for MRC QPs. */
+	// TODO: Uncomment after HW spec update to 1.09
+	// uint8_t timeout; /**< Local ACK timeout for all paths in 1.024us units. Max value: 26 (68.7s).
+	//                       Functions as primary ACK timeout for MRC QPs. */
 
-// This field will be uncommented once the HW spec has been updated to reflect it.
+//	TODO: Uncomment after HW spec is updated (1.09)
 //	bool ignore_rsp_flow_ctl; /**< Ignore responder flow control signals; if True ignore responder signal. */
 
 	uint8_t  vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
