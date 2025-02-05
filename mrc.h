@@ -962,10 +962,10 @@ struct mrc_ev_probe_rsp {
 /**
  * @brief Send EV Probe requests and wait for responses.
  *
- * Send EV Probe requests and wait for responses. The caller
- * provides an array of requests for transmission and waits until either
- * all responses have been received or the function times out.  Responses
- * are delivered into an array of response structures in order of arrival.
+ * This non-interruptible function blocks the caller until all responses are 
+ * received or timeout occurs.  Responses are delivered into the response 
+ * structure in order of arrival.  Responses are not buffered between 
+ * invocations.
  *
  * @param mrc_ctx[in]      - MRC context to use
  * @param req_tc[in]       - Request (DSCP) traffic class
@@ -976,6 +976,7 @@ struct mrc_ev_probe_rsp {
  * @param num_rsp[out]     - Number of responses returned
  *
  * @retval 0 Success
+ * @retval EAGAIN Resource temporarily unavailable; retry later.
  * @retval EINVAL One or more supplied arguments are invalid.
  * @retval EIO Implementation specific error occurred.
  * @retval ENOMEM Error allocating memory for function.
@@ -984,10 +985,10 @@ struct mrc_ev_probe_rsp {
  * @retval ETIMEDOUT Timeout occurred before all responses received.
  */
 int mrc_probe_ev(struct mrc_context *mrc_ctx,
-		 unsigned req_tc,
+		 uint8_t req_tc,
 		 struct mrc_ev_probe_req *req,
 		 int num_req,
-		 unsigned int rsp_timeout,
+		 uint32_t rsp_timeout,
 		 struct mrc_ev_probe_rsp *rsp,
 		 int *num_rsp);
 
