@@ -91,9 +91,11 @@ enum mrc_attr_opt {
 	/* The implementation supports ev_min_allowed_vals in
 	 * mrc_ev_gen_allow_fmt. */
 	MRC_OPT_CAP_EV_MIN_ALLOWED_VALS = (1<<8),
+	/* The implementation supports EV Probe */
+	MRC_OPT_CAP_EV_PROBE = (1<<9),
 	/* The implementation supports accurate counting of dropped EV
 	 * Events. */
-	MRC_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT = (1<<9),
+	MRC_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT = (1<<10),
 	/* The implementation supports sharing of EV arrays between QPs.
 	 *
 	 * Sharing of EV arrays between QPs allows sharing of the
@@ -112,7 +114,7 @@ enum mrc_attr_opt {
 	 * When this capability is supported, the application must
 	 * create the EV array with `shared` attribute set
 	 * for the EV array it intends to share between QPs. */
-	MRC_OPT_CAP_SHARED_EV_ARRAYS = (1<<10),
+	MRC_OPT_CAP_SHARED_EV_ARRAYS = (1<<11),
 };
 
 struct mrc_attr {
@@ -980,6 +982,59 @@ struct mrc_cq* mrc_create_ev_event_cq(struct mrc_context *mrc_ctx,
  * to the @c errno is returned.
  */
 int mrc_poll_ev_event(struct mrc_cq *ev_cq, int num_entries, struct mrc_ev_event *ev_event);
+
+/**
+ * @brief EV Probe Request
+ */
+struct mrc_ev_probe_req {
+	uint16_t probe_id;  /**< Application provided (request) probe ID. */
+	union ibv_gid sgid; /**< Source GID; only ROCE_V2 GID type supported. */
+	union ibv_gid dgid; /**< Destination GID; only ROCE_V2 GID type supported. */
+	uint32_t req_ev;    /**< Probe request EV. */
+	uint32_t rsp_ev;    /**< Probe response EV. */
+};
+
+/**
+ * @brief EV Probe Response
+ */
+struct mrc_ev_probe_rsp {
+	uint16_t probe_id; /**< Associated request probe ID for this response. */
+	unsigned int rtt;  /**< RTT; units = 1ns. */
+	bool adj_svc_time; /**< True if rtt has been adjusted for responder service time. */
+};
+
+/**
+ * @brief Send EV Probe requests and wait for responses.
+ *
+ * This non-interruptible function blocks the caller until all responses are 
+ * received or timeout occurs.  Responses are delivered into the response 
+ * structure in order of arrival.  Responses are not buffered between 
+ * invocations.
+ *
+ * @param mrc_ctx[in]      - MRC context to use
+ * @param req_tc[in]       - Request (DSCP) traffic class
+ * @param req[in]          - An array of requests
+ * @param num_req[in]      - length of request array
+ * @param rsp_timeout[in]  - Waiting period for responses; units = 1ns
+ * @param rsp[out]         - An array of response structures
+ * @param num_rsp[out]     - Number of responses returned
+ *
+ * @retval 0 Success
+ * @retval EAGAIN Resource temporarily unavailable; retry later.
+ * @retval EINVAL One or more supplied arguments are invalid.
+ * @retval EIO Implementation specific error occurred.
+ * @retval ENOMEM Error allocating memory for function.
+ * @retval ENOTSUP Function not supported.
+ * @retval EPERM Process lacks sufficient permissions.
+ * @retval ETIMEDOUT Timeout occurred before all responses received.
+ */
+int mrc_probe_ev(struct mrc_context *mrc_ctx,
+		 uint8_t req_tc,
+		 struct mrc_ev_probe_req *req,
+		 int num_req,
+		 uint32_t rsp_timeout,
+		 struct mrc_ev_probe_rsp *rsp,
+		 int *num_rsp);
 
 #ifdef __cplusplus
 }
