@@ -58,6 +58,17 @@ struct mrc_cq;
 struct mrc_comp_channel;
 struct mrc_ev_array;
 
+struct mrc_ah_attr {
+	union ibv_gid dgid; /**< Destination IP (identical on every plane). */
+	uint8_t sgid_index; /**< Source IP (identical on every plane). */
+	uint8_t hop_limit;
+	struct {
+		uint8_t req;
+		uint8_t retx_req;
+		uint8_t ctl;
+	} tc; /**< Traffic class for request, retransmit request and control packets. */
+};
+
 /**
  * Optional features supported by the implementation.
  */
@@ -686,13 +697,14 @@ enum mrc_qp_attr_mask {
 	/* QP (fixed+exponential) retry counter */
 	// TODO: Uncomment after HW spec is updated (1.09)
 	// MRC_QP_ATTR_RETRY_CNT = (1<<18),
-	/* QP ack timeout */
-	// TODO: Uncomment after HW spec is updated (1.09)
-	// MRC_QP_ATTR_TIMEOUT = (1<<19),
+	/* QP ACK timeout */
+	MRC_QP_ATTR_TIMEOUT = (1<<19),
 	/* Requestor consideration of responder flow control signals */
 	// TODO: Uncomment after HW spec is updated (1.09)
 	// MRC_QP_ATTR_IGNORE_RSP_FLOW_CTL = (1<<20),
 	/* vendor specific configuration data */
+	/* QP Address Vector */
+	MRC_QP_ATTR_AV = (1<<21),
 	MRC_QP_ATTR_VENDOR_CFG = (1<<31)
 };
 
@@ -749,12 +761,9 @@ struct mrc_qp_attr {
 //		uint8_t retry_cnt_fixed; /**< Fixed interval retry count. Max value = 8. */
 //		uint8_t retry_cnt_exp; /**< Exponential retry count. Max val = 32 (infinite retry) */
 //	} retry_cnt;
-
+	struct mrc_ah_attr ah_attr; /**< QP Address Vector. */
 	int ev_event_mask; /**< EV Event mask.  Only EV_ASSUMED_BAD, EV_GOOD supported. */
-	// TODO: Uncomment after HW spec update to 1.09
-	// uint8_t timeout; /**< Local ACK timeout for all paths in 1.024us units. Max value: 26 (68.7s).
-	//                       Functions as primary ACK timeout for MRC QPs. */
-
+	uint8_t timeout; /**< ACK timeout.  Transport timeout = 1.024us << timeout.  Max = 26 (68.7s). */
 //	TODO: Uncomment after HW spec is updated (1.09)
 //	bool ignore_rsp_flow_ctl; /**< Ignore responder flow control signals; if True ignore responder signal. */
 
@@ -802,6 +811,19 @@ int mrc_query_qp(struct mrc_qp *qp,
  * @brief Modify a QP
  *
  * Modify a QP.
+ * Callers provide an ibv_qp_attr and mrc_qp_attr structure and masks.
+ *
+ * The following IBV field masks are not supported:
+ * IBV_QP_PORT
+ * IBV_QP_TIMEOUT (use MRC_QP_ATTR_TIMEOUT)
+ * IBV_QP_RETRY_CNT (use MRC_QP_ATTR_RETRY_CNT)
+ * IBV_QP_AV (use MRC_QP_ATTR_AV)
+ * IBV_QP_RNR_RETRY
+ * IBV_QP_MIN_RNR_TIMER
+ * IBV_QP_MAX_QP_RD_ATOMIC
+ * IBV_QP_MAX_DEST_RD_ATOMIC
+ * IBV_QP_ALT_PATH
+ * IBV_QP_PATH_MIG_STATE
  * 
  * MRC_QP_ATTR_EV_ARRAY is supported during the following transitions:
  *
