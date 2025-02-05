@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2024, 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -9,10 +9,10 @@
  * without an express license agreement from NVIDIA CORPORATION or
  * its affiliates is strictly prohibited.
  *
- * Copyright (c) 2024, Broadcom. All rights reserved. The term
+ * Copyright (c) 2024, 2025, Broadcom. All rights reserved. The term
  * Broadcom refers to Broadcom Limited and/or its subsidiaries.
  *
- * Copyright (c) 2024, Advanced Micro Devices (AMD), Inc.  All rights
+ * Copyright (c) 2024, 2025, Advanced Micro Devices (AMD), Inc.  All rights
  * reserved.
  */
 
@@ -91,11 +91,33 @@ enum mrc_attr_opt {
 	/* The implementation supports ev_min_allowed_vals in
 	 * mrc_ev_gen_allow_fmt. */
 	MRC_OPT_CAP_EV_MIN_ALLOWED_VALS = (1<<8),
+	/* The implementation supports EV Probe */
+	MRC_OPT_CAP_EV_PROBE = (1<<9),
 	/* The implementation supports accurate counting of dropped EV
 	 * Events. */
-	MRC_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT = (1<<9),
 	/* The implementation supports dynamic MPR (requestor and/or responder role). */
 	MRC_OPT_CAP_DYNAMIC_MPR = (1<<10),
+	/* The implementation supports precise EV Event drop counts. */
+	MRC_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT = (1<<11),
+	/* The implementation supports sharing of EV arrays between QPs.
+	 *
+	 * Sharing of EV arrays between QPs allows sharing of the
+	 * EV states across QPs. This could be more efficient depending
+	 * on the use case. Additionally, when multiple QPs are sharing
+	 * the EV array, then the application is required to only modify
+	 * one of the QPs (RTS2RTS), to reflect any EV array updates for
+	 * all the QPs that are sharing the EV array. Sharing of the
+	 * EV array enables the provider to allocate less resources, with
+	 * the additional constraint of addressing concurrent
+	 * updates to shared EV states that happen from multiple QPs.
+	 *
+	 * When this capability is not supported, the application
+	 * must allocate separate EV arrays for each QP.
+	 *
+	 * When this capability is supported, the application must
+	 * create the EV array with `shared` attribute set
+	 * for the EV array it intends to share between QPs. */
+	MRC_OPT_CAP_SHARED_EV_ARRAYS = (1<<12),
 };
 
 struct mrc_attr {
@@ -437,6 +459,8 @@ struct mrc_ev_entry {
  *
  * @param mrc_ctx[in] - MRC context
  * @param num_ev[in]  - Number of EVs
+ * @param shared[in] - Whether the EV array may be shared between QPs
+ *                     (see MRC_OPT_CAP_SHARED_EV_ARRAYS)
  * @param entries[in] - Array of EVs (should be >= num_ev)
  *
  * @return
@@ -445,6 +469,7 @@ struct mrc_ev_entry {
  */
 struct mrc_ev_array* mrc_create_ev_array_explicit(struct mrc_context *mrc_ctx,
 			int num_ev,
+			bool shared,
 			struct mrc_ev_entry *entries);
 
 /**
@@ -456,6 +481,8 @@ struct mrc_ev_array* mrc_create_ev_array_explicit(struct mrc_context *mrc_ctx,
  * @param mrc_ctx[in] - MRC context
  * @param num_ev[in]  - Number of EVs that will be generated and used by
  *                      the provider according to the bitmask.
+ * @param shared[in] - Whether the EV array may be shared between QPs
+ *                     (see MRC_OPT_CAP_SHARED_EV_ARRAYS)
  * @param gen_attr[in] - EV generation attributes
  *
  * @return
@@ -464,6 +491,7 @@ struct mrc_ev_array* mrc_create_ev_array_explicit(struct mrc_context *mrc_ctx,
  */
 struct mrc_ev_array* mrc_create_ev_array_generated(struct mrc_context *mrc_ctx,
 			int num_ev,
+			bool shared,
 			struct mrc_ev_gen_attr *gen_attr);
 
 /**
@@ -478,6 +506,8 @@ struct mrc_ev_array* mrc_create_ev_array_generated(struct mrc_context *mrc_ctx,
  * @param mrc_ctx[in] - MRC context
  * @param num_ev[in]  - Number of EVs that will be generated and used by
  *                      the provider according to the bitmask.
+ * @param shared[in] - Whether the EV array may be shared between QPs
+ *                     (see MRC_OPT_CAP_SHARED_EV_ARRAYS)
  * @param entries[in] - Primed array of EVs (should be >= num_ev)
  * @param gen_attr[in] - EV generation attributes
  * 
@@ -487,13 +517,15 @@ struct mrc_ev_array* mrc_create_ev_array_generated(struct mrc_context *mrc_ctx,
  */
 struct mrc_ev_array* mrc_create_ev_array_primed_generated(struct mrc_context *mrc_ctx,
 			int num_ev,
+			bool shared,
 			struct mrc_ev_entry *entries,
 			struct mrc_ev_gen_attr *gen_attr);
 
 /**
  * @brief Destroy an EV array
  * 
- * Destroy an EV array
+ * Destroy an EV array. The QPs that are using the EV arrays
+ * must be destroyed before the EV array is destroyed.
  * 
  * @param ev_array[in] - EV array to destroy
  * 
@@ -800,9 +832,10 @@ int mrc_query_qp(struct mrc_qp *qp,
  * The array entries are copied by value during the modify operations,
  * such that the EV array can be destroyed if so desired by the application.
  *
- * If the same mrc_ev_array is shared between multiple QPs, then the provider can
- * update the EVs associated with the other QPs to reflect any changes before
- * the application modifies the other QPs.
+ * If the EV array is shared between multiple QPs (see parameter
+ * `shared` in mrc_create_ev_array_*()), then the application can update all
+ * QPs using the array by modifying any of the QPs using the array.
+ * Non-shared arrays only modify the associated QP.
  *
  * modify_qp() uses the full set of EV entries (if provided) to use for the QP.
  *
@@ -1017,6 +1050,59 @@ struct mrc_cq* mrc_create_ev_event_cq(struct mrc_context *mrc_ctx,
  * to the @c errno is returned.
  */
 int mrc_poll_ev_event(struct mrc_cq *ev_cq, int num_entries, struct mrc_ev_event *ev_event);
+
+/**
+ * @brief EV Probe Request
+ */
+struct mrc_ev_probe_req {
+	uint16_t probe_id;  /**< Application provided (request) probe ID. */
+	union ibv_gid sgid; /**< Source GID; only ROCE_V2 GID type supported. */
+	union ibv_gid dgid; /**< Destination GID; only ROCE_V2 GID type supported. */
+	uint32_t req_ev;    /**< Probe request EV. */
+	uint32_t rsp_ev;    /**< Probe response EV. */
+};
+
+/**
+ * @brief EV Probe Response
+ */
+struct mrc_ev_probe_rsp {
+	uint16_t probe_id; /**< Associated request probe ID for this response. */
+	unsigned int rtt;  /**< RTT; units = 1ns. */
+	bool adj_svc_time; /**< True if rtt has been adjusted for responder service time. */
+};
+
+/**
+ * @brief Send EV Probe requests and wait for responses.
+ *
+ * This non-interruptible function blocks the caller until all responses are 
+ * received or timeout occurs.  Responses are delivered into the response 
+ * structure in order of arrival.  Responses are not buffered between 
+ * invocations.
+ *
+ * @param mrc_ctx[in]      - MRC context to use
+ * @param req_tc[in]       - Request (DSCP) traffic class
+ * @param req[in]          - An array of requests
+ * @param num_req[in]      - length of request array
+ * @param rsp_timeout[in]  - Waiting period for responses; units = 1ns
+ * @param rsp[out]         - An array of response structures
+ * @param num_rsp[out]     - Number of responses returned
+ *
+ * @retval 0 Success
+ * @retval EAGAIN Resource temporarily unavailable; retry later.
+ * @retval EINVAL One or more supplied arguments are invalid.
+ * @retval EIO Implementation specific error occurred.
+ * @retval ENOMEM Error allocating memory for function.
+ * @retval ENOTSUP Function not supported.
+ * @retval EPERM Process lacks sufficient permissions.
+ * @retval ETIMEDOUT Timeout occurred before all responses received.
+ */
+int mrc_probe_ev(struct mrc_context *mrc_ctx,
+		 uint8_t req_tc,
+		 struct mrc_ev_probe_req *req,
+		 int num_req,
+		 uint32_t rsp_timeout,
+		 struct mrc_ev_probe_rsp *rsp,
+		 int *num_rsp);
 
 #ifdef __cplusplus
 }
