@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2024, 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -9,10 +9,10 @@
  * without an express license agreement from NVIDIA CORPORATION or
  * its affiliates is strictly prohibited.
  *
- * Copyright (c) 2024, Broadcom. All rights reserved. The term
+ * Copyright (c) 2024, 2025, Broadcom. All rights reserved. The term
  * Broadcom refers to Broadcom Limited and/or its subsidiaries.
  *
- * Copyright (c) 2024, Advanced Micro Devices (AMD), Inc.  All rights
+ * Copyright (c) 2024, 2025, Advanced Micro Devices (AMD), Inc.  All rights
  * reserved.
  */
 
@@ -103,11 +103,15 @@ enum mrc_attr_opt {
 	 * mrc_ev_gen_allow_fmt.
 	 */
 	MRC_OPT_CAP_EV_MIN_ALLOWED_VALS		= (1<<8),
+	/* The implementation supports EV Probe */
+	MRC_OPT_CAP_EV_PROBE			= (1<<9),
 	/*
-	 * The implementation supports accurate counting of dropped EV
-	 * Events.
+	 * The implementation supports dynamic MPR (requestor and/or
+	 * responder role).
 	 */
-	MRC_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= (1<<9),
+	MRC_OPT_CAP_DYNAMIC_MPR			= (1<<10),
+	/* The implementation supports precise EV Event drop counts. */
+	MRC_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= (1<<11),
 	/*
 	 * The implementation supports sharing of EV arrays between QPs.
 	 *
@@ -125,16 +129,24 @@ enum mrc_attr_opt {
 	 * must allocate separate EV arrays for each QP.
 	 *
 	 * When this capability is supported, the application must
-	 * create the EV array with 'shared' attribute set
+	 * create the EV array with `shared` attribute set
 	 * for the EV array it intends to share between QPs.
 	 */
-	MRC_OPT_CAP_SHARED_EV_ARRAYS		= (1<<10),
+	MRC_OPT_CAP_SHARED_EV_ARRAYS		= (1<<12),
 };
 
 struct mrc_attr {
 	/* bitmap indicating all versions supported. see enum mrc_version */
 	uint32_t mrc_version;
-	uint16_t max_wimm_dest;
+	struct {
+		uint16_t max_wimm; /**< Max configurable wimm value as requestor.  */
+		uint16_t max_wimm_dest; /**< Max configurable wimm value as responder. */
+	} wimm_attr;
+	struct {
+		uint16_t default_mpr; /**< Default MPR as requestor and/or responder; unit = 1 PSN. */
+		uint16_t max_mpr; /**< Max configurable MPR as requestor and/or responder; unit = 1 PSN. */
+		uint16_t mpr_align; /**< HW MPR alignment; unit = 1 PSN. */
+	} mpr_attr;
 	/* bitmap indicating all optional features supported. see mrc_attr_opt */
 	uint32_t opt_attr;
 };
@@ -649,52 +661,84 @@ int mrc_update_ev_deny_list(struct mrc_ev_array *ev_array,
 			    struct mrc_ev_deny *deny,
 			    uint32_t length);
 
+/**
+ * @brief MRC QP attribute mask
+ *
+ * The list of attributes that may be changed upon transitioning QP
+ * state from Reset->Init->RTR->RTS are:
+ *
+ * Next State        Required Attributes
+ * ----------        -------------------
+ * RTR                MRC_QP_ATTR_MAX_WIMM_DEST, MRC_QP_ATTR_MPR
+ *
+ * RTS                MRC_QP_ATTR_WIMM, MRC_QP_ATTR_RETRY_CNT, MRC_QP_ATTR_ACK_TIMEOUT,
+ *                    MRC_QP_ATTR_EV_ARRAY_ALLOWED_BITS [bitmask] ||
+ *                    (MRC_QP_ATTR_EV_ARRAY_VALUES, MRC_QP_ATTR_MAX_EV_COUNT) [array],
+ *                    MRC_QP_ATTR_EV_ARRAY,
+ *                    MRC_QP_ATTR_EV_DENY_LIST,
+ *                    MRC_QP_ATTR_EV_EVENT_MASK
+ */
+
+
 enum mrc_qp_attr_mask {
-	/* maximum inflight WriteIMM operations as Requester */
+	/* Max WIMM as requestor */
 	MRC_QP_ATTR_MAX_WIMM			= (1<<0),
-	/* maximum inflight WriteIMM operations as Responder */
+	/* Max WIMM as responder */
 	MRC_QP_ATTR_MAX_WIMM_DEST		= (1<<1),
-	/* maximum retry count in exponential range */
-	MRC_QP_ATTR_RETRY_CNT_EXP		= (1<<2),
 	/* EV array to use for the MODIFY or QUERY operation */
-	MRC_QP_ATTR_EV_ARRAY			= (1<<3),
+	MRC_QP_ATTR_EV_ARRAY			= (1<<2),
 	/* maximum count of EVs for the QP */
-	MRC_QP_ATTR_MAX_EV_COUNT		= (1<<4),
+	MRC_QP_ATTR_MAX_EV_COUNT		= (1<<3),
 	/* (Query only) maximum value of the EV for the QP */
-	MRC_QP_ATTR_MAX_EV_VAL			= (1<<5),
-	/* manipulate EV monitored state mask */
-	MRC_QP_ATTR_EV_STATE_MONITOR_MASK	= (1<<6),
+	MRC_QP_ATTR_MAX_EV_VAL			= (1<<4),
+	/* manipulate EV Event state mask */
+	MRC_QP_ATTR_EV_EVENT_MASK		= (1<<5),
 	/* (Modify only) EV array values are updated */
-	MRC_QP_ATTR_EV_ARRAY_VALUES		= (1<<7),
+	MRC_QP_ATTR_EV_ARRAY_VALUES		= (1<<6),
 	/* (Modify only) EV generation bitmasks are updated */
-	MRC_QP_ATTR_EV_ARRAY_ALLOWED_BITS	= (1<<8),
+	MRC_QP_ATTR_EV_ARRAY_ALLOWED_BITS	= (1<<7),
 	/* (Modify only) EV deny list is updated */
-	MRC_QP_ATTR_EV_DENY_LIST		= (1<<9),
+	MRC_QP_ATTR_EV_DENY_LIST		= (1<<8),
 	/*
-	 * (Query only) Minimum number of EVs that are required to be
-	 * active, not ASSUMED_BAD for operation of the QP.
+	 * (Query only) Minimum number of EVs that are required to be active,
+	 * not ASSUMED_BAD for operation of the QP.
 	 */
-	MRC_QP_ATTR_EV_MIN_ACTIVE		= (1<<10),
+	MRC_QP_ATTR_EV_MIN_ACTIVE		= (1<<9),
 	/*
-	 * (Query only) EV array size being used by the QP.
-	 * See mrc_create_ev_array_*() and mrc_get_ev_array_len().
+	 * (Query only) EV array size being used by the QP. See
+	 * mrc_create_ev_array_*() and mrc_get_ev_array_len().
 	 */
-	MRC_QP_ATTR_EV_ARRAY_SIZE		= (1<<11),
+	MRC_QP_ATTR_EV_ARRAY_SIZE		= (1<<10),
 	/* (Query only) Deny list length currently in use */
-	MRC_QP_ATTR_EV_DENY_LIST_LEN		= (1<<12),
+	MRC_QP_ATTR_EV_DENY_LIST_LEN		= (1<<11),
 	/* (Query only) Maximum number of primed EVs for the QP */
-	MRC_QP_ATTR_MAX_EV_PRIMED_COUNT		= (1<<13),
+	MRC_QP_ATTR_MAX_EV_PRIMED_COUNT		= (1<<12),
 	/*
-	 * (Query only) Minimum number of EVs for the QP that the
-	 * application must provide if it is supplying an EV array.
+	 * (Query only) Minimum number of EVs for the QP that the application
+	 * must provide if it is supplying an EV array.
 	 */
-	MRC_QP_ATTR_MIN_NUM_EV			= (1<<14),
+	MRC_QP_ATTR_MIN_NUM_EV			= (1<<13),
 	/*
-	 * (Query only) Number of EVs for alignment.
-	 * If the application is supplying an EV array, then the
-	 * array should be sized as: min_num_ev + (k * num_ev_align)
+	 * (Query only) Number of EVs for alignment. If the application is
+	 * supplying an EV array, then the array should be sized as:
+	 * min_num_ev + (k * num_ev_align)
 	 */
-	MRC_QP_ATTR_NUM_EV_ALIGN		= (1<<15),
+	MRC_QP_ATTR_NUM_EV_ALIGN		= (1<<14),
+	/* Requestor MPR */
+	MRC_QP_ATTR_MPR				= (1<<15),
+	/* Responder MPR */
+	MRC_QP_ATTR_MPR_DEST			= (1<<16),
+	/* Responder dynamic MPR support */
+	MRC_QP_ATTR_DYNAMIC_MPR_DEST		= (1<<17),
+	/* QP (fixed+exponential) retry counter */
+	// TODO: Uncomment after HW spec is updated (1.09)
+	// MRC_QP_ATTR_RETRY_CNT		= (1<<18),
+	/* QP ack timeout */
+	// TODO: Uncomment after HW spec is updated (1.09)
+	// MRC_QP_ATTR_TIMEOUT			= (1<<19),
+	/* Requestor consideration of responder flow control signals */
+	// TODO: Uncomment after HW spec is updated (1.09)
+	// MRC_QP_ATTR_IGNORE_RSP_FLOW_CTL	= (1<<20),
 	/* vendor specific configuration data */
 	MRC_QP_ATTR_VENDOR_CFG			= (1<<31)
 };
@@ -702,57 +746,95 @@ enum mrc_qp_attr_mask {
 #define MRC_MAX_VENDOR_CFG_SIZE 128
 
 struct mrc_qp_attr {
-	uint16_t max_wimm;
-	uint16_t max_wimm_dest;
-	uint8_t  retry_cnt_exp;
-	/* max number of EVs per QP */
-	uint32_t max_ev_per_qp;
-	/* max number of primed EVs per QP (QUERY)*/
-	uint32_t max_primed_ev_per_qp;
 	/*
-	 * maximum number of valid bits EV. This is an output value that the
-	 * provider sets during QUERY operation. This applies to explict as
-	 * well as generated EVs.
+	 * MPR values may be aligned to the device's mrc_attr.mpr_align value
+	 * for maximum resource efficiency.
 	 */
-	uint32_t max_ev_bits;
-	/*
-	 * min number of active EVs per QPs to avoid the situation of marking
-	 * many EVs to ASSUMED_BAD. The mrc_ev_array provided to the QP must
-	 * have num_evs greater than this value.
-	 */
-	uint32_t min_active_ev_per_qp;
-	/* EV array size being used by the QP (QUERY) */
-	uint32_t num_ev;
-	/* EV deny list length currently in use (QUERY)*/
-	uint32_t ev_deny_list_len;
-	/*
-	 * Minimum number of EVs that the EV array should contain. If the
-	 * application is using EV APIs, then each array should contain at
-	 * least these many EVs. Value of 0 means any EV count is supported
-	 * by the provider.
-	 */
-	uint32_t min_num_ev;
-	/*
-	 * Alignment requirements for number of EVs required by the provider.
-	 * Together with min_num_ev, it provides the EV array sizing
-	 * requirements The EV array size should be equal to
-	 * min_num_ev + (k*num_ev_align), where 'k' is a multiple chosen by
-	 * the application. For example, if a provider supports EVs in
-	 * multiples of 8, it would set the values min_num_ev = 8, and
-	 * num_ev_align = 8. The total number of EVs is subject to a maximum
-	 * of max_ev_per_qp. Value of 0 means any EV count increment is
-	 * supported by the provider.
-	 */
-	uint32_t num_ev_align;
-	struct mrc_ev_array *ev_array;
-	/*
-	 * Events are generated when a QP's EV state transitions to a state
-	 * set in ev_event_mask.  For MRC_VERSION_1 QPs, only EV_ASSUMED_BAD
-	 * and EV_GOOD is supported. Bit offsets in ev_event_mask match those
-	 * in mr_ev_state.
-	 */
-	unsigned int ev_event_mask;
-	uint8_t  vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
+	struct {
+		/* Requestor MPR value; unit=1 PSN */
+		uint16_t mpr;
+		/* Responder MPR value; unit=1 PSN */
+		uint16_t mpr_dest;
+		/* Responder dynamic MPR support; if True enable support */
+		bool dynamic_mpr_dest;
+	} mpr;
+
+	struct {
+		/* Max number of primed EVs per QP (QUERY) */
+		uint32_t max_primed_ev_per_qp;
+		/*
+		 * Maximum number of valid bits EV. This is an output value
+		 * that the provider sets during QUERY operation. This applies
+		 * to explicit as well as generated EVs.
+		 */
+		uint32_t max_ev_bits;
+		/*
+		 * Min number of active EVs per QP to avoid the situation of
+		 * marking many EVs as ASSUMED_BAD. The mrc_ev_array provided
+		 * to the QP must have num_evs greater than this value.
+		 */
+		uint32_t min_active_ev_per_qp;
+		/* EV array size being used by the QP (QUERY) */
+		uint32_t num_ev;
+		/* EV deny list length currently in use (QUERY) */
+		uint32_t ev_deny_list_len;
+		/*
+		 * Minimum number of EVs that the EV array should contain. If
+		 * the application is using EV APIs, then each array should
+		 * contain at least this many EVs. Value of 0 means any EV
+		 * count is supported by the provider.
+		 */
+		uint32_t min_num_ev;
+		/*
+		 * Alignment requirements for the number of EVs required by
+		 * the provider. Together with min_num_ev, it provides the EV
+		 * array sizing requirements. The EV array size should
+		 * be = min_num_ev + (k * num_ev_align), where 'k' is a
+		 * multiple chosen by the application. For example, if a
+		 * provider supports EVs in multiples of 8, it would set the
+		 * values min_num_ev = 8, and num_ev_align = 8. The total
+		 * number of EVs is subject to a maximum of max_ev_per_qp.
+		 * Value of 0 means any EV count increment is supported by
+		 * the provider.
+		 */
+		uint32_t num_ev_align;
+		struct mrc_ev_array *ev_array;
+	} ev;
+
+	struct {
+		/* Max inflight WIMMs as requestor */
+		uint16_t max_wimm;
+		/* Max inflight WIMMs as responder */
+		uint16_t max_wimm_dest;
+	} wimm;
+
+// TODO: Uncomment after HW spec is updated (1.09)
+//	struct {
+//		/* Fixed interval retry count. Max value = 8 */
+//		uint8_t retry_cnt_fixed;
+//		/* Exponential retry count. Max val = 32 (infinite retry) */
+//		uint8_t retry_cnt_exp;
+//	} retry_cnt;
+
+	/* EV Event mask. Only EV_ASSUMED_BAD, EV_GOOD supported. */
+	int ev_event_mask;
+
+// TODO: Uncomment after HW spec update to 1.09
+//	/*
+//	 * Local ACK timeout for all paths in 1.024us units.
+//	 * Max value: 26 (68.7s). Functions as primary ACK timeout for
+//	 * MRC QPs.
+//	 */
+//	uint8_t timeout;
+
+//	TODO: Uncomment after HW spec is updated (1.09)
+//	/*
+//	 * Ignore responder flow control signals; if True ignore responder
+//	 * signal.
+//	 */
+//	bool ignore_rsp_flow_ctl;
+
+	uint8_t vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
 
 /**
@@ -1050,6 +1132,67 @@ struct mrc_ev_event {
 int mrc_poll_ev_event(struct mrc_cq *ev_cq,
 		      int num_entries,
 		      struct mrc_ev_event *ev_event);
+
+/**
+ * @brief EV Probe Request
+ */
+struct mrc_ev_probe_req {
+	/* Application provided (request) probe ID. */
+	uint16_t probe_id;
+	/* Source GID; only ROCE_V2 GID type supported. */
+	union ibv_gid sgid;
+	/* Destination GID; only ROCE_V2 GID type supported. */
+	union ibv_gid dgid;
+	/* Probe request EV. */
+	uint32_t req_ev;
+	/* Probe response EV. */
+	uint32_t rsp_ev;
+};
+
+/**
+ * @brief EV Probe Response
+ */
+struct mrc_ev_probe_rsp {
+	/* Associated request probe ID for this response. */
+	uint16_t probe_id;
+	/* RTT; units = 1ns. */
+	unsigned int rtt;
+	/* True if rtt has been adjusted for responder service time. */
+	bool adj_svc_time;
+};
+
+/**
+ * @brief Send EV Probe requests and wait for responses.
+ *
+ * This non-interruptible function blocks the caller until all responses are
+ * received or timeout occurs. Responses are delivered into the response
+ * structure in order of arrival. Responses are not buffered between
+ * invocations.
+ *
+ * @param mrc_ctx[in]      - MRC context to use
+ * @param req_tc[in]       - Request (DSCP) traffic class
+ * @param req[in]          - An array of requests
+ * @param num_req[in]      - length of request array
+ * @param rsp_timeout[in]  - Waiting period for responses; units = 1ns
+ * @param rsp[out]         - An array of response structures
+ * @param num_rsp[out]     - Number of responses returned
+ *
+ * @retval 0 Success
+ * @retval EAGAIN Resource temporarily unavailable; retry later.
+ * @retval EINVAL One or more supplied arguments are invalid.
+ * @retval EIO Implementation specific error occurred.
+ * @retval ENOMEM Error allocating memory for function.
+ * @retval ENOTSUP Function not supported.
+ * @retval EPERM Process lacks sufficient permissions.
+ * @retval ETIMEDOUT Timeout occurred before all responses received.
+ */
+int mrc_probe_ev(struct mrc_context *mrc_ctx,
+		 uint8_t req_tc,
+		 struct mrc_ev_probe_req *req,
+		 int num_req,
+		 uint32_t rsp_timeout,
+		 struct mrc_ev_probe_rsp *rsp,
+		 int *num_rsp);
 
 #ifdef __cplusplus
 }
