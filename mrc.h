@@ -814,9 +814,9 @@ int mrc_query_qp(struct mrc_qp *qp,
  *
  * The following IBV field masks are not supported:
  * IBV_QP_PORT
- * IBV_QP_TIMEOUT (use MRC_QP_ATTR_TIMEOUT)
- * IBV_QP_RETRY_CNT (use MRC_QP_ATTR_RETRY_CNT)
- * IBV_QP_AV (use MRC_QP_ATTR_AV)
+ * IBV_QP_TIMEOUT (use MRC_QP_TIMEOUT)
+ * IBV_QP_RETRY_CNT (use MRC_QP_RETRY_CNT)
+ * IBV_QP_AV (use MRC_QP_AV)
  * IBV_QP_RNR_RETRY
  * IBV_QP_MIN_RNR_TIMER
  * IBV_QP_MAX_QP_RD_ATOMIC
