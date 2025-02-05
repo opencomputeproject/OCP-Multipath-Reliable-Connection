@@ -125,7 +125,7 @@ enum mrc_attr_opt {
 	 * must allocate separate EV arrays for each QP.
 	 *
 	 * When this capability is supported, the application must
-	 * create the EV array with `shared` attribute set
+	 * create the EV array with 'shared' attribute set
 	 * for the EV array it intends to share between QPs.
 	 */
 	MRC_OPT_CAP_SHARED_EV_ARRAYS		= (1<<10),
@@ -415,8 +415,6 @@ struct mrc_qp *mrc_create_qp(struct mrc_context *mrc_ctx,
  */
 int mrc_destroy_qp(struct mrc_qp *qp);
 
-#define MRC_MAX_VENDOR_CFG_SIZE 128
-
 /**
  * @brief Supported EV states.
  */
@@ -426,6 +424,13 @@ enum mrc_ev_state {
 	MRC_EV_DENIED		= (1<<2),
 };
 
+struct mrc_ev_entry {
+	/* State of the EV */
+	enum mrc_ev_state state;
+	/* Value of the EV */
+	uint32_t val;
+};
+
 struct mrc_ev_deny {
 	/*
 	 * The EV bitmasks that should not be used.
@@ -433,8 +438,8 @@ struct mrc_ev_deny {
 	 * The EVs that are denied will be given by:
 	 * (ev & deny_mask) == (deny_value & deny_mask)
 	 *
-	 * The ev_deny_mask/value_arrays can be freed after the mrc_ev_array is
-	 * created, or the associated MODIFY operation returns.
+	 * The ev_deny_mask/value_arrays can be freed after the mrc_ev_array
+	 * is created, or the associated MODIFY operation returns.
 	 */
 	uint32_t deny_mask;
 	uint32_t deny_value;
@@ -457,13 +462,6 @@ struct mrc_ev_gen_attr {
 	uint32_t ev_deny_list_len;
 };
 
-struct mrc_ev_entry {
-	/* State of the EV */
-	enum mrc_ev_state state;
-	/* Value of the EV */
-	uint32_t val;
-};
-
 /**
  * @brief Create an array of EVs in Explicit mode
  *
@@ -475,8 +473,8 @@ struct mrc_ev_entry {
  *
  * @param mrc_ctx[in] - MRC context
  * @param num_ev[in]  - Number of EVs
- * @param shared[in] - Whether the EV array may be shared between QPs
- *                     (see MRC_OPT_CAP_SHARED_EV_ARRAYS)
+ * @param shared[in]  - Whether the EV array may be shared between QPs
+ *                      (see MRC_OPT_CAP_SHARED_EV_ARRAYS)
  * @param entries[in] - Array of EVs (should be >= num_ev)
  *
  * @return
@@ -700,6 +698,8 @@ enum mrc_qp_attr_mask {
 	/* vendor specific configuration data */
 	MRC_QP_ATTR_VENDOR_CFG			= (1<<31)
 };
+
+#define MRC_MAX_VENDOR_CFG_SIZE 128
 
 struct mrc_qp_attr {
 	uint16_t max_wimm;
@@ -987,27 +987,6 @@ void mrc_ack_cq_events(struct mrc_cq *cq,
 		       unsigned int nevents);
 
 /**
- * @brief EV Event structure.
- *
- * EV Event structure. Hardware generates an EV Event for every EV
- * state change that matches monitored EV states in the QP's EV monitored
- * state mask field.
- */
-struct mrc_ev_event {
-	uint32_t qpn;
-	uint32_t ev;
-	enum mrc_ev_state state;
-	/*
-	 * If MRC_OPT_CAP_ACC_DROP_CNT is set, this field contains the
-	 * number of EV Events dropped between the last and current
-	 * event delivered to the queue.  If not set, this field is 1
-	 * if any events were dropped between the last and current
-	 * event and 0 otherwise.
-	 */
-	uint32_t drop_count;
-};
-
-/**
  * @brief Create an EV Event CQ.
  *
  * EV CQs are used to obtain EV Events. They differ
@@ -1028,6 +1007,27 @@ struct mrc_cq *mrc_create_ev_event_cq(struct mrc_context *mrc_ctx,
 				      void *cq_context,
 				      struct mrc_comp_channel *channel,
 				      int comp_vector);
+
+/**
+ * @brief EV Event structure.
+ *
+ * EV Event structure. Hardware generates an EV Event for every EV
+ * state change that matches monitored EV states in the QP's EV monitored
+ * state mask field.
+ */
+struct mrc_ev_event {
+	uint32_t qpn;
+	uint32_t ev;
+	enum mrc_ev_state state;
+	/*
+	 * If MRC_OPT_CAP_ACC_DROP_CNT is set, this field contains the
+	 * number of EV Events dropped between the last and current
+	 * event delivered to the queue.  If not set, this field is 1
+	 * if any events were dropped between the last and current
+	 * event and 0 otherwise.
+	 */
+	uint32_t drop_count;
+};
 
 /**
  * @brief Poll for EV Events
