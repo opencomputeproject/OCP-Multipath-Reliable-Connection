@@ -139,15 +139,23 @@ struct mrc_attr {
 	/* bitmap indicating all versions supported. see enum mrc_version */
 	uint32_t mrc_version;
 	struct {
-		uint16_t max_wimm; /**< Max configurable wimm value as requestor.  */
-		uint16_t max_wimm_dest; /**< Max configurable wimm value as responder. */
+		/* Max configurable wimm value as requestor. */
+		uint16_t max_wimm;
+		/* Max configurable wimm value as responder. */
+		uint16_t max_wimm_dest;
 	} wimm_attr;
 	struct {
-		uint16_t default_mpr; /**< Default MPR as requestor and/or responder; unit = 1 PSN. */
-		uint16_t max_mpr; /**< Max configurable MPR as requestor and/or responder; unit = 1 PSN. */
-		uint16_t mpr_align; /**< HW MPR alignment; unit = 1 PSN. */
+		/* Default MPR as requestor and/or responder; unit = 1 PSN */
+		uint16_t default_mpr;
+		/*
+		 * Max configurable MPR as requestor and/or responder;
+		 * unit = 1 PSN
+		 */
+		uint16_t max_mpr;
+		/* HW MPR alignment; unit = 1 PSN. */
+		uint16_t mpr_align;
 	} mpr_attr;
-	/* bitmap indicating all optional features supported. see mrc_attr_opt */
+	/* bitmap indicating all optional features supported (mrc_attr_opt) */
 	uint32_t opt_attr;
 };
 
@@ -667,18 +675,20 @@ int mrc_update_ev_deny_list(struct mrc_ev_array *ev_array,
  * The list of attributes that may be changed upon transitioning QP
  * state from Reset->Init->RTR->RTS are:
  *
- * Next State        Required Attributes
- * ----------        -------------------
- * RTR                MRC_QP_ATTR_MAX_WIMM_DEST, MRC_QP_ATTR_MPR
+ * Next State   Required Attributes
+ * ----------   -------------------
+ * RTR          MRC_QP_ATTR_MAX_WIMM_DEST,
+ *              MRC_QP_ATTR_MPR
  *
- * RTS                MRC_QP_ATTR_WIMM, MRC_QP_ATTR_RETRY_CNT, MRC_QP_ATTR_ACK_TIMEOUT,
- *                    MRC_QP_ATTR_EV_ARRAY_ALLOWED_BITS [bitmask] ||
- *                    (MRC_QP_ATTR_EV_ARRAY_VALUES, MRC_QP_ATTR_MAX_EV_COUNT) [array],
- *                    MRC_QP_ATTR_EV_ARRAY,
- *                    MRC_QP_ATTR_EV_DENY_LIST,
- *                    MRC_QP_ATTR_EV_EVENT_MASK
+ * RTS          MRC_QP_ATTR_WIMM,
+ *              MRC_QP_ATTR_RETRY_CNT,
+ *              MRC_QP_ATTR_ACK_TIMEOUT,
+ *              MRC_QP_ATTR_EV_ARRAY_ALLOWED_BITS[bitmask] ||
+ *              (MRC_QP_ATTR_EV_ARRAY_VALUES, MRC_QP_ATTR_MAX_EV_COUNT)[array],
+ *              MRC_QP_ATTR_EV_ARRAY,
+ *              MRC_QP_ATTR_EV_DENY_LIST,
+ *              MRC_QP_ATTR_EV_EVENT_MASK
  */
-
 
 enum mrc_qp_attr_mask {
 	/* Max WIMM as requestor */
