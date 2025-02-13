@@ -58,17 +58,6 @@ struct mrc_cq;
 struct mrc_comp_channel;
 struct mrc_ev_array;
 
-struct mrc_ah_attr {
-	union ibv_gid dgid; /**< Destination IP (identical on every plane). */
-	uint8_t sgid_index; /**< Source IP (identical on every plane). */
-	uint8_t hop_limit;
-	struct {
-		uint8_t req;
-		uint8_t retx_req;
-		uint8_t ctl;
-	} tc; /**< Traffic class for request, retransmit request and control packets. */
-};
-
 /**
  * Optional features supported by the implementation.
  */
@@ -701,9 +690,6 @@ enum mrc_qp_attr_mask {
 	/* Requestor consideration of responder flow control signals */
 	// TODO: Uncomment after HW spec is updated (1.09)
 	// MRC_QP_IGNORE_RSP_FLOW_CTL = (1<<20),
-	/* QP Address Vector */
-	MRC_QP_AV = (1<<21),
-	/* vendor specific configuration data */
 	MRC_QP_VENDOR_CFG = (1<<31)
 };
 
@@ -816,7 +802,6 @@ int mrc_query_qp(struct mrc_qp *qp,
  * IBV_QP_PORT
  * IBV_QP_TIMEOUT (use MRC_QP_TIMEOUT)
  * IBV_QP_RETRY_CNT (use MRC_QP_RETRY_CNT)
- * IBV_QP_AV (use MRC_QP_AV)
  * IBV_QP_RNR_RETRY
  * IBV_QP_MIN_RNR_TIMER
  * IBV_QP_MAX_QP_RD_ATOMIC
