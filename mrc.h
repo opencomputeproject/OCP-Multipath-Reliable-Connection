@@ -750,7 +750,7 @@ struct mrc_qp_attr {
 	int ev_event_mask; /**< EV Event mask.  Only EV_ASSUMED_BAD, EV_GOOD supported. */
 	uint8_t timeout; /**< ACK timeout.  Transport timeout = 1.024us << timeout.  Max = 26 (68.7s). */
 //	TODO: Uncomment after HW spec is updated (1.09)
-//	bool ignore_rsp_flow_ctl; /**< Ignore responder flow control signals; if True ignore responder signal. */
+//	bool disable_rsp_flow_ctl; /**< Disable responder flow control signals; if True responder flow control is disabled. */
 
 	uint8_t  vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
