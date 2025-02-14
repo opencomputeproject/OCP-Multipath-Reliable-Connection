@@ -746,7 +746,6 @@ struct mrc_qp_attr {
 //		uint8_t retry_cnt_fixed; /**< Fixed interval retry count. Max value = 8. */
 //		uint8_t retry_cnt_exp; /**< Exponential retry count. Max val = 32 (infinite retry) */
 //	} retry_cnt;
-	struct mrc_ah_attr ah_attr; /**< QP Address Vector. */
 	int ev_event_mask; /**< EV Event mask.  Only EV_ASSUMED_BAD, EV_GOOD supported. */
 	uint8_t timeout; /**< ACK timeout.  Transport timeout = 1.024us << timeout.  Max = 26 (68.7s). */
 //	TODO: Uncomment after HW spec is updated (1.09)
