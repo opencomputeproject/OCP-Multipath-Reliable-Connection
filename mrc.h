@@ -746,7 +746,7 @@ struct mrc_qp_attr {
 //	} retry_cnt;
 	int ev_event_mask; /**< EV Event mask.  Only EV_ASSUMED_BAD, EV_GOOD supported. */
 	/**< ACK timeout.  Hardware waits 2**timeout ns before retrying.
-	 * Supported range: timeout = [10,34]  (1.024us, 17.17s)*/
+	 * Supported range: timeout = [10,34]  (1.024us, 17.17s) */
 	uint8_t timeout;
 //	TODO: Uncomment after HW spec is updated (1.09)
 //	bool disable_rsp_flow_ctl; /**< Disable responder flow control signals; if True responder flow control is disabled. */
