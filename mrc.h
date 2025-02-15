@@ -745,7 +745,7 @@ struct mrc_qp_attr {
 //		uint8_t retry_cnt_exp; /**< Exponential retry count. Max val = 32 (infinite retry) */
 //	} retry_cnt;
 	int ev_event_mask; /**< EV Event mask.  Only EV_ASSUMED_BAD, EV_GOOD supported. */
-	uint8_t timeout; /**< Local ACK timeout; 1.024 * 2^(timeout) us.  Max val = 24 (17.17s)  */
+	uint8_t timeout; /**< Local ACK timeout; 1.024 * 2^timeout us.  Max val = 24 (17.17s)  */
 //	TODO: Uncomment after HW spec is updated (1.09)
 //	bool disable_rsp_flow_ctl; /**< Disable responder flow control signals; if True responder flow control is disabled. */
 
