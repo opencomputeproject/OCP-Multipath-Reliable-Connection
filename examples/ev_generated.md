@@ -4,28 +4,34 @@
 ## Query Device
 
 The first thing the application must do is query the device to verify the
-`MRC_OPT_CAP_EV_GEN_ARRAY` capability is supported.
+`MRC_OPT_CAP_EV_GEN_ARRAY` capability is supported and also gather some other
+capabilities specific to generated EVs.
 
 ```C
 struct ibv_context *ib_ctx;
 struct mrc_attr     mrc_attr;
+bool                ev_array_shared = false;
 
 memset(&mrc_attr, 0, sizeof(mrc_attr));
 
 if (mrc_query_device(ib_ctx, &mrc_attr) != 0)
     return ERROR;
 
-if (mrc_attr.cap & MRC_OPT_CAP_EV_GEN_ARRAY) {
-    /* configure paramaters to instruct the hardware how to generate EVs */
+if ((mrc_attr.cap & MRC_OPT_CAP_EV_GEN_ARRAY) == 0) {
+    /* device does not support generating an array of EVs */
+    return ERROR;
 }
+
+if (mrc_attr.cap & MRC_OPT_CAP_SHARED_EV_ARRAYS)
+    ev_array_shared = true;
 ```
 
 ## Create MRC Context
 
 Next step is create a new MRC context. For generated EVs it is required
-to specify a "generation allowed format". See comment below showing an example
-on how the `ev_allow_mask` and `ev_max_allowed_vals` could be configured by the
-application.
+to specify the generation format. See comment below showing an example
+on how the `ev_allow_mask`, `ev_max_allowed_vals`, and `ev_min_allowed_vals`
+could be configured by the application.
 
 ```C
 struct mrc_context_attr      mrc_context_attr;
@@ -42,30 +48,30 @@ mrc_context_attr.mrc_ev_num_lsb_plane_bits = 0x7; /* 8 planes */
  * the plane). Since the number of hops is even, the first field mask is 0's
  * and the last is 1's.
  *   - 1st hop: 0x7   max = 7   (8 planes)
- *   - 2nd hop: 0xff  max = 180 (180 links)
+ *   - 2nd hop: 0xff  max = 179 (180 links)
  *   - 3rd hop: 0xf   max = 15  (16 links)
  *   - 4th hop: 0xf   max = 15  (16 links)
  *
  * ev_allow_mask       = 0x000787f8
- * ev_max_allowed_vals = 0x0007fda7
+ * ev_max_allowed_vals = 0x0007fd9f
  * ev_min_allowed_vals = 0x00000000
  */
 
 tmp_ev = 0;
-tmp_ev = ((tmp_ev << 0) | 0xf);  /* 4th hop, 1's */
-tmp_ev =  (tmp_ev << 4);         /* 3rd hop, 0's */
-tmp_ev = ((tmp_ev << 8) | 0xff); /* 2rd hop, 1's */
-tmp_ev =  (tmp_ev << 3);         /* 1st hop, 0's */
+tmp_ev = ((tmp_ev << 0) | 0xf);  /* 4th hop, 4x 1's */
+tmp_ev =  (tmp_ev << 4);         /* 3rd hop, 4x 0's */
+tmp_ev = ((tmp_ev << 8) | 0xff); /* 2rd hop, 8x 1's */
+tmp_ev =  (tmp_ev << 3);         /* 1st hop, 3x 0's */
 
 mrc_context_attr.allow_fmt.ev_allow_mask = tmp_ev; /* result: 0x000787f8 */
 
 tmp_ev = 0;
 tmp_ev = ((tmp_ev << 0) | 15);  /* 4th hop max */
 tmp_ev = ((tmp_ev << 4) | 15);  /* 3rd hop max */
-tmp_ev = ((tmp_ev << 8) | 180); /* 2rd hop max */
+tmp_ev = ((tmp_ev << 8) | 179); /* 2rd hop max */
 tmp_ev = ((tmp_ev << 3) | 7);   /* 1st hop max */
 
-mrc_context_attr.allow_fmt.ev_max_allowed_vals = tmp_ev; /* result: 0x0007fda7 */
+mrc_context_attr.allow_fmt.ev_max_allowed_vals = tmp_ev; /* result: 0x0007fd97 */
 
 mrc_context_attr.allow_fmt.ev_min_allowed_vals = 0;
 
@@ -121,21 +127,31 @@ if (mrc_modify_qp(mrc_qp,
     return ERROR;
 ```
 
-## Get the Maximum EV Values via Query QP
+## Get Various EV Attributes Needed to Create EV Array
 
-In order for the application to allocate the EV array, it must learn the
-maximum number of EVs supported and the maximum value for each EV.
+In order for the application to provision the EV array, it must learn the
+minumum and maximum size of the EV array, any EV array alignment restrictions,
+and the minumum number of EVs that must remain active.
 
 ```C
+uint32_t min_num_ev    = 0;
+uint32_t max_ev_count  = 0;
+uint32_t num_ev_align  = 0;
+uint32_t ev_min_active = 0;
+
 /* clear the QP attributes... */
 memset(&ibv_qp_attr, 0, sizeof(ibv_qp_attr));
+/* set QP attributes mask... */
+ibv_qp_attr_mask = 0;
 
 /* clear the MRC QP attributes... */
 memset(&mrc_qp_attr, 0, sizeof(mrc_qp_attr));
 /* set MRC QP attributes mask... */
 mrc_qp_attr_mask  = 0;
-mrc_qp_attr_mask |= MRC_QP_ATTR_MAX_EV_COUNT;
-mrc_qp_attr_mask |= MRC_QP_ATTR_MAX_EV_VAL;
+mrc_qp_attr_mask |= MRC_QP_MIN_NUM_EV;
+mrc_qp_attr_mask |= MRC_QP_MAX_EV_COUNT;
+mrc_qp_attr_mask |= MRC_QP_NUM_EV_ALIGN;
+mrc_qp_attr_mask |= MRC_QP_EV_MIN_ACTIVE;
 
 /* clear the QP init attributes... */
 memset(&mrc_qp_init_attr, 0, sizeof(mrc_qp_init_attr));
@@ -146,41 +162,53 @@ if (mrc_query_qp(mrc_qp,
                  &mrc_qp_init_attr) != 0)
     return ERROR;
 
-/*
- * Maximum values:
- *   mrc_qp_attr.max_ev_per_qp
- *   mrc_qp_attr.max_ev_val
- */
+min_num_ev    = mrc_qp_init_attr.min_num_ev;
+max_ev_count  = mrc_qp_init_attr.max_primed_ev_per_qp;
+num_ev_align  = mrc_qp_init_attr.num_ev_align;
+ev_min_active = mrc_qp_init_attr.min_active_ev_per_qp;
 ```
 
 ## Create an EV Array
 
-Before moving the QP to the `RTR` state, the application must allocate the
-EV array. This array will be filled in with generated EVs when transitioning to
-`RTR`.
+Before moving the QP to the `RTR` state, the application must determine the
+size of the EV array to be filled in with EVs generated by the hardware.
 
-*Note: The maximum EVs are learned from the prior call to `mrc_query_qp()`. The
-example continued here assumes it is 128 entries.
+*Note: Here we try to create an array that contains 128 entries yet we must
+obey the min/max/alignment EV array attributes returned by the provider driver
+above.*
 
 ```C
-int                      num_ev = 128;
-struct mrc_ev_array     *mrc_ev_array;
-struct mrc_ev_init_attr  mrc_ev_init_attr;
-struct mrc_ev_entry     *mrc_ev_entry;
+int                     num_ev = 128;
+struct mrc_ev_gen_attr  mrc_ev_gen_attr;
+struct mrc_ev_array    *mrc_ev_array;
 
-/* allocate an array of EVs */
-mrc_ev_entry = malloc(num_ev * sizeof(*mrc_ev_entry));
-if (mrc_ev_entry == NULL)
-    return ERROR;
+/* make sure num_ev is not less than the minimum */
+if (num_ev < min_num_ev)
+    num_ev = min_num_ev;
 
-/* clear the array */
-memset(mrc_ev_entry, 0, (num_ev * sizeof(*mrc_ev_entry));
+/* make sure num_ev is not greater than the maximum */
+if (num_ev > max_ev_count)
+    num_ev = max_ev_count;
 
-memset(&mrc_ev_init_attr, 0, sizeof(mrc_ev_init_attr));
-mrc_ev_init_attr.u.exp_attr.entries = mrc_ev_entry;
-mrc_ev_init_attr.u.exp_attr.num_ev  = num_ev;
+/*
+ * If num_ev isn't aligned, round it UP to the next alignment. This code
+ * assumes that the num_ev_align value supplied by the provider driver is a
+ * power of two.
+ */
+if ((num_ev % num_ev_align) != 0) {
+    num_ev = ((num_ev + num_ev_align - 1) & ~(num_ev_align - 1));
 
-mrc_ev_array = mrc_create_ev_array(mrc_context, num_ev, &mrc_ev_init_attr);
+/* fill in the mrc_ev_gen_attr...*/
+memset(&mrc_ev_gen_attr, 0, sizeof(mrc_ev_gen_attr));
+mrc_ev_gen_attr.ev_allowed_bits  = 0x7ffff; /* all fields in ev_allow_fmt */
+mrc_ev_gen_attr.ev_deny          = NULL;
+mrc_ev_gen_attr.ev_deny_list_len = 0;
+
+/* create the EV array */
+mrc_ev_array = mrc_create_ev_array_generated(mrc_context,
+                                             num_ev,
+                                             false, /* shared EV array */
+                                             &mrc_ev_gen_attr);
 if (mrc_ev_array == NULL)
     return ERROR;
 ```
@@ -249,16 +277,16 @@ if (mrc_modify_qp(mrc_qp,
 
 ## Deny Some EVs
 
-This example shows how the application can update deny some EVs in the EV
-array and then update the QP with the new values. This can only occur in the
-QP modify `RTS` to `RTS` transition. Here there are three deny mask/values
-created and applied to the EV array.
+This example shows how the application can deny some EVs in the EV array and
+then update the QP with the denied EVs. This can only occur in the QP modify
+`RTS` to `RTS` transition. Here there are three deny mask/values created and
+applied to the EV array.
 
 ```C
 int                 num_deny_ev = 3;
 struct mrc_ev_deny *mrc_ev_deny;
 
-if ((mrc_attr.cap & MRC_OPT_CAP_EV_EXP_ARRAY) == 0) {
+if ((mrc_attr.cap & MRC_OPT_CAP_UPDATE_EV_DENY_LIST_RTS) == 0) {
     /* device does not support updating the EV deny array */
     return ERROR;
 }
@@ -277,8 +305,11 @@ mrc_ev_deny[1].deny_value = 0x00000300; /* EV 3 on 3rd hop */
 mrc_ev_deny[2].deny_mask  = 0x00078000;
 mrc_ev_deny[2].deny_value = 0x00078000; /* EV 15 on 4th hop */
 
-if (mrc_udpate_ev_deny_array(mrc_ev_array, mrc_ev_deny, num_deny_ev) == -1)
+if (mrc_udpate_ev_deny_list(mrc_ev_array, mrc_ev_deny, num_deny_ev) == -1)
     return ERROR;
+
+/* the temporary EV deny array can now be freed */
+free(mrc_ev_deny);
 
 /* fill in QP attributes... */
 memset(&ibv_qp_attr, 0, sizeof(ibv_qp_attr));
