@@ -40,7 +40,6 @@ extern "C" {
 #define MRC_API_VER_USED MRC_API_CURRENT_VERSION
 #endif
 
-
 #if MRC_API_VER_USED < MRC_API_LAST_SUPPORTED_VERSION
 #error "MRC_API_VER_USED is less than MRC_API_LAST_SUPPORTED version"
 #elif MRC_API_VER_USED == MRC_API_LAST_SUPPORTED_VERSION
@@ -48,8 +47,8 @@ extern "C" {
 #endif
 
 enum mrc_version {
-	MRC_VERSION_0 	= 0, /* MRC not supported */
-	MRC_VERSION_1 	= (1 << 0),
+	MRC_VERSION_0	= 0, /* MRC not supported */
+	MRC_VERSION_1	= (1 << 0),
 };
 
 struct mrc_context;
@@ -62,44 +61,59 @@ struct mrc_ev_array;
  * Optional features supported by the implementation.
  */
 enum mrc_attr_opt {
-	/* The implementation supports the capability to update EV after
-	 * the QP has transitioned past the RTR stage */
-	MRC_OPT_CAP_UPDATE_EV_RTS 	= (1<<0),
+	/*
+	 * The implementation supports the capability to update EV after
+	 * the QP has transitioned past the RTR stage.
+	 */
+	MRC_OPT_CAP_UPDATE_EV_RTS		= (1<<0),
 	/* The implementation supports EV Events */
-	MRC_OPT_CAP_EV_EVENT    	= (1<<1),
+	MRC_OPT_CAP_EV_EVENT			= (1<<1),
 	/* The implementation supports explicit EV array */
-	MRC_OPT_CAP_EV_EXP_ARRAY	= (1<<2),
-	/* The implementation supports generated EV array,
-	   where the values are generated using bitmasks */
-	MRC_OPT_CAP_EV_GEN_ARRAY 	= (1<<3),
-	/* The implementation supports generated EV array
-	   where the initial values are primed explicitly, but other
-	   values are generated using the bitmask */
-	MRC_OPT_CAP_EV_PRIMED_GEN_ARRAY = (1<<4),
-	/* The implementation supports updating EV allowed bits
-	 * after the QP has transitioned to RTS */
-	MRC_OPT_CAP_UPDATE_EV_ALLOWED_BITS_RTS = (1<<5),
-	/* The implementation supports updating EV deny list
-	 * after the QP has transitioned to RTS */
-	MRC_OPT_CAP_UPDATE_EV_DENY_LIST_RTS = (1<<6),
-	/* The implementation only supports ranges of explicit
-	 * EV values in the explicit mode. In this mode, the
-	 * first EV value supplied is the base, and the last
-	 * EV used is first_ev_val + (num_ev - 1). Where
-	 * num_ev is the argument to mrc_create_ev_array_*(). */
-	MRC_OPT_CAP_EV_EXP_ARRAY_RANGE = (1<<7),
-	/* The implementation supports ev_min_allowed_vals in
-	 * mrc_ev_gen_allow_fmt. */
-	MRC_OPT_CAP_EV_MIN_ALLOWED_VALS = (1<<8),
+	MRC_OPT_CAP_EV_EXP_ARRAY		= (1<<2),
+	/*
+	 * The implementation supports generated EV array, where the values
+	 * are generated using bitmasks.
+	 */
+	MRC_OPT_CAP_EV_GEN_ARRAY		= (1<<3),
+	/*
+	 * The implementation supports generated EV array where the initial
+	 * values are primed explicitly, but other values are generated using
+	 * the bitmask.
+	 */
+	MRC_OPT_CAP_EV_PRIMED_GEN_ARRAY		= (1<<4),
+	/*
+	 * The implementation supports updating EV allowed bits after the
+	 * QP has transitioned to RTS.
+	 */
+	MRC_OPT_CAP_UPDATE_EV_ALLOWED_BITS_RTS	= (1<<5),
+	/*
+	 * The implementation supports updating EV deny list after the QP
+	 * has transitioned to RTS.
+	 */
+	MRC_OPT_CAP_UPDATE_EV_DENY_LIST_RTS	= (1<<6),
+	/*
+	 * The implementation only supports ranges of explicit EV values in
+	 * the explicit mode. In this mode, the first EV value supplied is
+	 * the base, and the last EV used is first_ev_val + (num_ev - 1).
+	 * Where num_ev is the argument to mrc_create_ev_array_*().
+	 */
+	MRC_OPT_CAP_EV_EXP_ARRAY_RANGE		= (1<<7),
+	/*
+	 * The implementation supports ev_min_allowed_vals in
+	 * mrc_ev_gen_allow_fmt.
+	 */
+	MRC_OPT_CAP_EV_MIN_ALLOWED_VALS		= (1<<8),
 	/* The implementation supports EV Probe */
-	MRC_OPT_CAP_EV_PROBE = (1<<9),
-	/* The implementation supports accurate counting of dropped EV
-	 * Events. */
-	/* The implementation supports dynamic MPR (requestor and/or responder role). */
-	MRC_OPT_CAP_DYNAMIC_MPR = (1<<10),
+	MRC_OPT_CAP_EV_PROBE			= (1<<9),
+	/*
+	 * The implementation supports dynamic MPR (requestor and/or
+	 * responder role).
+	 */
+	MRC_OPT_CAP_DYNAMIC_MPR			= (1<<10),
 	/* The implementation supports precise EV Event drop counts. */
-	MRC_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT = (1<<11),
-	/* The implementation supports sharing of EV arrays between QPs.
+	MRC_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= (1<<11),
+	/*
+	 * The implementation supports sharing of EV arrays between QPs.
 	 *
 	 * Sharing of EV arrays between QPs allows sharing of the
 	 * EV states across QPs. This could be more efficient depending
@@ -116,30 +130,37 @@ enum mrc_attr_opt {
 	 *
 	 * When this capability is supported, the application must
 	 * create the EV array with `shared` attribute set
-	 * for the EV array it intends to share between QPs. */
-	MRC_OPT_CAP_SHARED_EV_ARRAYS = (1<<12),
+	 * for the EV array it intends to share between QPs.
+	 */
+	MRC_OPT_CAP_SHARED_EV_ARRAYS		= (1<<12),
 };
 
 struct mrc_attr {
 	/* bitmap indicating all versions supported. see enum mrc_version */
 	uint32_t mrc_version;
 	struct {
-		uint16_t max_wimm; /**< Max configurable wimm value as requestor.  */
-		uint16_t max_wimm_dest; /**< Max configurable wimm value as responder. */
+		/* Max configurable wimm value as requestor. */
+		uint16_t max_wimm;
+		/* Max configurable wimm value as responder. */
+		uint16_t max_wimm_dest;
 	} wimm_attr;
 	struct {
-		uint8_t max_mpr; /**< Maximum supported MPR value as requestor or responder; units = 128 PSNs. */
-		uint8_t mpr_res; /**< MPR resource allocation resolution; unit = 128 PSNs. */
+		/*
+		 * Maximum supported MPR value as requestor or responder.
+		 * units = 128 PSNs
+		 */
+		uint8_t max_mpr;
+		/* MPR resource allocation resolution; unit = 128 PSNs. */
+		uint8_t mpr_res;
 	} mpr_attr;
-	/* bitmap indicating all optional features supported. see mrc_attr_opt */
+	/* bitmap indicating all optional features supported (mrc_attr_opt) */
 	uint32_t opt_attr;
 };
 
 /**
  * @brief Query Device
  *
- * Query the device to check MRC support and other
- * attributes.
+ * Query the device to check MRC support and other attributes.
  *
  * @param context[in] - IB Verbs context
  * @param attrs[out]  - MRC attributes
@@ -151,7 +172,8 @@ int mrc_query_device(struct ibv_context *context,
 		     struct mrc_attr *attr);
 
 struct mrc_ev_gen_allow_fmt {
-	/* EV allow mask.
+	/*
+	 * EV allow mask.
 	 * The bitmask can contain several fields.
 	 * Bitmask encoding rules are described below.
 	 * - The field transitions are marked using alternating 0s and 1s.
@@ -161,18 +183,19 @@ struct mrc_ev_gen_allow_fmt {
 	 *
 	 * For example:
 	 * 1. 0xF0F0F0F0 indicates 8 bit fields, each 4 bits wide.
-	 * 2. 0xF0F0F0F indicates 7 bit fields, each 4 bits wide.
+	 * 2. 0x0F0F0F0F indicates 7 bit fields, each 4 bits wide.
 	 */
-	uint32_t		ev_allow_mask;
-
-	/* The max value of each field that is allowed.
+	uint32_t ev_allow_mask;
+	/*
+	 * The max value of each field that is allowed.
 	 * The ev_allowed_bits operate in powers of 2, however, there may
 	 * be a max value that each field can support.
 	 * For example, for a bitmask of 0xF0 (two bitfields),
 	 * 0xEC indicates a maximum of 12 for field 1 and 14 for field 2.
 	 */
-	uint32_t		ev_max_allowed_vals;
-	/* The min value of each field that is allowed.
+	uint32_t ev_max_allowed_vals;
+	/*
+	 * The min value of each field that is allowed.
 	 * While the ev_max_allowed_vals controls the maximum value,
 	 * the ev_min_allowed_vals controls the minimum value the
 	 * field may start with. This enables starting the iteration
@@ -180,9 +203,10 @@ struct mrc_ev_gen_allow_fmt {
 	 * For example, for a bitmask of 0xF0 (two bitfields),
 	 * 0xDB indicates a minimum of 11 for field 1 and 13 for field 2.
 	 */
-	uint32_t		ev_min_allowed_vals;
+	uint32_t ev_min_allowed_vals;
 
-	/* An realistic example in source routed mode:
+	/*
+	 * A realistic example in source routed mode:
 	 * Construct an ev_allow_mask and ev_max_allowed_vals for 4 hops (includes
 	 * the plane). Since the number of hops is even, the first field mask is 0's
 	 * and the last is 1's.
@@ -198,13 +222,23 @@ struct mrc_ev_gen_allow_fmt {
 };
 
 enum mrc_ev_mode {
-	MRC_EV_MODE_NONE	= 0, /* App will not provide any EVs */
-	MRC_EV_MODE_EXP_ARRAY	= 1, /* App will use explicit EVs 
-					(see MRC_OPT_CAP_EV_EXP_ARRAY)*/
-	MRC_EV_MODE_GEN_ARRAY	= 2, /* App will use EVs via generated arrays
-					(see MRC_OPT_CAP_EV_GEN_ARRAY) */
-	MRC_EV_MODE_PRIMED_GEN_ARRAY = 3, /* App will use primed EV generated arrays
-					(see MRC_OPT_CAP_EV_PRIMED_GEN_ARRAY)*/
+	/* App will not provide any EVs */
+	MRC_EV_MODE_NONE		= 0,
+	/*
+	 * App will use explicit EVs
+	 * (see MRC_OPT_CAP_EV_EXP_ARRAY)
+	 */
+	MRC_EV_MODE_EXP_ARRAY		= 1,
+	/*
+	 * App will use EVs via generated arrays
+	 * (see MRC_OPT_CAP_EV_GEN_ARRAY)
+	 */
+	MRC_EV_MODE_GEN_ARRAY		= 2,
+	/*
+	 * App will use primed EV generated arrays
+	 * (see MRC_OPT_CAP_EV_PRIMED_GEN_ARRAY)
+	 */
+	MRC_EV_MODE_PRIMED_GEN_ARRAY	= 3,
 };
 
 /* Context attributes declare the application's usage of MRC */
@@ -212,21 +246,20 @@ struct mrc_context_attr {
 	/* API version used */
 	uint32_t mrc_api_version_used;
 	enum mrc_ev_mode ev_mode;
-	/* EV Gen allow format, required only if Generated EVs are used.
-	 *
+	/*
+	 * EV Gen allow format, required only if Generated EVs are used.
 	 * The mrc_ev_gen_allow_format is chosen by the system administrator,
-	 * particularly, for fields such as ev_allow_mask.
-	 * The application is expected to consult system vendor and use the
-	 * right ev_allow_mask, otherwise, mrc_create_context() may fail with
-	 * an error.
+	 * particularly, for fields such as ev_allow_mask. The application
+	 * is expected to consult system vendor and use the right ev_allow_mask,
+	 * otherwise, mrc_create_context() may fail with an error.
 	 */
 	struct mrc_ev_gen_allow_fmt allow_fmt;
-
-	/* Specify the number of LSB bits in the EV that denote the plane.
-	 * When the value is 0: the application is not identifying the plane bits.
-	 * When the value is non-zero, the plane bits and their location in the
-	 * ev are denoted using 1s.
-	 * For example: 0xF indicates LSB 4 bits indicating a plane.
+	/*
+	 * Specify the number of LSB bits in the EV that denote the plane.
+	 * When the value is 0: the application is not identifying the plane
+	 * bits. When the value is non-zero, the plane bits and their location
+	 * in the ev are denoted using 1s. For example: 0xF indicates
+	 * LSB 4 bits indicating a plane.
 	 */
 	uint32_t mrc_ev_num_lsb_plane_bits;
 };
@@ -234,9 +267,8 @@ struct mrc_context_attr {
 /**
  * @brief Create a MRC lib context
  *
- * Create an MRC library context.
- * `struct mrc_context` provides an instance of the MRC library.
- * It is the parent object for all other objects.
+ * Create an MRC library context. `struct mrc_context` provides an instance
+ * of the MRC library. It is the parent object for all other objects.
  * The primary function of this is to track the objects and clean up.
  * The context structure eliminates the need for any global objects
  * within the MRC library and supports multiple user libraries using MRC.
@@ -258,9 +290,8 @@ struct mrc_context_attr {
  * Returns a pointer to the allocated context on success or NULL if
  * the request fails.
  */
-struct mrc_context* mrc_create_context(struct ibv_context *vcontext,
-			struct mrc_context_attr *context_attr);
-
+struct mrc_context *mrc_create_context(struct ibv_context *vcontext,
+				       struct mrc_context_attr *context_attr);
 
 /**
  * @brief Destroy the MRC lib context
@@ -268,6 +299,7 @@ struct mrc_context* mrc_create_context(struct ibv_context *vcontext,
  * Destroy the MRC lib context.
  *
  * @param[in] mrc_ctx - MRC context
+ *
  * @return
  * Returns 0 on success or -1 on failure.
  */
@@ -285,18 +317,19 @@ int mrc_destroy_context(struct mrc_context *mrc_ctx);
  * Returns 0 on success. Errors like ibv_create_comp_channel().
  */
 int mrc_create_comp_channel(struct mrc_context *mrc_ctx,
-		struct mrc_comp_channel **channel);
+			    struct mrc_comp_channel **channel);
 
 /**
  * @brief Retrieve the completion channel's file descriptor
  *
- * @param channel[in] 	- MRC completion channel
- * @param fd[out]	- Returned file descriptor
+ * @param channel[in] - MRC completion channel
+ * @param fd[out]     - Returned file descriptor
  *
  * @return
  * Returns 0 on success or -1 on error.
  */
-int mrc_get_comp_channel_fd(struct mrc_comp_channel *channel, int *fd);
+int mrc_get_comp_channel_fd(struct mrc_comp_channel *channel,
+			    int *fd);
 
 /**
  * @brief Destroy a completion channel
@@ -315,21 +348,21 @@ int mrc_destroy_comp_channel(struct mrc_comp_channel *channel);
  *
  * Create a CQ
  *
- * @param mrc_ctx[in]    - MRC context to use
- * @param cqe[in]        - Minimum number of entries required for CQ
- * @param cq_context[in] - application context
- * @param channel[in]	 - completion channel
+ * @param mrc_ctx[in]     - MRC context to use
+ * @param cqe[in]         - Minimum number of entries required for CQ
+ * @param cq_context[in]  - application context
+ * @param channel[in]     - completion channel
  * @param comp_vector[in] - Completion vector to signal completion events
  *
  * @return
- * Returns a pointer to the allocated CQ on success or NULL if
- * the request fails. Errors like ibv_create_cq().
+ * Returns a pointer to the allocated CQ on success or NULL if the request
+ * fails. Errors like ibv_create_cq().
  */
-struct mrc_cq* mrc_create_cq(struct mrc_context *mrc_ctx,
-		  int cqe,
-		  void *cq_context,
-		  struct mrc_comp_channel *channel,
-		  int comp_vector);
+struct mrc_cq *mrc_create_cq(struct mrc_context *mrc_ctx,
+			     int cqe,
+			     void *cq_context,
+			     struct mrc_comp_channel *channel,
+			     int comp_vector);
 
 /**
  * @brief Poll for a Completion
@@ -382,11 +415,11 @@ struct mrc_qp_init_attr {
  * @param qp_init_attr_ex - QP init attributes
  *
  * @return
- * Returns a pointer to the created QP on success or NULL if
- * the request fails. Errors like ibv_create_qp().
+ * Returns a pointer to the created QP on success or NULL if the request
+ * fails. Errors like ibv_create_qp().
  */
-struct mrc_qp* mrc_create_qp(struct mrc_context *mrc_ctx,
-		  struct mrc_qp_init_attr *mrc_qp_attr);
+struct mrc_qp *mrc_create_qp(struct mrc_context *mrc_ctx,
+			     struct mrc_qp_init_attr *mrc_qp_attr);
 
 /**
  * @brief Destroy a QP
@@ -400,51 +433,51 @@ struct mrc_qp* mrc_create_qp(struct mrc_context *mrc_ctx,
  */
 int mrc_destroy_qp(struct mrc_qp *qp);
 
-#define MRC_MAX_VENDOR_CFG_SIZE 128
-
 /**
  * @brief Supported EV states.
- *
  */
 enum mrc_ev_state {
-	MRC_EV_GOOD             = (1<<0),
-	MRC_EV_ASSUMED_BAD      = (1<<1),
-	MRC_EV_DENIED	        = (1<<2),
+	MRC_EV_GOOD		= (1<<0),
+	MRC_EV_ASSUMED_BAD	= (1<<1),
+	MRC_EV_DENIED		= (1<<2),
+};
+
+struct mrc_ev_entry {
+	/* State of the EV */
+	enum mrc_ev_state state;
+	/* Value of the EV */
+	uint32_t val;
 };
 
 struct mrc_ev_deny {
-	/* The EV bitmasks that should not be used.
+	/*
+	 * The EV bitmasks that should not be used.
 	 * The length of this array is given using ev_deny_list_len.
 	 * The EVs that are denied will be given by:
 	 * (ev & deny_mask) == (deny_value & deny_mask)
 	 *
-	 * The ev_deny_mask/value_arrays can be freed after the mrc_ev_array is
-	 * created, or the associated MODIFY operation returns.
+	 * The ev_deny_mask/value_arrays can be freed after the mrc_ev_array
+	 * is created, or the associated MODIFY operation returns.
 	 */
-	uint32_t		deny_mask;
-	uint32_t		deny_value;
+	uint32_t deny_mask;
+	uint32_t deny_value;
 };
 
 struct mrc_ev_gen_attr {
-	/* EV allowed bits.
+	/*
+	 * EV allowed bits.
 	 * The bits that a provider can flip to generate valid EV values.
 	 * The fields are identified using the ev_allow_fmt.
 	 * When using a generated EV arrays, the actual EV values in use
 	 * are not generated until the associated QP is in the RTR state.
 	 */
-	uint32_t		  ev_allowed_bits;
-
-	/* Entries to be denied are specified in ev_deny.
-	 * ev_deny_len contains the number of deny entries. */
-	struct mrc_ev_deny  	  *ev_deny;
-	uint32_t		  ev_deny_list_len;
-};
-
-struct mrc_ev_entry {
-	/* State of the EV */
-	enum mrc_ev_state 	  state;
-	/* Value of the EV */
-	uint32_t		  val;
+	uint32_t ev_allowed_bits;
+	/*
+	 * Entries to be denied are specified in ev_deny.
+	 * ev_deny_len contains the number of deny entries.
+	 */
+	struct mrc_ev_deny *ev_deny;
+	uint32_t ev_deny_list_len;
 };
 
 /**
@@ -458,15 +491,16 @@ struct mrc_ev_entry {
  *
  * @param mrc_ctx[in] - MRC context
  * @param num_ev[in]  - Number of EVs
- * @param shared[in] - Whether the EV array may be shared between QPs
- *                     (see MRC_OPT_CAP_SHARED_EV_ARRAYS)
+ * @param shared[in]  - Whether the EV array may be shared between QPs
+ *                      (see MRC_OPT_CAP_SHARED_EV_ARRAYS)
  * @param entries[in] - Array of EVs (should be >= num_ev)
  *
  * @return
  * Returns a pointer to the created array on success or NULL if
  * the request fails.
  */
-struct mrc_ev_array* mrc_create_ev_array_explicit(struct mrc_context *mrc_ctx,
+struct mrc_ev_array *mrc_create_ev_array_explicit(
+			struct mrc_context *mrc_ctx,
 			int num_ev,
 			bool shared,
 			struct mrc_ev_entry *entries);
@@ -477,44 +511,46 @@ struct mrc_ev_array* mrc_create_ev_array_explicit(struct mrc_context *mrc_ctx,
  * Allocates an array of EVs using the generated mode.
  * See capability: MRC_OPT_CAP_EV_GEN_ARRAY.
  *
- * @param mrc_ctx[in] - MRC context
- * @param num_ev[in]  - Number of EVs that will be generated and used by
- *                      the provider according to the bitmask.
- * @param shared[in] - Whether the EV array may be shared between QPs
- *                     (see MRC_OPT_CAP_SHARED_EV_ARRAYS)
+ * @param mrc_ctx[in]  - MRC context
+ * @param num_ev[in]   - Number of EVs that will be generated and used by
+ *                       the provider according to the bitmask.
+ * @param shared[in]   - Whether the EV array may be shared between QPs
+ *                       (see MRC_OPT_CAP_SHARED_EV_ARRAYS)
  * @param gen_attr[in] - EV generation attributes
  *
  * @return
  * Returns a pointer to the created array on success or NULL if
  * the request fails.
  */
-struct mrc_ev_array* mrc_create_ev_array_generated(struct mrc_context *mrc_ctx,
+struct mrc_ev_array *mrc_create_ev_array_generated(
+			struct mrc_context *mrc_ctx,
 			int num_ev,
 			bool shared,
 			struct mrc_ev_gen_attr *gen_attr);
 
 /**
  * @brief Create an array of EVs in Primed and Generated mode
- * 
+ *
  * Allocates an array of EVs using the generated mode.
  * See capability: MRC_OPT_CAP_EV_PRIMED_GEN_ARRAY.
  *
  * The supplied `entries` array can be freed after the
  * call returns.
  *
- * @param mrc_ctx[in] - MRC context
- * @param num_ev[in]  - Number of EVs that will be generated and used by
- *                      the provider according to the bitmask.
- * @param shared[in] - Whether the EV array may be shared between QPs
- *                     (see MRC_OPT_CAP_SHARED_EV_ARRAYS)
- * @param entries[in] - Primed array of EVs (should be >= num_ev)
+ * @param mrc_ctx[in]  - MRC context
+ * @param num_ev[in]   - Number of EVs that will be generated and used by
+ *                       the provider according to the bitmask.
+ * @param entries[in]  - Primed array of EVs (should be >= num_ev)
+ * @param shared[in]   - Whether the EV array may be shared between QPs
+ *                       (see MRC_OPT_CAP_SHARED_EV_ARRAYS)
  * @param gen_attr[in] - EV generation attributes
- * 
+ *
  * @return
  * Returns a pointer to the created array on success or NULL if
  * the request fails.
  */
-struct mrc_ev_array* mrc_create_ev_array_primed_generated(struct mrc_context *mrc_ctx,
+struct mrc_ev_array *mrc_create_ev_array_primed_generated(
+			struct mrc_context *mrc_ctx,
 			int num_ev,
 			bool shared,
 			struct mrc_ev_entry *entries,
@@ -522,12 +558,12 @@ struct mrc_ev_array* mrc_create_ev_array_primed_generated(struct mrc_context *mr
 
 /**
  * @brief Destroy an EV array
- * 
- * Destroy an EV array. The QPs that are using the EV arrays
- * must be destroyed before the EV array is destroyed.
- * 
+ *
+ * Destroy an EV array. The QPs that are using the EV arrays must be
+ * destroyed before the EV array is destroyed.
+ *
  * @param ev_array[in] - EV array to destroy
- * 
+ *
  * @return
  * Returns 0 on success or -1 on failure.
  */
@@ -535,33 +571,38 @@ int mrc_destroy_ev_array(struct mrc_ev_array *ev_array);
 
 /**
  * @brief Get the EV entry
- * 
+ *
  * This is performed after the EV array has been populated using
  * mrc_query_qp().
  *
  * @param ev_array[in] - EV array
- * @param index[in] - Index of the EV entry
- * @param entry[out] - State of the EV
- * 
+ * @param index[in]    - Index of the EV entry
+ * @param entry[out]   - State of the EV
+ *
  * @return
  * Returns 0 on success or -1 on error.
  */
-int mrc_get_ev_entry(struct mrc_ev_array *ev_array, int index, struct mrc_ev_entry *entry);
+int mrc_get_ev_entry(struct mrc_ev_array *ev_array,
+		     int index,
+		     struct mrc_ev_entry *entry);
 
 /**
  * @brief Get the EV deny list entry
  *
  * Retrieve the deny list entry from the EV array after calling mrc_query_qp().
  * See QP attribute MRC_QP_ATTR_EV_DENY_LIST_LEN.
- * 
+ *
  * @param ev_array[in] - EV array
- * @param index[in] - Index of deny entry to read (must be less than deny list length)
- * @param deny[out] - Deny list entry
- * 
+ * @param index[in]    - Index of deny entry to read (must be less than
+ *                       the deny list length)
+ * @param deny[out]    - Deny list entry
+ *
  * @return
  * Returns 0 on success or -1 on error.
  */
-int mrc_get_ev_deny(struct mrc_ev_array *ev_array, int index, struct mrc_ev_deny *deny);
+int mrc_get_ev_deny(struct mrc_ev_array *ev_array,
+		    int index,
+		    struct mrc_ev_deny *deny);
 
 /**
  * @brief Update the EV entry
@@ -570,13 +611,15 @@ int mrc_get_ev_deny(struct mrc_ev_array *ev_array, int index, struct mrc_ev_deny
  * This is performed before the QP is modified using mrc_modify_qp().
  *
  * @param ev_array[in] - EV array
- * @param index[in] - Index of the EV entry
- * @param entry[in] - Updated values for the EV entry
- * 
+ * @param index[in]    - Index of the EV entry
+ * @param entry[in]    - Updated values for the EV entry
+ *
  * @return
  * Returns 0 on success or -1 on error.
  */
-int mrc_update_ev_entry(struct mrc_ev_array *ev_array, int index, struct mrc_ev_entry *entry);
+int mrc_update_ev_entry(struct mrc_ev_array *ev_array,
+			int index,
+			struct mrc_ev_entry *entry);
 
 /**
  * @brief Update the generation bits of an EV array
@@ -585,10 +628,11 @@ int mrc_update_ev_entry(struct mrc_ev_array *ev_array, int index, struct mrc_ev_
  * The new EVs will be generated according to the ev_allowed_bits after
  * the updated mrc_ev_array is provided to the QP using mrc_modify_qp().
  *
- * NOTE: Support for updating the EV generation bits after a QP has transitioned
- * to RTS is indicated using the MRC_OPT_CAP_UPDATE_EV_ALLOWED_BITS_RTS.
+ * NOTE: Support for updating the EV generation bits after a QP has
+ * transitioned to RTS is indicated using the
+ * MRC_OPT_CAP_UPDATE_EV_ALLOWED_BITS_RTS.
  *
- * @param ev_array[in] - EV array
+ * @param ev_array[in]         - EV array
  * @param ev_allowed_bits [in] - Updated allowed_bits
  *
  * @return
@@ -596,31 +640,32 @@ int mrc_update_ev_entry(struct mrc_ev_array *ev_array, int index, struct mrc_ev_
  * returns -ENOTSUP.
  */
 int mrc_update_ev_array_allowed_bits(struct mrc_ev_array *ev_array,
-				uint32_t ev_allowed_bits);
+				     uint32_t ev_allowed_bits);
 
 /**
  * @brief Update the deny list
  *
- * Provide an update to the deny list of EVs.
- * The new deny values will be used after the updated EV deny list is
- * provided to the QP using mrc_modify_qp().
+ * Provide an update to the deny list of EVs. The new deny values will be used
+ * after the updated EV deny list is provided to the QP using mrc_modify_qp().
  *
  * NOTE: Support for updating the EV deny list after a QP has transitioned
  * to RTS is indicated using the MRC_OPT_CAP_UPDATE_EV_DENY_LIST_RTS.
+ *
  * NOTE: Deny lists are supported only for Generated / Primed EV modes. In
  * the explicit EV mode, the application is expected to remove any EVs it
  * does not want to use.
  *
  * @param ev_array[in] - EV array
- * @param deny [in] - Updated array of deny values
- * @param length[in] - Length of the deny list
+ * @param deny [in]    - Updated array of deny values
+ * @param length[in]   - Length of the deny list
  *
  * @return
  * Returns 0 on success or -1 on error. When the feature is not supported,
  * returns -ENOTSUP.
  */
 int mrc_update_ev_deny_list(struct mrc_ev_array *ev_array,
-				struct mrc_ev_deny *deny, uint32_t length);
+			    struct mrc_ev_deny *deny,
+			    uint32_t length);
 
 /**
  * @brief MRC QP attribute mask
@@ -628,137 +673,169 @@ int mrc_update_ev_deny_list(struct mrc_ev_array *ev_array,
  * The list of attributes that may be changed upon transitioning QP
  * state from Reset->Init->RTR->RTS are:
  *
- * Next State        Required Attributes
- * ----------        -------------------
- * RTR                MRC_QP_MAX_WIMM_DEST, MRC_QP_MPR
+ * Next State    Required Attributes
+ * ----------    -------------------
+ * RTR           MRC_QP_MAX_WIMM_DEST
+ *               MRC_QP_MPR
  *
- * RTS                MRC_QP_WIMM, MRC_QP_RETRY_CNT, MRC_QP_TIMEOUT,
- *                    MRC_QP_EV_ARRAY_ALLOWED_BITS [bitmask] ||
- *                    (MRC_QP_EV_ARRAY_VALUES, MRC_QP_MAX_EV_COUNT) [array],
- *                    MRC_QP_EV_ARRAY,
- *                    MRC_QP_EV_DENY_LIST,
- *                    MRC_QP_EV_EVENT_MASK
+ * RTS           MRC_QP_WIMM
+ *               MRC_QP_RETRY_CNT
+ *               MRC_QP_TIMEOUT
+ *               MRC_QP_EV_ARRAY_ALLOWED_BITS [bitmask] ||
+ *                 (MRC_QP_EV_ARRAY_VALUES, MRC_QP_MAX_EV_COUNT) [array]
+ *               MRC_QP_EV_ARRAY
+ *               MRC_QP_EV_DENY_LIST
+ *               MRC_QP_EV_EVENT_MASK
  */
 
 enum mrc_qp_attr_mask {
-	MRC_QP_MAX_WIMM = (1<<0),
+	/* Max WIMM as requestor */
+	MRC_QP_MAX_WIMM               = (1<<0),
 	/* Max WIMM as responder */
-	MRC_QP_MAX_WIMM_DEST = (1<<1),
+	MRC_QP_MAX_WIMM_DEST          = (1<<1),
 	/* EV array to use for the MODIFY or QUERY operation */
-	MRC_QP_EV_ARRAY = (1<<2),
+	MRC_QP_EV_ARRAY               = (1<<2),
 	/* maximum count of EVs for the QP */
-	MRC_QP_MAX_EV_COUNT = (1<<3),
+	MRC_QP_MAX_EV_COUNT           = (1<<3),
 	/* (Query only) maximum value of the EV for the QP */
-	MRC_QP_MAX_EV_VAL = (1<<4),
+	MRC_QP_MAX_EV_VAL             = (1<<4),
 	/* manipulate EV Event state mask */
-	MRC_QP_EV_EVENT_MASK = (1<<5),
+	MRC_QP_EV_EVENT_MASK          = (1<<5),
 	/* (Modify only) EV array values are updated */
-	MRC_QP_EV_ARRAY_VALUES = (1<<6),
-	/* (Modify only) EV generation bitmasks are updated */
-	MRC_QP_EV_ARRAY_ALLOWED_BITS = (1<<7),
+	MRC_QP_EV_ARRAY_VALUES        = (1<<6),
+	/* (Modify only) EV generation bitmask is updated */
+	MRC_QP_EV_ARRAY_ALLOWED_BITS  = (1<<7),
 	/* (Modify only) EV deny list is updated */
-	MRC_QP_EV_DENY_LIST = (1<<8),
-	/* (Query only) Minimum number of EVs that are required to be
-	   active, not ASSUMED_BAD for operation of the QP */
-	MRC_QP_EV_MIN_ACTIVE = (1<<9),
-	/* (Query only) EV array size being used by the QP.
-	 * See mrc_create_ev_array_*() and mrc_get_ev_array_len(). */
-	MRC_QP_EV_ARRAY_SIZE = (1<<10),
+	MRC_QP_EV_DENY_LIST           = (1<<8),
+	/*
+	 * (Query only) Minimum number of EVs that are required to be active,
+	 * not ASSUMED_BAD for operation of the QP.
+	 */
+	MRC_QP_EV_MIN_ACTIVE          = (1<<9),
+	/* (Query only) EV array size being used by the QP */
+	MRC_QP_EV_ARRAY_SIZE          = (1<<10),
 	/* (Query only) Deny list length currently in use */
-	MRC_QP_EV_DENY_LIST_LEN = (1<<11),
+	MRC_QP_EV_DENY_LIST_LEN       = (1<<11),
 	/* (Query only) Maximum number of primed EVs for the QP */
-	MRC_QP_MAX_EV_PRIMED_COUNT = (1<<12),
-	/* (Query only) Minimum number of EVs for the QP that the
-	 * application must provide if it is supplying an EV array. */
-	MRC_QP_MIN_NUM_EV = (1<<13),
-	/* (Query only) Number of EVs for alignment.
-	 * If the application is supplying an EV array, then the
-	 * array should be sized as: min_num_ev + (k * num_ev_align) */
-	MRC_QP_NUM_EV_ALIGN = (1<<14),
+	MRC_QP_MAX_EV_PRIMED_COUNT    = (1<<12),
+	/*
+	 * (Query only) Minimum number of EVs for the QP that the application
+	 * must provide if it is supplying an EV array.
+	 */
+	MRC_QP_MIN_NUM_EV             = (1<<13),
+	/*
+	 * (Query only) Number of EVs for alignment. If the application is
+	 * supplying an EV array, then the array should be sized as:
+	 * min_num_ev + (k * num_ev_align)
+	 */
+	MRC_QP_NUM_EV_ALIGN           = (1<<14),
 	/* Requestor MPR */
-	MRC_QP_MPR = (1<<15),
+	MRC_QP_MPR                    = (1<<15),
 	/* Responder MPR */
-	MRC_QP_MPR_DEST = (1<<16),
+	MRC_QP_MPR_DEST               = (1<<16),
 	/* Responder dynamic MPR support */
-	MRC_QP_DYNAMIC_MPR_DEST = (1<<17),
-	/* QP (fixed+exponential) retry counter */
-	// TODO: Uncomment after HW spec is updated (1.09)
-	// MRC_QP_RETRY_CNT = (1<<18),
+	MRC_QP_DYNAMIC_MPR_DEST       = (1<<17),
+// TODO: Uncomment after HW spec is updated (1.09)
+//	/* QP (fixed+exponential) retry counter */
+//	MRC_QP_RETRY_CNT              = (1<<18),
 	/* QP ACK timeout */
-	MRC_QP_TIMEOUT = (1<<19),
-	/* Requestor consideration of responder flow control signals */
-	// TODO: Uncomment after HW spec is updated (1.09)
-	// MRC_QP_IGNORE_RSP_FLOW_CTL = (1<<20),
-	MRC_QP_VENDOR_CFG = (1<<31)
+	MRC_QP_TIMEOUT                = (1<<19),
+// TODO: Uncomment after HW spec is updated (1.09)
+//	/* Requestor consideration of responder flow control signals */
+//	MRC_QP_IGNORE_RSP_FLOW_CTL    = (1<<20),
+	MRC_QP_VENDOR_CFG             = (1<<31)
 };
+
+#define MRC_MAX_VENDOR_CFG_SIZE 128
 
 struct mrc_qp_attr {
 
 	struct {
-		uint8_t mpr; /**< Requestor MPR value; unit=128 PSNs. */
-		uint8_t mpr_dest; /**< Responder MPR value; unit=128 PSNs. */
-		bool dynamic_mpr_dest; /**< If true, enable responder dynamic MPR support. */
+		/* Requestor MPR value; unit=128 PSNs */
+		uint8_t mpr;
+		/* Responder MPR value; unit=128 PSNs */
+		uint8_t mpr_dest;
+		/* if true, enable Responder dynamic MPR support */
+		bool dynamic_mpr_dest;
 	} mpr;
 
 	struct {
-		uint32_t max_primed_ev_per_qp; /**< Max number of primed EVs per QP (QUERY) */
-
-		uint32_t max_ev_bits; /**< Maximum number of valid bits EV.
-		                           This is an output value that the provider
-		                           sets during QUERY operation.
-		                           This applies to explicit as well as generated EVs. */
-
-		uint32_t min_active_ev_per_qp; /**< Min number of active EVs per QP
-		                                    to avoid the situation of marking many
-		                                    EVs as ASSUMED_BAD. The mrc_ev_array
-		                                    provided to the QP must have num_evs
-		                                    greater than this value. */
-
-		uint32_t num_ev; /**< EV array size being used by the QP (QUERY) */
-
-		uint32_t ev_deny_list_len; /**< EV deny list length currently in use (QUERY) */
-
-		uint32_t min_num_ev; /**< Minimum number of EVs that the EV array should contain.
-		                          If the application is using EV APIs, then each array
-		                          should contain at least this many EVs.
-		                          Value of 0 means any EV count is supported by the provider. */
-
-		uint32_t num_ev_align; /**< Alignment requirements for the number of EVs required by the provider.
-		                            Together with min_num_ev, it provides the EV array sizing requirements.
-		                            The EV array size should be = min_num_ev + (k * num_ev_align),
-		                            where 'k' is a multiple chosen by the application.
-		                            For example, if a provider supports EVs in multiples of 8, it would
-		                            set the values min_num_ev = 8, and num_ev_align = 8.
-		                            The total number of EVs is subject to a maximum of max_ev_per_qp.
-		                            Value of 0 means any EV count increment is supported by the provider. */
+		/* Max number of primed EVs per QP (QUERY) */
+		uint32_t max_primed_ev_per_qp;
+		/*
+		 * Maximum number of valid bits EV. This is an output value
+		 * that the provider sets during QUERY operation. This applies
+		 * to explicit as well as generated EVs.
+		 */
+		uint32_t max_ev_bits;
+		/*
+		 * Min number of active EVs per QP to avoid the situation of
+		 * marking many EVs as ASSUMED_BAD. The mrc_ev_array provided
+		 * to the QP must have num_evs greater than this value.
+		 */
+		uint32_t min_active_ev_per_qp;
+		/* EV array size being used by the QP (QUERY) */
+		uint32_t num_ev;
+		/* EV deny list length currently in use (QUERY) */
+		uint32_t ev_deny_list_len;
+		/*
+		 * Minimum number of EVs that the EV array should contain. If
+		 * the application is using EV APIs, then each array should
+		 * contain at least this many EVs. Value of 0 means any EV
+		 * count is supported by the provider.
+		 */
+		uint32_t min_num_ev;
+		/*
+		 * Alignment requirements for the number of EVs required by
+		 * the provider. Together with min_num_ev, it provides the EV
+		 * array sizing requirements. The EV array size should
+		 * be = min_num_ev + (k * num_ev_align), where 'k' is a
+		 * multiple chosen by the application. For example, if a
+		 * provider supports EVs in multiples of 8, it would set the
+		 * values min_num_ev = 8, and num_ev_align = 8. The total
+		 * number of EVs is subject to a maximum of max_ev_per_qp.
+		 * Value of 0 means any EV count increment is supported by
+		 * the provider.
+		 */
+		uint32_t num_ev_align;
 		struct mrc_ev_array *ev_array;
 	} ev;
 
 	struct {
-		uint16_t max_wimm; /**< Max inflight WIMMs as requestor; */
-		uint16_t max_wimm_dest; /**Max inflight WIMMs as responder. */
+		/* Max inflight WIMMs as requestor */
+		uint16_t max_wimm;
+		/* Max inflight WIMMs as responder */
+		uint16_t max_wimm_dest;
 	} wimm;
 
 // TODO: Uncomment after HW spec is updated (1.09)
 //	struct {
-//		uint8_t retry_cnt_fixed; /**< Fixed interval retry count. Max value = 8. */
-//		uint8_t retry_cnt_exp; /**< Exponential retry count. Max val = 32 (infinite retry) */
+//		/* Fixed interval retry count; Max value = 8 */
+//		uint8_t retry_cnt_fixed;
+//		/* Exponential retry count; Max val = 32 (infinite retry) */
+//		uint8_t retry_cnt_exp;
 //	} retry_cnt;
-	int ev_event_mask; /**< EV Event mask.  Only EV_ASSUMED_BAD, EV_GOOD supported. */
-	uint8_t timeout; /**< Local ACK timeout; 1.024 * 2^timeout us.  Max val = 24 (17.17s)  */
-//	TODO: Uncomment after HW spec is updated (1.09)
-//	bool disable_rsp_flow_ctl; /**< Disable responder flow control signals; if True responder flow control is disabled. */
 
-	uint8_t  vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
+	/* EV Event mask, only EV_ASSUMED_BAD and EV_GOOD is supported */
+	int ev_event_mask;
+
+	/* Local ACK timeout; 1.024 * 2^timeout us. Max val = 24 (17.17s) */
+	uint8_t timeout;
+
+// TODO: Uncomment after HW spec is updated (1.09)
+//	/* if True responder flow control signals are disabled */
+//	bool disable_rsp_flow_ctl;
+
+	uint8_t vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
 
 /**
  * @brief Query a QP attributes
  *
  * Queries a QP.
- * 
+ *
  * MRC_QP_ATTR_EV_ARRAY mask is used as follows:
- * 
+ *
  * 1. Only supported on a QP after it is in RTR state.
  *
  * 2. When a QP is in RTR or RTS state, the ev_array
@@ -792,20 +869,20 @@ int mrc_query_qp(struct mrc_qp *qp,
 /**
  * @brief Modify a QP
  *
- * Modify a QP.
- * Callers provide an ibv_qp_attr and mrc_qp_attr structure and masks.
+ * Modify a QP. Callers provide an ibv_qp_attr and mrc_qp_attr structure and
+ * masks.
  *
- * The following IBV field masks are not supported:
- * IBV_QP_PORT
- * IBV_QP_TIMEOUT (use MRC_QP_TIMEOUT)
- * IBV_QP_RETRY_CNT (use MRC_QP_RETRY_CNT)
- * IBV_QP_RNR_RETRY
- * IBV_QP_MIN_RNR_TIMER
- * IBV_QP_MAX_QP_RD_ATOMIC
- * IBV_QP_MAX_DEST_RD_ATOMIC
- * IBV_QP_ALT_PATH
- * IBV_QP_PATH_MIG_STATE
- * 
+ * The following IBV field masks are NOT supported:
+ *     IBV_QP_PORT
+ *     IBV_QP_TIMEOUT (use MRC_QP_TIMEOUT)
+ *     IBV_QP_RETRY_CNT (use MRC_QP_RETRY_CNT)
+ *     IBV_QP_RNR_RETRY
+ *     IBV_QP_MIN_RNR_TIMER
+ *     IBV_QP_MAX_QP_RD_ATOMIC
+ *     IBV_QP_MAX_DEST_RD_ATOMIC
+ *     IBV_QP_ALT_PATH
+ *     IBV_QP_PATH_MIG_STATE
+ *
  * MRC_QP_ATTR_EV_ARRAY is supported during the following transitions:
  *
  * 1. INIT -> RTR - provides the initial set of EVs for the QP
@@ -824,21 +901,23 @@ int mrc_query_qp(struct mrc_qp *qp,
  *       mrc_update_ev() and mrc_update_ev_state().
  *
  *       This overwrites the ev_array that is currently being used by the
- *       explicitly supplied states/values that are supplied in the mrc_ev_array.
+ *       explicitly supplied states/values that are supplied in the
+ *       mrc_ev_array.
  *
  *    b. If the qp_attr_mask is MRC_QP_ATTR_EV_ALLOWED_BITS_RTS, then the
- *       generation bits have been updated using mrc_update_ev_array_allowed_bits().
+ *       generation bits have been updated using
+ *       mrc_update_ev_array_allowed_bits().
  *
  *    c. If the qp_attr_mask is MRC_QP_ATTR_EV_DENY_LIST_RTS, then the
  *       generation bits have been updated using mrc_update_ev_deny_list().
- * 
+ *
  * The array entries are copied by value during the modify operations,
  * such that the EV array can be destroyed if so desired by the application.
  *
- * If the EV array is shared between multiple QPs (see parameter
- * `shared` in mrc_create_ev_array_*()), then the application can update all
- * QPs using the array by modifying any of the QPs using the array.
- * Non-shared arrays only modify the associated QP.
+ * If the EV array is shared between multiple QPs (see parameter `shared` in
+ * mrc_create_ev_array_*()), then the application can update all QPs using
+ * the array by modifying any of the QPs using the array. Non-shared arrays
+ * only modify the associated QP.
  *
  * modify_qp() uses the full set of EV entries (if provided) to use for the QP.
  *
@@ -860,14 +939,14 @@ int mrc_modify_qp(struct mrc_qp *qp,
 /**
  * @brief Retrieve the QP number
  *
- * @param qp[in] 	- MRC QP
- * @param qpn[out] 	- Returned QP number
+ * @param qp[in]   - MRC QP
+ * @param qpn[out] - Returned QP number
  *
  * @return
  * Returns 0 on success or -1 on error
  */
-int mrc_get_qpn(struct mrc_qp *qp, uint32_t *qpn);
-
+int mrc_get_qpn(struct mrc_qp *qp,
+		uint32_t *qpn);
 
 /**
  * @brief Post a receive operation on a QP
@@ -905,11 +984,11 @@ int mrc_post_send(struct mrc_qp *qp,
 
 struct mrc_async_event {
 	union {
-		struct mrc_cq  *cq;
-		struct mrc_qp  *qp;
-		int		port_num;
+		struct mrc_cq *cq;
+		struct mrc_qp *qp;
+		int            port_num;
 	} element;
-	enum ibv_event_type	event_type;
+	enum ibv_event_type    event_type;
 };
 
 /**
@@ -918,8 +997,8 @@ struct mrc_async_event {
  * Obtain the next event. All events must be acknowledged by
  * mrc_ack_async_event().
  *
- * @param context[in]	- MRC context
- * @param event[out]	- Reported event
+ * @param context[in] - MRC context
+ * @param event[out]  - Reported event
  *
  * @return
  * Returns 0 on success. Error semantics like ibv_get_async_event().
@@ -933,7 +1012,7 @@ int mrc_get_async_event(struct mrc_context *mrc_ctx,
  * All async events returned by mrc_get_async_event() should be
  * acknowledged.
  *
- * @param event[in]		- MRC async event
+ * @param event[in] - MRC async event
  *
  * @return
  * This function does not return any value
@@ -945,24 +1024,24 @@ void mrc_ack_async_event(struct mrc_async_event *event);
  *
  * Requests notifications on the CQ, like ibv_req_notify_cq().
  *
- * @param cq[in]	- MRC CQ
- * @param solicited_only[in]	- Request event only on "solicited" events
+ * @param cq[in]             - MRC CQ
+ * @param solicited_only[in] - Request event only on "solicited" events
  *
  * @return
  * Returns 0 on success. Error semantics like ibv_req_notify_cq().
  */
-
-int mrc_req_notify_cq(struct mrc_cq *cq, int solicited_only);
+int mrc_req_notify_cq(struct mrc_cq *cq,
+		      int solicited_only);
 
 /**
  * @brief Get next CQ event
  *
- * Read the next CQ event.
- * All completion events returned by mrc_get_cq_event() must
- * eventually be acknowledged with mrc_ack_cq_events().
+ * Read the next CQ event. All completion events returned by
+ * mrc_get_cq_event() must eventually be acknowledged with
+ * mrc_ack_cq_events().
  *
- * @param channel[in] 	- MRC channel
- * @param cq[out] 	- Returned CQ that has the event
+ * @param channel[in]     - MRC channel
+ * @param cq[out]         - Returned CQ that has the event
  * @param cq_context[out] - Returned application CQ context
  *
  * @return
@@ -970,7 +1049,8 @@ int mrc_req_notify_cq(struct mrc_cq *cq, int solicited_only);
  * ibv_get_cq_event().
  */
 int mrc_get_cq_event(struct mrc_comp_channel *channel,
-			struct mrc_cq **cq, void **cq_context);
+		     struct mrc_cq **cq,
+		     void **cq_context);
 
 /**
  * @brief Acknowledge CQ completion events
@@ -983,13 +1063,36 @@ int mrc_get_cq_event(struct mrc_comp_channel *channel,
  * acknowledge them in a single call to mrc_ack_cq_events() by passing
  * the number of events to ack in @nevents.
  *
- * @param cq[in]	- MRC CQ
- * @param nevents[in]	- Number of events to acknowledge
+ * @param cq[in]      - MRC CQ
+ * @param nevents[in] - Number of events to acknowledge
  *
  * @return
  * Returns no value
  */
-void mrc_ack_cq_events(struct mrc_cq *cq, unsigned int nevents);
+void mrc_ack_cq_events(struct mrc_cq *cq,
+		       unsigned int nevents);
+
+/**
+ * @brief Create an EV Event CQ.
+ *
+ * EV CQs are used to obtain EV Events. They differ
+ * from other CQs in that they do not support CQ overruns.
+ *
+ * @param mrc_ctx[in]     - MRC context to use
+ * @param cqe[in]         - Minimum number of entries required for CQ
+ * @param cq_context[in]  - application context
+ * @param channel[in]     - completion channel
+ * @param comp_vector[in] - Completion vector to signal completion events
+ *
+ * @return
+ * Returns a pointer to the allocated CQ on success or NULL if
+ * the request fails. Errors like ibv_create_cq().
+ */
+struct mrc_cq *mrc_create_ev_event_cq(struct mrc_context *mrc_ctx,
+				      int cqe,
+				      void *cq_context,
+				      struct mrc_comp_channel *channel,
+				      int comp_vector);
 
 /**
  * @brief EV Event structure.
@@ -1002,46 +1105,24 @@ struct mrc_ev_event {
 	uint32_t qpn;
 	uint32_t ev;
 	enum mrc_ev_state state;
-       /**
-	* If MRC_OPT_CAP_ACC_DROP_CNT is set, this field contains the
-	* number of EV Events dropped between the last and current
-	* event delivered to the queue.  If not set, this field is 1
-	* if any events were dropped between the last and current
-	* event and 0 otherwise.
-	*/
+	/*
+	 * If MRC_OPT_CAP_ACC_DROP_CNT is set, this field contains the
+	 * number of EV Events dropped between the last and current
+	 * event delivered to the queue.  If not set, this field is 1
+	 * if any events were dropped between the last and current
+	 * event and 0 otherwise.
+	 */
 	uint32_t drop_count;
 };
 
 /**
- * @brief Create an EV Event CQ.
- *
- * EV CQs are used to obtain EV Events. They differ
- * from other CQs in that they do not support CQ overruns.
- *
- * @param mrc_ctx[in]    - MRC context to use
- * @param cqe[in]        - Minimum number of entries required for CQ
- * @param cq_context[in] - application context
- * @param channel[in]	 - completion channel
- * @param comp_vector[in] - Completion vector to signal completion events
- *
- * @return
- * Returns a pointer to the allocated CQ on success or NULL if
- * the request fails. Errors like ibv_create_cq().
- */
-struct mrc_cq* mrc_create_ev_event_cq(struct mrc_context *mrc_ctx,
-			   int cqe,
-			   void *cq_context,
-			   struct mrc_comp_channel *channel,
-			   int comp_vector);
-
-/**
  * @brief Poll for EV Events
- * 
+ *
  * Polls an EV Event CQ for EV Events.
  *
- * @param ev_cq[in]       	- EV Event CQ to poll
- * @param num_entries[in] 	- Number of EV Events to poll
- * @param ev_event[out]  	- Array of EV Event structures
+ * @param ev_cq[in]       - EV Event CQ to poll
+ * @param num_entries[in] - Number of EV Events to poll
+ * @param ev_event[out]   - Array of EV Event structures
  *
  * @return
  * Polls the EV Event CQ @c ev_cq for EV Events and returns the first
@@ -1052,34 +1133,44 @@ struct mrc_cq* mrc_create_ev_event_cq(struct mrc_context *mrc_ctx,
  * to @c ev_event is returned.  On failure, a negative value corresponding
  * to the @c errno is returned.
  */
-int mrc_poll_ev_event(struct mrc_cq *ev_cq, int num_entries, struct mrc_ev_event *ev_event);
+int mrc_poll_ev_event(struct mrc_cq *ev_cq,
+		      int num_entries,
+		      struct mrc_ev_event *ev_event);
 
 /**
  * @brief EV Probe Request
  */
 struct mrc_ev_probe_req {
-	uint16_t probe_id;  /**< Application provided (request) probe ID. */
-	union ibv_gid sgid; /**< Source GID; only ROCE_V2 GID type supported. */
-	union ibv_gid dgid; /**< Destination GID; only ROCE_V2 GID type supported. */
-	uint32_t req_ev;    /**< Probe request EV. */
-	uint32_t rsp_ev;    /**< Probe response EV. */
+	/* Application provided (request) probe ID. */
+	uint16_t probe_id;
+	/* Source GID; only ROCE_V2 GID type supported. */
+	union ibv_gid sgid;
+	/* Destination GID; only ROCE_V2 GID type supported. */
+	union ibv_gid dgid;
+	/* Probe request EV. */
+	uint32_t req_ev;
+	/* Probe response EV. */
+	uint32_t rsp_ev;
 };
 
 /**
  * @brief EV Probe Response
  */
 struct mrc_ev_probe_rsp {
-	uint16_t probe_id; /**< Associated request probe ID for this response. */
-	unsigned int rtt;  /**< RTT; units = 1ns. */
-	bool adj_svc_time; /**< True if rtt has been adjusted for responder service time. */
+	/* Associated request probe ID for this response. */
+	uint16_t probe_id;
+	/* RTT; units = 1ns. */
+	unsigned int rtt;
+	/* True if rtt has been adjusted for responder service time. */
+	bool adj_svc_time;
 };
 
 /**
  * @brief Send EV Probe requests and wait for responses.
  *
- * This non-interruptible function blocks the caller until all responses are 
- * received or timeout occurs.  Responses are delivered into the response 
- * structure in order of arrival.  Responses are not buffered between 
+ * This non-interruptible function blocks the caller until all responses are
+ * received or timeout occurs. Responses are delivered into the response
+ * structure in order of arrival. Responses are not buffered between
  * invocations.
  *
  * @param mrc_ctx[in]      - MRC context to use
