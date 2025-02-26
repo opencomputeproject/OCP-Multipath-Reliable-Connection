@@ -145,15 +145,13 @@ struct mrc_attr {
 		uint16_t max_wimm_dest;
 	} wimm_attr;
 	struct {
-		/* Default MPR as requestor and/or responder; unit = 1 PSN */
-		uint16_t default_mpr;
 		/*
-		 * Max configurable MPR as requestor and/or responder;
-		 * unit = 1 PSN
+		 * Maximum supported MPR value as requestor or responder.
+		 * units = 128 PSNs
 		 */
-		uint16_t max_mpr;
-		/* HW MPR alignment; unit = 1 PSN. */
-		uint16_t mpr_align;
+		uint8_t max_mpr;
+		/* MPR resource allocation resolution; unit = 128 PSNs. */
+		uint8_t mpr_res;
 	} mpr_attr;
 	/* bitmap indicating all optional features supported (mrc_attr_opt) */
 	uint32_t opt_attr;
@@ -675,97 +673,89 @@ int mrc_update_ev_deny_list(struct mrc_ev_array *ev_array,
  * The list of attributes that may be changed upon transitioning QP
  * state from Reset->Init->RTR->RTS are:
  *
- * Next State   Required Attributes
- * ----------   -------------------
- * RTR          MRC_QP_ATTR_MAX_WIMM_DEST,
- *              MRC_QP_ATTR_MPR
+ * Next State    Required Attributes
+ * ----------    -------------------
+ * RTR           MRC_QP_MAX_WIMM_DEST
+ *               MRC_QP_MPR
  *
- * RTS          MRC_QP_ATTR_WIMM,
- *              MRC_QP_ATTR_RETRY_CNT,
- *              MRC_QP_ATTR_ACK_TIMEOUT,
- *              MRC_QP_ATTR_EV_ARRAY_ALLOWED_BITS[bitmask] ||
- *              (MRC_QP_ATTR_EV_ARRAY_VALUES, MRC_QP_ATTR_MAX_EV_COUNT)[array],
- *              MRC_QP_ATTR_EV_ARRAY,
- *              MRC_QP_ATTR_EV_DENY_LIST,
- *              MRC_QP_ATTR_EV_EVENT_MASK
+ * RTS           MRC_QP_WIMM
+ *               MRC_QP_RETRY_CNT
+ *               MRC_QP_TIMEOUT
+ *               MRC_QP_EV_ARRAY_ALLOWED_BITS [bitmask] ||
+ *                 (MRC_QP_EV_ARRAY_VALUES, MRC_QP_MAX_EV_COUNT) [array]
+ *               MRC_QP_EV_ARRAY
+ *               MRC_QP_EV_DENY_LIST
+ *               MRC_QP_EV_EVENT_MASK
  */
 
 enum mrc_qp_attr_mask {
 	/* Max WIMM as requestor */
-	MRC_QP_ATTR_MAX_WIMM			= (1<<0),
+	MRC_QP_MAX_WIMM               = (1<<0),
 	/* Max WIMM as responder */
-	MRC_QP_ATTR_MAX_WIMM_DEST		= (1<<1),
+	MRC_QP_MAX_WIMM_DEST          = (1<<1),
 	/* EV array to use for the MODIFY or QUERY operation */
-	MRC_QP_ATTR_EV_ARRAY			= (1<<2),
+	MRC_QP_EV_ARRAY               = (1<<2),
 	/* maximum count of EVs for the QP */
-	MRC_QP_ATTR_MAX_EV_COUNT		= (1<<3),
+	MRC_QP_MAX_EV_COUNT           = (1<<3),
 	/* (Query only) maximum value of the EV for the QP */
-	MRC_QP_ATTR_MAX_EV_VAL			= (1<<4),
+	MRC_QP_MAX_EV_VAL             = (1<<4),
 	/* manipulate EV Event state mask */
-	MRC_QP_ATTR_EV_EVENT_MASK		= (1<<5),
+	MRC_QP_EV_EVENT_MASK          = (1<<5),
 	/* (Modify only) EV array values are updated */
-	MRC_QP_ATTR_EV_ARRAY_VALUES		= (1<<6),
-	/* (Modify only) EV generation bitmasks are updated */
-	MRC_QP_ATTR_EV_ARRAY_ALLOWED_BITS	= (1<<7),
+	MRC_QP_EV_ARRAY_VALUES        = (1<<6),
+	/* (Modify only) EV generation bitmask is updated */
+	MRC_QP_EV_ARRAY_ALLOWED_BITS  = (1<<7),
 	/* (Modify only) EV deny list is updated */
-	MRC_QP_ATTR_EV_DENY_LIST		= (1<<8),
+	MRC_QP_EV_DENY_LIST           = (1<<8),
 	/*
 	 * (Query only) Minimum number of EVs that are required to be active,
 	 * not ASSUMED_BAD for operation of the QP.
 	 */
-	MRC_QP_ATTR_EV_MIN_ACTIVE		= (1<<9),
-	/*
-	 * (Query only) EV array size being used by the QP. See
-	 * mrc_create_ev_array_*() and mrc_get_ev_array_len().
-	 */
-	MRC_QP_ATTR_EV_ARRAY_SIZE		= (1<<10),
+	MRC_QP_EV_MIN_ACTIVE          = (1<<9),
+	/* (Query only) EV array size being used by the QP */
+	MRC_QP_EV_ARRAY_SIZE          = (1<<10),
 	/* (Query only) Deny list length currently in use */
-	MRC_QP_ATTR_EV_DENY_LIST_LEN		= (1<<11),
+	MRC_QP_EV_DENY_LIST_LEN       = (1<<11),
 	/* (Query only) Maximum number of primed EVs for the QP */
-	MRC_QP_ATTR_MAX_EV_PRIMED_COUNT		= (1<<12),
+	MRC_QP_MAX_EV_PRIMED_COUNT    = (1<<12),
 	/*
 	 * (Query only) Minimum number of EVs for the QP that the application
 	 * must provide if it is supplying an EV array.
 	 */
-	MRC_QP_ATTR_MIN_NUM_EV			= (1<<13),
+	MRC_QP_MIN_NUM_EV             = (1<<13),
 	/*
 	 * (Query only) Number of EVs for alignment. If the application is
 	 * supplying an EV array, then the array should be sized as:
 	 * min_num_ev + (k * num_ev_align)
 	 */
-	MRC_QP_ATTR_NUM_EV_ALIGN		= (1<<14),
+	MRC_QP_NUM_EV_ALIGN           = (1<<14),
 	/* Requestor MPR */
-	MRC_QP_ATTR_MPR				= (1<<15),
+	MRC_QP_MPR                    = (1<<15),
 	/* Responder MPR */
-	MRC_QP_ATTR_MPR_DEST			= (1<<16),
+	MRC_QP_MPR_DEST               = (1<<16),
 	/* Responder dynamic MPR support */
-	MRC_QP_ATTR_DYNAMIC_MPR_DEST		= (1<<17),
-	/* QP (fixed+exponential) retry counter */
-	// TODO: Uncomment after HW spec is updated (1.09)
-	// MRC_QP_ATTR_RETRY_CNT		= (1<<18),
-	/* QP ack timeout */
-	// TODO: Uncomment after HW spec is updated (1.09)
-	// MRC_QP_ATTR_TIMEOUT			= (1<<19),
-	/* Requestor consideration of responder flow control signals */
-	// TODO: Uncomment after HW spec is updated (1.09)
-	// MRC_QP_ATTR_IGNORE_RSP_FLOW_CTL	= (1<<20),
-	/* vendor specific configuration data */
-	MRC_QP_ATTR_VENDOR_CFG			= (1<<31)
+	MRC_QP_DYNAMIC_MPR_DEST       = (1<<17),
+// TODO: Uncomment after HW spec is updated (1.09)
+//	/* QP (fixed+exponential) retry counter */
+//	MRC_QP_RETRY_CNT              = (1<<18),
+	/* QP ACK timeout */
+	MRC_QP_TIMEOUT                = (1<<19),
+// TODO: Uncomment after HW spec is updated (1.09)
+//	/* Requestor consideration of responder flow control signals */
+//	MRC_QP_IGNORE_RSP_FLOW_CTL    = (1<<20),
+	MRC_QP_VENDOR_CFG             = (1<<31)
 };
 
 #define MRC_MAX_VENDOR_CFG_SIZE 128
 
 struct mrc_qp_attr {
-	/*
-	 * MPR values may be aligned to the device's mrc_attr.mpr_align value
-	 * for maximum resource efficiency.
-	 */
+
 	struct {
-		/* Requestor MPR value; unit=1 PSN */
-		uint16_t mpr;
-		/* Responder MPR value; unit=1 PSN */
-		uint16_t mpr_dest;
-		/* Responder dynamic MPR support; if True enable support */
+		/* Requestor MPR value; unit=128 PSNs */
+		uint8_t mpr;
+		/* Responder MPR value; unit=128 PSNs */
+		uint8_t mpr_dest;
+		/* if true, enable Responder dynamic MPR support */
 		bool dynamic_mpr_dest;
 	} mpr;
 
@@ -820,29 +810,21 @@ struct mrc_qp_attr {
 
 // TODO: Uncomment after HW spec is updated (1.09)
 //	struct {
-//		/* Fixed interval retry count. Max value = 8 */
+//		/* Fixed interval retry count; Max value = 8 */
 //		uint8_t retry_cnt_fixed;
-//		/* Exponential retry count. Max val = 32 (infinite retry) */
+//		/* Exponential retry count; Max val = 32 (infinite retry) */
 //		uint8_t retry_cnt_exp;
 //	} retry_cnt;
 
-	/* EV Event mask. Only EV_ASSUMED_BAD, EV_GOOD supported. */
+	/* EV Event mask, only EV_ASSUMED_BAD and EV_GOOD is supported */
 	int ev_event_mask;
 
-// TODO: Uncomment after HW spec update to 1.09
-//	/*
-//	 * Local ACK timeout for all paths in 1.024us units.
-//	 * Max value: 26 (68.7s). Functions as primary ACK timeout for
-//	 * MRC QPs.
-//	 */
-//	uint8_t timeout;
+	/* Local ACK timeout; 1.024 * 2^timeout us. Max val = 24 (17.17s) */
+	uint8_t timeout;
 
-//	TODO: Uncomment after HW spec is updated (1.09)
-//	/*
-//	 * Ignore responder flow control signals; if True ignore responder
-//	 * signal.
-//	 */
-//	bool ignore_rsp_flow_ctl;
+// TODO: Uncomment after HW spec is updated (1.09)
+//	/* if True responder flow control signals are disabled */
+//	bool disable_rsp_flow_ctl;
 
 	uint8_t vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
@@ -887,7 +869,19 @@ int mrc_query_qp(struct mrc_qp *qp,
 /**
  * @brief Modify a QP
  *
- * Modify a QP.
+ * Modify a QP. Callers provide an ibv_qp_attr and mrc_qp_attr structure and
+ * masks.
+ *
+ * The following IBV field masks are NOT supported:
+ *     IBV_QP_PORT
+ *     IBV_QP_TIMEOUT (use MRC_QP_TIMEOUT)
+ *     IBV_QP_RETRY_CNT (use MRC_QP_RETRY_CNT)
+ *     IBV_QP_RNR_RETRY
+ *     IBV_QP_MIN_RNR_TIMER
+ *     IBV_QP_MAX_QP_RD_ATOMIC
+ *     IBV_QP_MAX_DEST_RD_ATOMIC
+ *     IBV_QP_ALT_PATH
+ *     IBV_QP_PATH_MIG_STATE
  *
  * MRC_QP_ATTR_EV_ARRAY is supported during the following transitions:
  *
