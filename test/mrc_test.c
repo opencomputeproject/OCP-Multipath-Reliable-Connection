@@ -5,6 +5,7 @@
 #include <libgen.h>
 
 #include "mrc.h"
+#include "mrc_ctl.h"
 
 #define CHK_ERR(rc, fmt, ...)                                      \
 	do {                                                       \
