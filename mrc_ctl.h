@@ -543,31 +543,27 @@ enum mrc_ctl_qp_attr_mask {
 	MRC_CTL_QP_EV_ARRAY_SIZE          = (1<<10),
 	/* (Query only) Deny list length currently in use */
 	MRC_CTL_QP_EV_DENY_LIST_LEN       = (1<<11),
-	/* (Query only) Maximum number of primed EVs for the QP */
-	MRC_CTL_QP_MAX_EV_PRIMED_COUNT    = (1<<12),
 	/*
 	 * (Query only) Minimum number of EVs for the QP that the application
 	 * must provide if it is supplying an EV array.
 	 */
-	MRC_CTL_QP_MIN_NUM_EV             = (1<<13),
+	MRC_CTL_QP_MIN_NUM_EV             = (1<<12),
 	/*
 	 * (Query only) Number of EVs for alignment. If the application is
 	 * supplying an EV array, then the array should be sized as:
 	 * min_num_ev + (k * num_ev_align)
 	 */
-	MRC_CTL_QP_NUM_EV_ALIGN           = (1<<14),
+	MRC_CTL_QP_NUM_EV_ALIGN           = (1<<13),
 	/* Responder dynamic MPR support */
-	MRC_CTL_QP_DYNAMIC_MPR_DEST       = (1<<17),
+	MRC_CTL_QP_DYNAMIC_MPR_DEST       = (1<<14),
 // TODO: Uncomment after HW spec is updated (1.09)
 //	/* Requestor consideration of responder flow control signals */
-//	MRC_CTL_QP_IGNORE_RSP_FLOW_CTL    = (1<<20),
+//	MRC_CTL_QP_IGNORE_RSP_FLOW_CTL    = (1<<15),
 };
 
 struct mrc_ctl_qp_attr {
 
 	struct {
-		/* Max number of primed EVs per QP (QUERY) */
-		uint32_t max_primed_ev_per_qp;
 		/*
 		 * Maximum number of valid bits EV. This is an output value
 		 * that the provider sets during QUERY operation. This applies
