@@ -513,57 +513,59 @@ int mrc_ctl_update_ev_deny_list(struct mrc_ctl_ev_array *ev_array,
  *
  * Next State  Optional Attributes
  * ----------  -------------------
- * RTR or RTS  MRC_CTL_QP_EV_ARRAY_ALLOWED_BITS [bitmask] ||
- *               (MRC_CTL_QP_EV_ARRAY_VALUES, MRC_CTL_QP_MAX_EV_COUNT) [array]
+ * RTR or RTS  MRC_CTL_QP_EV_ARRAY_ALLOWED_BITS ||
+ *               MRC_CTL_QP_EV_ARRAY_VALUES[MRC_CTL_QP_MAX_EV_COUNT]
  *             MRC_CTL_QP_EV_ARRAY
  *             MRC_CTL_QP_EV_DENY_LIST
  *             MRC_CTL_QP_EV_EVENT_MASK
  */
 enum mrc_ctl_qp_attr_mask {
 	/* EV array to use for the MODIFY or QUERY operation */
-	MRC_CTL_QP_EV_ARRAY               = (1<<2),
+	MRC_CTL_QP_EV_ARRAY               = (1<<0),
 	/* maximum count of EVs for the QP */
-	MRC_CTL_QP_MAX_EV_COUNT           = (1<<3),
+	MRC_CTL_QP_MAX_EV_COUNT           = (1<<1),
 	/* (Query only) maximum value of the EV for the QP */
-	MRC_CTL_QP_MAX_EV_VAL             = (1<<4),
+	MRC_CTL_QP_MAX_EV_VAL             = (1<<2),
 	/* manipulate EV Event state mask */
-	MRC_CTL_QP_EV_EVENT_MASK          = (1<<5),
+	MRC_CTL_QP_EV_EVENT_MASK          = (1<<3),
 	/* (Modify only) EV array values are updated */
-	MRC_CTL_QP_EV_ARRAY_VALUES        = (1<<6),
+	MRC_CTL_QP_EV_ARRAY_VALUES        = (1<<4),
 	/* (Modify only) EV generation bitmask is updated */
-	MRC_CTL_QP_EV_ARRAY_ALLOWED_BITS  = (1<<7),
+	MRC_CTL_QP_EV_ARRAY_ALLOWED_BITS  = (1<<5),
 	/* (Modify only) EV deny list is updated */
-	MRC_CTL_QP_EV_DENY_LIST           = (1<<8),
+	MRC_CTL_QP_EV_DENY_LIST           = (1<<6),
 	/*
 	 * (Query only) Minimum number of EVs that are required to be active,
 	 * not ASSUMED_BAD for operation of the QP.
 	 */
-	MRC_CTL_QP_EV_MIN_ACTIVE          = (1<<9),
+	MRC_CTL_QP_EV_MIN_ACTIVE          = (1<<7),
 	/* (Query only) EV array size being used by the QP */
-	MRC_CTL_QP_EV_ARRAY_SIZE          = (1<<10),
+	MRC_CTL_QP_EV_ARRAY_SIZE          = (1<<8),
 	/* (Query only) Deny list length currently in use */
-	MRC_CTL_QP_EV_DENY_LIST_LEN       = (1<<11),
+	MRC_CTL_QP_EV_DENY_LIST_LEN       = (1<<9),
 	/*
 	 * (Query only) Minimum number of EVs for the QP that the application
 	 * must provide if it is supplying an EV array.
 	 */
-	MRC_CTL_QP_MIN_NUM_EV             = (1<<12),
+	MRC_CTL_QP_MIN_NUM_EV             = (1<<10),
 	/*
 	 * (Query only) Number of EVs for alignment. If the application is
 	 * supplying an EV array, then the array should be sized as:
 	 * min_num_ev + (k * num_ev_align)
 	 */
-	MRC_CTL_QP_NUM_EV_ALIGN           = (1<<13),
+	MRC_CTL_QP_NUM_EV_ALIGN           = (1<<11),
 	/* Responder dynamic MPR support */
-	MRC_CTL_QP_DYNAMIC_MPR_DEST       = (1<<14),
+	MRC_CTL_QP_DYNAMIC_MPR_DEST       = (1<<12),
 // TODO: Uncomment after HW spec is updated (1.09)
 //	/* Requestor consideration of responder flow control signals */
-//	MRC_CTL_QP_IGNORE_RSP_FLOW_CTL    = (1<<15),
+//	MRC_CTL_QP_IGNORE_RSP_FLOW_CTL    = (1<<13),
 };
 
 struct mrc_ctl_qp_attr {
 
 	struct {
+		/* Max number of EVs per QP (QUERY) */
+		uint32_t max_ev_per_qp;
 		/*
 		 * Maximum number of valid bits EV. This is an output value
 		 * that the provider sets during QUERY operation. This applies
