@@ -20,7 +20,6 @@
 #define _MRC_API_H_
 
 #include <stdint.h>
-#include <stdbool.h>
 #include <infiniband/verbs.h>
 
 #include <mrc_api_ver.h>
@@ -65,6 +64,8 @@ enum mrc_attr_opt {
 	 * responder role).
 	 */
 	MRC_OPT_CAP_DYNAMIC_MPR =	(1<<0),
+	/* The implementation supports QP groups */
+	MRC_OPT_CAP_QP_GROUPS =		(1<<1),
 };
 
 struct mrc_attr {
@@ -237,6 +238,103 @@ int mrc_poll_cq(struct mrc_cq *cq,
  */
 int mrc_destroy_cq(struct mrc_cq *cq);
 
+/**
+ * @brief MRC QP Group attributes
+ */
+struct mrc_qp_group_init_attr {
+	/* The number of QPs that will be using the group */
+	int num_qps;
+	/*
+	 * Application specified group ID. The group ID is learned OOB
+	 * by the application and may be used by the provider to perform
+	 * optimizations if it is associated with a group that was previously
+	 * programmed by a system controller.
+	 * */
+	uint64_t group_id;
+};
+
+/**
+ * @brief Create an MRC QP group
+ *
+ * A QP group consists of QPs that are active simultaneously. The group
+ * used by a QP is assigned when the QP is created.
+ *
+ * The usage of QP groups is optional and serves as a hint to the provider
+ * to optimize the allocation of underlying resources given the application's
+ * desired usage scenario.
+ *
+ * The number of QPs in a group is fixed upon the group's creation. QPs are
+ * added one at a time to the group by specifying the group ID in the hints
+ * parameter on a per QP basis. It is erroneous to add more QPs to the group
+ * than num_qps specified during group creation.
+ *
+ * If a QP from a group was destroyed, such as due to network failure, then
+ * another QP replacing it can be added to the group.
+ *
+ * @param mrc_ctx[in]    - MRC context
+ * @param group_attr[in] - Initial attributes of the group
+ *
+ * @return
+ * Returns a pointer to the allocated group on success or NULL upon error.
+ */
+struct mrc_qp_group *mrc_create_qp_group(
+	struct mrc_context *mrc_ctx,
+	struct mrc_qp_group_init_attr *group_attr);
+
+/**
+ * @brief Destroy a MRC QP group
+ *
+ * The QP group can be destroyed only after all the QPs using the group have
+ * been destroyed.
+ *
+ * @param group[in] - MRC QP group
+ *
+ * @return
+ * Returns 0 on success.
+ */
+int mrc_destroy_qp_group(struct mrc_qp_group *group);
+
+/**
+ * @brief MRC QP Group Hints
+ */
+struct mrc_qp_group_hint {
+	/*
+	 * Number of QPs in this group that are sending data to the same
+	 * destination IP address while this QP is sending data.
+	 *
+	 * For example, in a collective where the application maintains
+	 * 2 QPs per destination IP, the value of this field is 2.
+	 */
+	int num_qps_per_peer;
+
+	/*
+	 * Number of peers (i.e., different IP addresses) that QPs in this
+	 * group are sending data to simultaneously.
+	 */
+	int num_send_peers;
+
+	/*
+	 * Number of remote QPs that will target the same destination IP when
+	 * this QP is sending data.
+	 *
+	 * For example, this parameter can be considered as the incast
+	 * experienced by this QP.
+	 */
+	int num_remote_recv_peers;
+
+	/*
+	 * The QP group this QP belongs to. The provider creates QPs one at a
+	 * time when the application calls mrc_create_qp(). The group is used
+	 * by the provider to assign the rank of a QP within the group which
+	 * then identifies internal resources for the QP.
+	 *
+	 * For example, if group.num_qps = 2, then
+	 * qp1 = mrc_create_qp(..., group) uses group resource index 0,
+	 * qp2 = mrc_create_qp(..., group) uses group resource index 1.
+	 */
+	struct mrc_qp_group *group;
+};
+
 struct mrc_qp_init_attr {
 	void               *qp_context;
 	struct mrc_cq      *send_cq;
@@ -247,6 +345,9 @@ struct mrc_qp_init_attr {
 	struct ibv_pd      *pd;
 	/* see enum ibv_qp_create_send_ops_flags */
 	uint64_t            send_ops_flags;
+
+	/* QP group hints, if NULL then no hint is supplied */
+	struct mrc_qp_group_hint *qp_group_hint;
 };
 
 /**
@@ -287,6 +388,7 @@ int mrc_destroy_qp(struct mrc_qp *qp);
  * RTR         MRC_QP_MAX_WIMM_DEST
  *             MRC_QP_MPR_DEST
  *             MRC_QP_DYNAMIC_MPR_DEST
+ *             MRC_QP_EV_PROFILE_ID
  *
  * RTS         MRC_QP_MAX_WIMM
  *             MRC_QP_MPR
@@ -304,11 +406,13 @@ enum mrc_qp_attr_mask {
 	MRC_QP_MPR_DEST			= (1<<3),
 	/* Responder dynamic MPR support */
 	MRC_QP_DYNAMIC_MPR_DEST		= (1<<4),
+	/* QP ACK timeout */
+	MRC_QP_TIMEOUT			= (1<<5),
+	/* EV profile ID */
+	MRC_QP_EV_PROFILE_ID		= (1<<6),
 // TODO: Uncomment after HW spec is updated (1.09)
 //	/* QP (fixed+exponential) retry counter */
-//	MRC_QP_RETRY_CNT		= (1<<5),
-	/* QP ACK timeout */
-	MRC_QP_TIMEOUT			= (1<<6),
+//	MRC_QP_RETRY_CNT		= (1<<7),
 	MRC_QP_VENDOR_CFG		= (1<<31)
 };
 
@@ -321,8 +425,8 @@ struct mrc_qp_attr {
 		uint8_t mpr;
 		/* Responder MPR value; unit=128 PSNs */
 		uint8_t mpr_dest;
-		/* if true, enable Responder dynamic MPR support */
-		bool dynamic_mpr_dest;
+		/* if 1/true, enable Responder dynamic MPR support */
+		uint8_t dynamic_mpr_dest;
 	} mpr;
 
 	struct {
@@ -332,6 +436,17 @@ struct mrc_qp_attr {
 		uint16_t max_wimm_dest;
 	} wimm;
 
+	/* Local ACK timeout; 1.024 * 2^timeout us. Max val = 24 (17.17s) */
+	uint8_t timeout;
+
+	/*
+	 * Application specified EV profile ID. The EV profile ID is learned
+	 * OOB by the application and is used by the provider to associate
+	 * the QP with an EV profile that was previously programmed by a
+	 * system controller.
+	 */
+	uint64_t ev_profile_id;
+
 // TODO: Uncomment after HW spec is updated (1.09)
 //	struct {
 //		/* Fixed interval retry count; Max value = 8 */
@@ -339,9 +454,6 @@ struct mrc_qp_attr {
 //		/* Exponential retry count; Max val = 32 (infinite retry) */
 //		uint8_t retry_cnt_exp;
 //	} retry_cnt;
-
-	/* Local ACK timeout; 1.024 * 2^timeout us. Max val = 24 (17.17s) */
-	uint8_t timeout;
 
 	uint8_t vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
