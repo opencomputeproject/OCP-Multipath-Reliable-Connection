@@ -56,8 +56,9 @@ enum mrc_ctl_version {
  */
 enum mrc_ctl_attr_opt {
 	/*
-	 * The implementation supports the capability to update EVs after the
-	 * QP has transitioned past the RTR stage.
+	 * The implementation supports the capability to update EV profiles
+	 * after one or more QPs using the profile has transitioned past
+	 * the RTR stage.
 	 */
 	MRC_CTL_OPT_CAP_EV_UPDATE_RTS			= (1<<0),
 	/* The implementation supports EV Events */
@@ -77,8 +78,9 @@ enum mrc_ctl_attr_opt {
 	 */
 	MRC_CTL_OPT_CAP_EV_EXP_ARRAY_RANGE		= (1<<4),
 	/*
-	 * The implementation supports updating the EV allowed bits on a
-	 * generated EV array after the QP has transitioned to RTS.
+	 * The implementation supports the capability to update the EV
+	 * profile's allowed bits field after one or more QPs using the
+	 * profile has transitioned past the RTR stage.
 	 */
 	MRC_CTL_OPT_CAP_EV_GEN_UPDATE_ALLOWED_BITS_RTS	= (1<<5),
 	/*
@@ -87,35 +89,15 @@ enum mrc_ctl_attr_opt {
 	 */
 	MRC_CTL_OPT_CAP_EV_GEN_MIN_ALLOWED_VALS		= (1<<6),
 	/*
-	 * The implementation supports updating EV deny list after the QP has
-	 * transitioned to RTS.
+	 * The implementation supports updating an EV profile's deny list
+	 * after one or more QPs using the profile has transitioned past
+	 * the RTS stage.
 	 */
 	MRC_CTL_OPT_CAP_EV_UPDATE_DENY_LIST_RTS		= (1<<7),
 	/* The implementation supports EV Probes. */
 	MRC_CTL_OPT_CAP_EV_PROBE			= (1<<8),
 	/* The implementation supports precise EV Event drop counts. */
 	MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= (1<<9),
-	/*
-	 * The implementation supports sharing of EV arrays between QPs.
-	 *
-	 * Sharing of EV arrays between QPs allows sharing of the EV states
-	 * across QPs. This could be more efficient depending on the use
-	 * case. Additionally, when multiple QPs are sharing the EV array,
-	 * then the application is required to only modify one of the QPs
-	 * (RTS2RTS), to reflect any EV array updates for all the QPs that
-	 * are sharing the EV array. Sharing of the EV array enables the
-	 * provider to allocate less resources, with the additional constraint
-	 * of addressing concurrent updates to shared EV states that happen
-	 * from multiple QPs.
-	 *
-	 * When this capability is not supported, the application must
-	 * allocate separate EV arrays for each QP.
-	 *
-	 * When this capability is supported, the application must create the
-	 * EV profile with the `ev_array_shared` attribute set for the EV
-	 * array it intends to share between QPs.
-	 */
-	MRC_CTL_OPT_CAP_SHARED_EV_ARRAYS		= (1<<10),
 };
 
 /**
@@ -136,11 +118,23 @@ struct mrc_ctl_attr {
 		 * on the device.
 		 */
 		uint32_t ev_active_gen_fmt_profiles;
+		/*
+		 * Controller defined data for EV generation format profiles
+		 * can be stored in a cookie. This field is opaque to the
+		 * provider and the default value is 0.
+		 */
+		uint64_t ev_gen_fmt_profile_cookie;
 
 		/* Maximum number of EV profiles supported by the device. */
 		uint32_t ev_max_profiles;
 		/* Number of active EV profiles programmed on the device. */
 		uint32_t ev_active_profiles;
+		/*
+		 * Controller defined data for EV profiles can be stored in
+		 * a cookie. This field is opaque to the provider and the
+		 * default value is 0.
+		 */
+		uint64_t ev_profile_cookie;
 
 		/*
 		 * Maximum number of EVs supported per profile. If the
@@ -149,26 +143,27 @@ struct mrc_ctl_attr {
 		 */
 		uint32_t ev_max_count;
 		/*
-		 * Minimum number of EVs supported per profile. If the
-		 * controller is supplying an EV array, then that array must
-		 * contain at least this many EVs. Value of 0 means any EV
-		 * count is supported.
-		 */
-		uint32_t ev_min_count;
-		/*
 		 * Alignment requirements for the number of EVs that are
-		 * required in an EV array. Together with ev_min_count, it
-		 * provides the EV array sizing requirements. The EV array
-		 * size should be 'ev_min_count + (k * ev_count_align)', where
-		 * 'k' is a multiple chosen by the application. For example,
-		 * if a provider supports EVs in multiples of 8, it would set
-		 * the values 'ev_min_count = 8', and 'num_ev_align = 8'. The
-		 * total number of EVs is subject to a maximum of max_ev_count.
-		 * Value of 0 means any EV count increment is supported.
+		 * required in an EV array. The alignment value implies the
+		 * minimum count required and it provides the EV array sizing
+		 * requirements. The EV array size should be:
+		 *   (ev_count_align + (k * ev_count_align))
+		 * where 'k' is a multiple chosen by the application. For
+		 * example, if a provider supports EVs in multiples of 8, it
+		 * would set the values 'ev_count_align = 8'. The total number
+		 * of EVs is subject to a maximum of max_ev_count. Value of 0
+		 * means any EV count increment is supported.
 		 */
 		uint32_t ev_count_align;
-		/* Maximum EV value supported per profile. */
-		uint32_t ev_max_val;
+		/*
+		 * Maximum EV value supported per profile. This represents
+		 * the number of consecutive bits in an EV value that are
+		 * valid. Applies to both explicit and generated EVs. It's
+		 * an error if an ev_allow_mask in an EV profile defining
+		 * generated EVs contains a set of fields that extends past
+		 * ev_max_bits.
+		 */
+		uint32_t ev_max_bits;
 	} ev;
 
 	/* bitmap of all optional features supported (mrc_ctl_attr_opt) */
@@ -192,14 +187,18 @@ int mrc_ctl_query_device(struct ibv_context *context,
 /**
  * @brief EV generation format profile
  *
- * This is required only if generated EVs are to be used. The
+ * This profile is required only if generated EVs are to be used. The
  * mrc_ctl_ev_gen_fmt_profile is chosen by the system administrator,
  * particularly for fields such as ev_allow_mask. The controller application
  * is expected to consult the system vendor and use the right ev_allow_mask,
  * otherwise mrc_ctl_ev_gen_fmt_profile_set() may fail with an error.
  */
 struct mrc_ctl_ev_gen_fmt_profile {
-	/* The EV generation format profile identifier. */
+	/*
+	 * The controller specified EV generation format profile identifier.
+	 * The available EV generation format profile IDs are in the range of
+	 * [0..(ev_max_gen_fmt_profiles - 1)].
+	 */
 	uint64_t ev_gen_fmt_profile_id;
 	/*
 	 * EV allow mask. The bitmask can contain several fields. Bitmask
@@ -253,13 +252,13 @@ struct mrc_ctl_ev_gen_fmt_profile {
 };
 
 /**
- * @brief Create an EV generation format profile
+ * @brief Modify an EV generation format profile
  *
- * Create an EV generation format profile. Once created, the specified
- * ev_gen_fmt_profile_id can be used by any to be created EV profiles being
- * created generated EVs.
+ * Used to configure an EV generation format profile. Once configured, the
+ * specified ev_gen_fmt_profile_id can be used by any to be created EV
+ * profiles for generated EVs.
  *
- * NOTE: The ev_gen_fmt_profile_id is defined by the calling controller
+ * NOTE: The ev_gen_fmt_profile_id is assigned by the calling controller
  * application.
  *
  * @param mrc_ctx[in]            - MRC context
@@ -270,7 +269,7 @@ struct mrc_ctl_ev_gen_fmt_profile {
  * @retval ENOMEM Unable to create a new profile (max reached).
  * @retval EPERM Process lacks sufficient permissions.
  */
-int mrc_ctl_ev_gen_fmt_profile_set(
+int mrc_ctl_modify_ev_gen_fmt_profile(
 	struct mrc_context *mrc_ctx,
 	struct mrc_ctl_ev_gen_fmt_profile *ev_gen_fmt_profile);
 
@@ -287,34 +286,17 @@ int mrc_ctl_ev_gen_fmt_profile_set(
  * @retval EINVAL One or more supplied arguments are invalid.
  * @retval EPERM Process lacks sufficient permissions.
  */
-int mrc_ctl_ev_gen_fmt_profile_get(
+int mrc_ctl_query_ev_gen_fmt_profile(
 	struct mrc_context *mrc_ctx,
 	uint64_t ev_gen_fmt_profile_id,
 	struct mrc_ctl_ev_gen_fmt_profile *ev_gen_fmt_profile);
 
 /**
- * @brief Destroy an EV generation format profile
- *
- * Destroy an EV generation format profile. All EV profiles that are using
- * this EV generation format profile must be destroyed before the profile can
- * be destroyed.
- *
- * @param mrc_ctx[in]               - MRC context
- * @param ev_gen_fmt_profile_id[in] - Profile to destroy
- *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval EPERM Process lacks sufficient permissions.
- */
-int mrc_ctl_ev_gen_fmt_profile_destroy(struct mrc_context *mrc_ctx,
-				       uint64_t ev_gen_fmt_profile_id);
-
-/**
  * @brief Supported EV modes
  */
 enum mrc_ctl_ev_mode {
-	/* Controller will not provide any EVs */
-	MRC_CTL_EV_MODE_NONE		= 0,
+	/* Controller will not provide any EVs (vendor defined e.g., ECMP) */
+	MRC_CTL_EV_MODE_AUTO		= 0,
 	/* Explicit EVs (MRC_CTL_OPT_CAP_EV_EXP_ARRAY) */
 	MRC_CTL_EV_MODE_EXP_ARRAY	= 1,
 	/* Generated EVs (MRC_CTL_OPT_CAP_EV_GEN_ARRAY) */
@@ -356,7 +338,10 @@ struct mrc_ctl_ev_deny {
  * @brief EV profile
  */
 struct mrc_ctl_ev_profile {
-	/* The EV profile identifier. */
+	/*
+	 * The controller specified EV profile identifier. The available EV
+	 * profile IDs are in the range of [0..(ev_max_profiles - 1)].
+	 */
 	uint64_t ev_profile_id;
 
 	/*
@@ -380,13 +365,6 @@ struct mrc_ctl_ev_profile {
 	uint32_t ev_lsb_plane_bits;
 
 	/*
-	 * Whether the EV array specified by this profile may be shared
-	 * between QPs (see MRC_CTL_OPT_CAP_SHARED_EV_ARRAYS). 1/true means
-	 * shared, 0 not shared.
-	 */
-	uint8_t ev_array_shared;
-
-	/*
 	 * For explicit EVs this field specifies the length of the explicit
 	 * EV array. For generated EVs it is the number of EVs that the
 	 * provider will generate in accordance with the ev_gen_fmt_profile.
@@ -400,32 +378,36 @@ struct mrc_ctl_ev_profile {
 	 */
 	uint32_t ev_min_active;
 
-	/* For generated EVs, the following fields are valid. */
-	struct {
-		/*
-		 * The explicit array of EVs to be programmed in this profile.
-		 * The length of the array is specified by ev_count. This
-		 * field is only valid when creating a new EV profile and
-		 * calling mrc_ctl_ev_profile_set(). Upon return this array
-		 * can be freed safely by the caller.
-		 */
-		struct mrc_ctl_ev_entry *ev_exp_array;
-	} ev_exp;
+	union {
+		/* For explicit EVs, the following fields are valid. */
+		struct {
+			/*
+			 * The explicit array of EVs to be programmed in this
+			 * profile. The length of the array is specified by
+			 * ev_count. This field is only valid when creating a
+			 * new EV profile and calling mrc_ctl_ev_profile_set().
+			 * Upon return this array can be freed safely by the
+			 * caller.
+			 */
+			struct mrc_ctl_ev_entry *ev_exp_array;
+		} ev_exp;
 
-	/* For generated EVs, the following fields are valid. */
-	struct {
-		/* The associated EV generation format profile. */
-		uint64_t ev_gen_fmt_profile_id;
-		/*
-		 * The EV allowed bits specify the bits that a provider can
-		 * flip to generate valid EV values. The fields are identified
-		 * using the allow mask programmed in the associated
-		 * ev_gen_fmt_profile. When using a generated EV arrays, the
-		 * actual EV values in use are not generated until the
-		 * associated QP is in the RTR state.
-		 */
-		uint32_t ev_allowed_bits;
-	} ev_gen;
+		/* For generated EVs, the following fields are valid. */
+		struct {
+			/* The associated EV generation format profile. */
+			uint64_t ev_gen_fmt_profile_id;
+			/*
+			 * The EV allowed bits specify the bits that a provider
+			 * can flip to generate valid EV values. The fields are
+			 * identified using the allow mask programmed in the
+			 * associated ev_gen_fmt_profile. When using a
+			 * generated EV arrays, the actual EV values in use are
+			 * not generated until the associated QP is in the RTR
+			 * state.
+			 */
+			uint32_t ev_allowed_bits;
+		} ev_gen;
+	} u;
 
 	/*
 	 * EV event mask for EV state change notifications on this profile.
@@ -437,8 +419,8 @@ struct mrc_ctl_ev_profile {
 /**
  * @brief Create or modify an EV profile
  *
- * Create a new or modify an existing EV profile. Once created, the
- * specified ev_profile_id can be used by any to be created QP. Some fields
+ * Used to configure an EV profile. Once configured, the specified
+ * ev_profile_id can be used by any to be created QP. Some fields
  * may be modified after the EV profile has been created (see
  * mrc_ctl_ev_profile).
  *
@@ -452,8 +434,8 @@ struct mrc_ctl_ev_profile {
  * @retval ENOMEM Unable to create a new profile (max reached).
  * @retval EPERM Process lacks sufficient permissions.
  */
-int mrc_ctl_ev_profile_set(struct mrc_context *mrc_ctx,
-			   struct mrc_ctl_ev_profile *ev_profile);
+int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
+			      struct mrc_ctl_ev_profile *ev_profile);
 
 /**
  * @brief Get an EV profile.
@@ -468,9 +450,9 @@ int mrc_ctl_ev_profile_set(struct mrc_context *mrc_ctx,
  * @retval EINVAL One or more supplied arguments are invalid.
  * @retval EPERM Process lacks sufficient permissions.
  */
-int mrc_ctl_ev_profile_get(struct mrc_context *mrc_ctx,
-			   uint64_t ev_profile_id,
-			   struct mrc_ctl_ev_profile *ev_profile);
+int mrc_ctl_query_ev_profile(struct mrc_context *mrc_ctx,
+			     uint64_t ev_profile_id,
+			     struct mrc_ctl_ev_profile *ev_profile);
 
 /**
  * @brief Destroy an EV profile
@@ -536,7 +518,6 @@ int mrc_ctl_update_ev_entry(struct mrc_context *mrc_ctx,
  * @brief Get the length of the deny list
  *
  * Retrieve the length of the deny list from the EV profile.
- * See QP attribute MRC_QP_ATTR_EV_DENY_LIST_LEN.
  *
  * @param mrc_ctx[in]       - MRC context
  * @param ev_profile_id[in] - EV profile

@@ -55,28 +55,17 @@ struct mrc_qp;
 struct mrc_cq;
 struct mrc_comp_channel;
 
-/**
- * Optional features supported by the implementation.
- */
-enum mrc_attr_opt {
-	/*
-	 * The implementation supports dynamic MPR (requestor and/or
-	 * responder role).
-	 */
-	MRC_OPT_CAP_DYNAMIC_MPR =	(1<<0),
-	/* The implementation supports QP groups */
-	MRC_OPT_CAP_QP_GROUPS =		(1<<1),
-};
-
 struct mrc_attr {
 	/* bitmap of all versions supported (see enum mrc_version) */
 	uint32_t mrc_version;
+
 	struct {
 		/* Max configurable wimm value as requestor. */
 		uint16_t max_wimm;
 		/* Max configurable wimm value as responder. */
 		uint16_t max_wimm_dest;
 	} wimm_attr;
+
 	struct {
 		/*
 		 * Maximum supported MPR value as requestor or responder.
@@ -86,8 +75,13 @@ struct mrc_attr {
 		/* MPR resource allocation resolution; unit = 128 PSNs. */
 		uint8_t mpr_res;
 	} mpr_attr;
-	/* bitmap of all optional features supported (mrc_attr_opt) */
-	uint32_t opt_attr;
+
+	struct {
+		/* Maximum number of QP groups supported by the device. */
+		uint32_t qp_group_max;
+		/* Number of active QP groups programmed on the device. */
+		uint32_t qp_group_active;
+	} qp_group_attr;
 };
 
 /**
@@ -98,8 +92,8 @@ struct mrc_attr {
  * @param context[in] - IB Verbs context
  * @param attrs[out]  - MRC attributes
  *
- * @return
- * Returns 0 on success. Error codes as per ibv_query_device().
+ * @return 0 on success.
+ * @return Errors like ibv_query_device().
  */
 int mrc_query_device(struct ibv_context *context,
 		     struct mrc_attr *attr);
@@ -130,9 +124,8 @@ struct mrc_context_attr {
  * @param vcontext[in]  - IB Verbs context
  * @param context_attr[in] - MRC version used by the application
  *
- * @return
- * Returns a pointer to the allocated context on success or NULL if
- * the request fails.
+ * @return Pointer to the allocated context on success.
+ * @return NULL if the request fails.
  */
 struct mrc_context *mrc_create_context(struct ibv_context *vcontext,
 				       struct mrc_context_attr *context_attr);
@@ -144,8 +137,8 @@ struct mrc_context *mrc_create_context(struct ibv_context *vcontext,
  *
  * @param[in] mrc_ctx - MRC context
  *
- * @return
- * Returns 0 on success or -1 on failure.
+ * @return 0 on success.
+ * @return -1 on failure.
  */
 int mrc_destroy_context(struct mrc_context *mrc_ctx);
 
@@ -157,8 +150,8 @@ int mrc_destroy_context(struct mrc_context *mrc_ctx);
  * @param mrc_ctx[in] - MRC context
  * @param channel[out] - Created MRC channel
  *
- * @return
- * Returns 0 on success. Errors like ibv_create_comp_channel().
+ * @return 0 on success.
+ * @return Errors like ibv_create_comp_channel().
  */
 int mrc_create_comp_channel(struct mrc_context *mrc_ctx,
 			    struct mrc_comp_channel **channel);
@@ -169,8 +162,8 @@ int mrc_create_comp_channel(struct mrc_context *mrc_ctx,
  * @param channel[in] - MRC completion channel
  * @param fd[out]     - Returned file descriptor
  *
- * @return
- * Returns 0 on success or -1 on error.
+ * @return 0 on success.
+ * @return -1 on failure.
  */
 int mrc_get_comp_channel_fd(struct mrc_comp_channel *channel,
 			    int *fd);
@@ -182,8 +175,8 @@ int mrc_get_comp_channel_fd(struct mrc_comp_channel *channel,
  *
  * @param channel[in] - Completion channel
  *
- * @return
- * Returns 0 on success. Errors like ibv_destroy_comp_channel().
+ * @return 0 on success.
+ * @return Errors like ibv_destroy_comp_channel().
  */
 int mrc_destroy_comp_channel(struct mrc_comp_channel *channel);
 
@@ -198,9 +191,8 @@ int mrc_destroy_comp_channel(struct mrc_comp_channel *channel);
  * @param channel[in]     - completion channel
  * @param comp_vector[in] - Completion vector to signal completion events
  *
- * @return
- * Returns a pointer to the allocated CQ on success or NULL if the request
- * fails. Errors like ibv_create_cq().
+ * @return Pointer to the allocated CQ on success.
+ * @return NULL if the request fails. Errors like ibv_create_cq().
  */
 struct mrc_cq *mrc_create_cq(struct mrc_context *mrc_ctx,
 			     int cqe,
@@ -217,10 +209,9 @@ struct mrc_cq *mrc_create_cq(struct mrc_context *mrc_ctx,
  * @param num_entries[in] - Number of completion entries
  * @param wc[out]         - Obtained completion entries
  *
- * @return
- * Returns the number of completions found on success or -1 on error.
- * If the return value is >=0 and less than num_entries, then the CQ
- * was emptied.
+ * @return Returns the number of completions found on success. If the return
+ *         value is >=0 and less than num_entries, then the CQ was emptied.
+ * @return -1 on error.
  */
 int mrc_poll_cq(struct mrc_cq *cq,
 		int num_entries,
@@ -233,28 +224,27 @@ int mrc_poll_cq(struct mrc_cq *cq,
  *
  * @param cq[in] - MRC CQ
  *
- * @return
- * Returns 0 on success. Errors like ibv_destroy_cq()
+ * @return Returns 0 on success.
+ * @return Errors like ibv_destroy_cq().
  */
 int mrc_destroy_cq(struct mrc_cq *cq);
 
 /**
- * @brief MRC QP Group attributes
+ * @brief MRC QP Group
  */
-struct mrc_qp_group_init_attr {
+struct mrc_qp_group {
+	/*
+	 * The application specified QP group identifier. The available QP
+	 * group IDs are in the range of [0..(qp_group_max - 1)]. A QP group
+	 * can be used by the provider to perform additional optimizations.
+	 */
+	uint64_t qp_group_id;
 	/* The number of QPs that will be using the group */
 	int num_qps;
-	/*
-	 * Application specified group ID. The group ID is learned OOB
-	 * by the application and may be used by the provider to perform
-	 * optimizations if it is associated with a group that was previously
-	 * programmed by a system controller.
-	 * */
-	uint64_t group_id;
 };
 
 /**
- * @brief Create an MRC QP group
+ * @brief Modify an MRC QP group
  *
  * A QP group consists of QPs that are active simultaneously. The group
  * used by a QP is assigned when the QP is created.
@@ -274,25 +264,27 @@ struct mrc_qp_group_init_attr {
  * @param mrc_ctx[in]    - MRC context
  * @param group_attr[in] - Initial attributes of the group
  *
- * @return
- * Returns a pointer to the allocated group on success or NULL upon error.
+ * @return 0 on success.
+ * @retval EINVAL One or more supplied arguments are invalid.
  */
-struct mrc_qp_group *mrc_create_qp_group(
-	struct mrc_context *mrc_ctx,
-	struct mrc_qp_group_init_attr *group_attr);
+int mrc_modify_qp_group(struct mrc_context *mrc_ctx,
+			struct mrc_qp_group *qp_group);
 
 /**
- * @brief Destroy a MRC QP group
+ * @brief Get an MRC QP group
  *
- * The QP group can be destroyed only after all the QPs using the group have
- * been destroyed.
+ * Get an MRC QP group configuration.
  *
- * @param group[in] - MRC QP group
+ * @param mrc_ctx[in]     - MRC context
+ * @param qp_group_id[in] - QP group to get
+ * @param qp_group[out]   - QP group's configuration
  *
- * @return
- * Returns 0 on success.
+ * @return 0 on success.
+ * @retval EINVAL One or more supplied arguments are invalid.
  */
-int mrc_destroy_qp_group(struct mrc_qp_group *group);
+int mrc_query_qp_group(struct mrc_context *mrc_ctx,
+		       uint64_t qp_group_id,
+		       struct mrc_qp_group *qp_group);
 
 /**
  * @brief MRC QP Group Hints
@@ -329,10 +321,10 @@ struct mrc_qp_group_hint {
 	 * then identifies internal resources for the QP.
 	 *
 	 * For example, if group.num_qps = 2, then
-	 * qp1 = mrc_create_qp(..., group) uses group resource index 0,
-	 * qp2 = mrc_create_qp(..., group) uses group resource index 1.
+	 * qp1 = mrc_create_qp(..., qp_group_id) -> group resource index 0
+	 * qp2 = mrc_create_qp(..., qp_group_id) -> group resource index 1
 	 */
-	struct mrc_qp_group *group;
+	uint64_t qp_group_id;
 };
 
 struct mrc_qp_init_attr {
@@ -345,7 +337,6 @@ struct mrc_qp_init_attr {
 	struct ibv_pd      *pd;
 	/* see enum ibv_qp_create_send_ops_flags */
 	uint64_t            send_ops_flags;
-
 	/* QP group hints, if NULL then no hint is supplied */
 	struct mrc_qp_group_hint *qp_group_hint;
 };
@@ -358,9 +349,8 @@ struct mrc_qp_init_attr {
  * @param context[in]     - IB Verbs context
  * @param qp_init_attr_ex - QP init attributes
  *
- * @return
- * Returns a pointer to the created QP on success or NULL if the request
- * fails. Errors like ibv_create_qp().
+ * @return Pointer to the created QP on success.
+ * @return NULL if the request fails. Errors like ibv_create_qp().
  */
 struct mrc_qp *mrc_create_qp(struct mrc_context *mrc_ctx,
 			     struct mrc_qp_init_attr *mrc_qp_attr);
@@ -372,8 +362,8 @@ struct mrc_qp *mrc_create_qp(struct mrc_context *mrc_ctx,
  *
  * @param qp[in] - MRC QP
  *
- * @return
- * Returns 0 on success. Errors like ibv_destroy_qp()
+ * @return 0 on success.
+ * @return Errors like ibv_destroy_qp().
  */
 int mrc_destroy_qp(struct mrc_qp *qp);
 
@@ -385,10 +375,11 @@ int mrc_destroy_qp(struct mrc_qp *qp);
  *
  * Next State  Required Attributes
  * ----------  -------------------
+ * INIT        MRC_QP_EV_PROFILE_ID
+ *
  * RTR         MRC_QP_MAX_WIMM_DEST
  *             MRC_QP_MPR_DEST
  *             MRC_QP_DYNAMIC_MPR_DEST
- *             MRC_QP_EV_PROFILE_ID
  *
  * RTS         MRC_QP_MAX_WIMM
  *             MRC_QP_MPR
@@ -404,15 +395,17 @@ enum mrc_qp_attr_mask {
 	MRC_QP_MPR			= (1<<2),
 	/* Responder MPR */
 	MRC_QP_MPR_DEST			= (1<<3),
+	/* Support for dynamic MPR (requestor and/or responder) */
+	MRC_QP_DYNAMIC_MPR		= (1<<4),
 	/* Responder dynamic MPR support */
-	MRC_QP_DYNAMIC_MPR_DEST		= (1<<4),
+	MRC_QP_DYNAMIC_MPR_DEST		= (1<<5),
 	/* QP ACK timeout */
-	MRC_QP_TIMEOUT			= (1<<5),
+	MRC_QP_TIMEOUT			= (1<<6),
 	/* EV profile ID */
-	MRC_QP_EV_PROFILE_ID		= (1<<6),
+	MRC_QP_EV_PROFILE_ID		= (1<<7),
 // TODO: Uncomment after HW spec is updated (1.09)
 //	/* QP (fixed+exponential) retry counter */
-//	MRC_QP_RETRY_CNT		= (1<<7),
+//	MRC_QP_RETRY_CNT		= (1<<8),
 	MRC_QP_VENDOR_CFG		= (1<<31)
 };
 
@@ -425,6 +418,8 @@ struct mrc_qp_attr {
 		uint8_t mpr;
 		/* Responder MPR value; unit=128 PSNs */
 		uint8_t mpr_dest;
+		/* if 1/true, implemenation supports dynamic MPR */
+		uint8_t dynamic_mpr;
 		/* if 1/true, enable Responder dynamic MPR support */
 		uint8_t dynamic_mpr_dest;
 	} mpr;
@@ -470,8 +465,8 @@ struct mrc_qp_attr {
  * @param mrc_attr_mask[in] - MRC attributes requested
  * @param init_attr[in]     - Additional MRC attributes returned
  *
- * @return
- * Returns 0 on success and errors like ibv_query_qp()
+ * @return 0 on success.
+ * @return Errors like ibv_query_qp().
  */
 int mrc_query_qp(struct mrc_qp *qp,
 		 struct ibv_qp_attr *vattr,
@@ -503,8 +498,8 @@ int mrc_query_qp(struct mrc_qp *qp,
  * @param mrc_attr[in]      - MRC QP attributes to modify
  * @param mrc_attr_mask[in] - MRC QP attributes to modify
  *
- * @return
- * Returns 0 on success. Errors like ibv_modify_qp().
+ * @return 0 on success.
+ * @return Errors like ibv_modify_qp().
  */
 int mrc_modify_qp(struct mrc_qp *qp,
 		  struct ibv_qp_attr *vattr,
@@ -518,8 +513,8 @@ int mrc_modify_qp(struct mrc_qp *qp,
  * @param qp[in]   - MRC QP
  * @param qpn[out] - Returned QP number
  *
- * @return
- * Returns 0 on success or -1 on error
+ * @return 0 on success.
+ * @return -1 on error.
  */
 int mrc_get_qpn(struct mrc_qp *qp,
 		uint32_t *qpn);
@@ -534,9 +529,8 @@ int mrc_get_qpn(struct mrc_qp *qp,
  * @param wr[in]      - Work request
  * @param bad_wr[out] - Error receive request
  *
- * @return
- * Returns 0 on success or -1 on failure. Error semantics like
- * ibv_post_recv().
+ * @return 0 on success.
+ * @return -1 on failure. Errors like ibv_post_recv().
  */
 int mrc_post_recv(struct mrc_qp *qp,
 		  struct ibv_recv_wr *wr,
@@ -551,8 +545,8 @@ int mrc_post_recv(struct mrc_qp *qp,
  * @param wr[in]      - Work request to send
  * @param bad_wr[out] - Error WR
  *
- * @return
- * Returns 0 on success. Error semantics like ibv_post_send().
+ * @return 0 on success.
+ * @return Errors like ibv_post_send().
  */
 int mrc_post_send(struct mrc_qp *qp,
 		  struct ibv_send_wr *wr,
@@ -576,8 +570,8 @@ struct mrc_async_event {
  * @param context[in] - MRC context
  * @param event[out]  - Reported event
  *
- * @return
- * Returns 0 on success. Error semantics like ibv_get_async_event().
+ * @return 0 on success.
+ * @return Errors like ibv_get_async_event().
  */
 int mrc_get_async_event(struct mrc_context *mrc_ctx,
 			struct mrc_async_event *event);
@@ -590,8 +584,7 @@ int mrc_get_async_event(struct mrc_context *mrc_ctx,
  *
  * @param event[in] - MRC async event
  *
- * @return
- * This function does not return any value
+ * @return void
  */
 void mrc_ack_async_event(struct mrc_async_event *event);
 
@@ -603,8 +596,8 @@ void mrc_ack_async_event(struct mrc_async_event *event);
  * @param cq[in]             - MRC CQ
  * @param solicited_only[in] - Request event only on "solicited" events
  *
- * @return
- * Returns 0 on success. Error semantics like ibv_req_notify_cq().
+ * @return 0 on success.
+ * @return Errors like ibv_req_notify_cq().
  */
 int mrc_req_notify_cq(struct mrc_cq *cq,
 		      int solicited_only);
@@ -620,9 +613,8 @@ int mrc_req_notify_cq(struct mrc_cq *cq,
  * @param cq[out]         - Returned CQ that has the event
  * @param cq_context[out] - Returned application CQ context
  *
- * @return
- * Returns 0 on success, and -1 on failure. Error semantics like
- * ibv_get_cq_event().
+ * @return 0 on success.
+ * @return -1 on failure. Errors like ibv_get_cq_event().
  */
 int mrc_get_cq_event(struct mrc_comp_channel *channel,
 		     struct mrc_cq **cq,
@@ -642,8 +634,7 @@ int mrc_get_cq_event(struct mrc_comp_channel *channel,
  * @param cq[in]      - MRC CQ
  * @param nevents[in] - Number of events to acknowledge
  *
- * @return
- * Returns no value
+ * @return void
  */
 void mrc_ack_cq_events(struct mrc_cq *cq,
 		       unsigned int nevents);
