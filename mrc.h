@@ -74,6 +74,8 @@ struct mrc_attr {
 		uint8_t max_mpr;
 		/* MPR resource allocation resolution; unit = 128 PSNs. */
 		uint8_t mpr_res;
+		/* if 1/true, implemenation supports dynamic MPR */
+		uint8_t dynamic_mpr;
 	} mpr_attr;
 
 	struct {
@@ -261,8 +263,8 @@ struct mrc_qp_group {
  * If a QP from a group was destroyed, such as due to network failure, then
  * another QP replacing it can be added to the group.
  *
- * @param mrc_ctx[in]    - MRC context
- * @param group_attr[in] - Initial attributes of the group
+ * @param mrc_ctx[in]  - MRC context
+ * @param qp_group[in] - QP group's configuration
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -395,8 +397,6 @@ enum mrc_qp_attr_mask {
 	MRC_QP_MPR			= (1<<2),
 	/* Responder MPR */
 	MRC_QP_MPR_DEST			= (1<<3),
-	/* Support for dynamic MPR (requestor and/or responder) */
-	MRC_QP_DYNAMIC_MPR		= (1<<4),
 	/* Responder dynamic MPR support */
 	MRC_QP_DYNAMIC_MPR_DEST		= (1<<5),
 	/* QP ACK timeout */
@@ -418,8 +418,6 @@ struct mrc_qp_attr {
 		uint8_t mpr;
 		/* Responder MPR value; unit=128 PSNs */
 		uint8_t mpr_dest;
-		/* if 1/true, implemenation supports dynamic MPR */
-		uint8_t dynamic_mpr;
 		/* if 1/true, enable Responder dynamic MPR support */
 		uint8_t dynamic_mpr_dest;
 	} mpr;
