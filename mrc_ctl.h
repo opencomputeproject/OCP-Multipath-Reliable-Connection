@@ -145,7 +145,7 @@ struct mrc_ctl_attr {
 		 * where 'k' is a multiple chosen by the application. For
 		 * example, if a provider supports EVs in multiples of 8, it
 		 * would set the values 'ev_count_align = 8'. The total number
-		 * of EVs is subject to a maximum of max_ev_count. Value of 0
+		 * of EVs is subject to a maximum of ev_max_count. Value of 0
 		 * means any EV count increment is supported.
 		 */
 		uint32_t ev_count_align;
@@ -382,7 +382,7 @@ struct mrc_ctl_ev_profile {
 			 * profile. The length of the array is specified by
 			 * ev_count. This field is only valid when creating a
 			 * new EV profile and calling
-			 * mrc_ctl_modfy_ev_profile(). Upon return this array
+			 * mrc_ctl_modify_ev_profile(). Upon return this array
 			 * can be freed safely by the caller.
 			 */
 			struct mrc_ctl_ev_entry *ev_exp_array;
