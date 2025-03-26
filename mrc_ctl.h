@@ -77,17 +77,6 @@ enum mrc_ctl_attr_opt {
 	 * where ev_count is defined by the EV profile.
 	 */
 	MRC_CTL_OPT_CAP_EV_EXP_ARRAY_RANGE		= (1<<4),
-	/*
-	 * The implementation supports the capability to update the EV
-	 * profile's allowed bits field after one or more QPs using the
-	 * profile has transitioned to the RTR stage.
-	 */
-	MRC_CTL_OPT_CAP_EV_GEN_UPDATE_ALLOWED_BITS_RTS	= (1<<5),
-	/*
-	 * The implementation supports the ev_min_allowed_vals field in the
-	 * mrc_ctl_ev_gen_fmt_profile.
-	 */
-	MRC_CTL_OPT_CAP_EV_GEN_MIN_ALLOWED_VALS		= (1<<6),
 	/* The implementation supports EV Probes. */
 	MRC_CTL_OPT_CAP_EV_PROBE			= (1<<7),
 	/* The implementation supports precise EV Event drop counts. */
@@ -213,29 +202,9 @@ struct mrc_ctl_ev_gen_fmt_profile {
 	uint32_t ev_lsb_plane_bits;
 
 	/*
-	 * The max value of each field that is allowed. The ev_allowed_bits
-	 * operate in powers of 2, however, there may be a max value that
-	 * each field can support. For example, for a bitmask of 0xF0 (two
-	 * bitfields), 0xEC indicates a maximum of 12 for field 1 and 14 for
-	 * field 2.
-	 */
-	uint32_t ev_max_allowed_vals;
-
-	/*
-	 * The min value of each field that is allowed. While the
-	 * ev_max_allowed_vals controls the maximum value, the
-	 * ev_min_allowed_vals controls the minimum value the field may start
-	 * with. This enables starting the iteration on the EVs from the
-	 * provided threshold. For example, for a bitmask of 0xF0 (two
-	 * bitfields), 0xDB indicates a minimum of 11 for field 1 and 13 for
-	 * field 2.
-	 */
-	uint32_t ev_min_allowed_vals;
-
-	/*
 	 * A realistic example in source routed mode:
-	 * Construct an ev_format_mask and ev_max_allowed_vals for 4 hops
-	 * (includes the plane). Since the number of hops is even, the first
+	 * Construct an ev_format_mask and deny list for 4 hops and
+	 * includes the plane. Since the number of hops is even, the first
 	 * field mask is 0's and the last is 1's.
 	 *
 	 * 1st hop: 0x7   max = 7    (8 planes)
@@ -243,9 +212,18 @@ struct mrc_ctl_ev_gen_fmt_profile {
 	 * 3rd hop: 0xf   max = 15   (16 links)
 	 * 4th hop: 0xf   max = 15   (16 links)
 	 *
-	 * ev_format_mask      = 0x000787f8
-	 * ev_max_allowed_vals = 0x0007fd9f
-	 * ev_min_allowed_vals = 0x00000000
+	 * ev_format_mask = 0x000787f8
+	 *
+	 * Call mrc_ctl_update_ev(ev_range[], MRC_CTL_EV_DENIED) to deny EVs
+	 * in each field beyond their identified max values:
+	 *
+	 *   ev_range[] = {
+	 *     {
+	 *       .ev_mask = 0x7f8 (0xff << 3)
+	 *       .start_ev = 180
+	 *       .end_ev = 255
+	 *     }
+	 *   }
 	 */
 };
 
@@ -331,23 +309,11 @@ enum mrc_ctl_ev_state {
 /**
  * @brief EV entry
  */
-struct mrc_ctl_ev_entry {
+struct mrc_ctl_ev {
 	/* State of the EV */
 	enum mrc_ctl_ev_state state;
 	/* Value of the EV */
 	uint32_t val;
-};
-
-/**
- * @brief EV deny entry
- *
- * A bitmap entry specifying a set of EVs the should not be used. The EVs
- * to deny will be identified by:
- *   (ev & deny_mask) == (deny_value & deny_mask)
- */
-struct mrc_ctl_ev_deny {
-	uint32_t deny_mask;
-	uint32_t deny_value;
 };
 
 /**
@@ -399,24 +365,13 @@ struct mrc_ctl_ev_profile {
 			 * In both cases, upon return this array can be freed
 			 * safely by the caller.
 			 */
-			struct mrc_ctl_ev_entry *ev_exp_array;
+			struct mrc_ctl_ev *ev_exp_array;
 		} ev_exp;
 
 		/* For generated EVs, the following fields are valid. */
 		struct {
 			/* The associated EV generation format profile. */
 			uint64_t ev_gen_fmt_profile_id;
-
-			/*
-			 * The EV allowed bits specify the bits that a provider
-			 * can flip to generate valid EV values. The fields are
-			 * identified using the format mask programmed in the
-			 * associated ev_gen_fmt_profile. When using a
-			 * generated EV arrays, the actual EV values in use are
-			 * not generated until the associated QP is in the RTR
-			 * state.
-			 */
-			uint32_t ev_allowed_bits;
 
 			/*
 			 * The generated array of EVs programmed in this
@@ -428,7 +383,7 @@ struct mrc_ctl_ev_profile {
 			 * In both cases, upon return this array can be freed
 			 * safely by the caller.
 			 */
-			struct mrc_ctl_ev_entry *ev_gen_array;
+			struct mrc_ctl_ev *ev_gen_array;
 		} ev_gen;
 	} u;
 
@@ -495,7 +450,25 @@ int mrc_ctl_destroy_ev_profile(struct mrc_context *mrc_ctx,
 			       uint64_t ev_profile_id);
 
 /**
- * @brief Get an EV entry
+ * @brief EV range
+ *
+ * The EV range structure specifies a set of EVs to be targetted. The EVs
+ * will be identified by the following logic:
+ *
+ *     is_target = (((ev & ev_mask) >= start_ev) &&
+ *                  ((ev & ev_mask) <= end_ev))
+ *
+ * To target a single EV, set both start_ev and end_ev to same EV value.
+ * Both the start and end values are inclusive.
+ */
+struct mrc_ctl_ev_range {
+   uint32_t ev_mask;
+   uint32_t start_ev;
+   uint32_t end_ev;
+};
+
+/**
+ * @brief Get an EV's state
  *
  * This can be performed immediately after an EV profile using explicit EVs
  * has been created. For generated EVs, this can be performed after the first
@@ -503,20 +476,18 @@ int mrc_ctl_destroy_ev_profile(struct mrc_context *mrc_ctx,
  *
  * @param mrc_ctx[in]       - MRC context
  * @param ev_profile_id[in] - EV profile
- * @param index[in]         - Index of the EV entry
- * @param entry[out]        - State of the EV
+ * @param ev[in/out]        - EV value [in], state [out]
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
  * @retval EPERM Process lacks sufficient permissions.
  */
-int mrc_ctl_get_ev_entry(struct mrc_context *mrc_ctx,
-			 uint64_t ev_profile_id,
-			 int index,
-			 struct mrc_ctl_ev_entry *entry);
+int mrc_ctl_get_ev(struct mrc_context *mrc_ctx,
+		   uint64_t ev_profile_id,
+		   struct mrc_ctl_ev *ev);
 
 /**
- * @brief Update an EV entry
+ * @brief Update the state on a range of EV entries
  *
  * The valid values of the state are MRC_CTL_EV_GOOD and MRC_CTL_EV_DENIED.
  * If the device does not advertise the MRC_CTL_OPT_CAP_EV_UPDATE_RTS
@@ -525,99 +496,17 @@ int mrc_ctl_get_ev_entry(struct mrc_context *mrc_ctx,
  *
  * @param mrc_ctx[in]       - MRC context
  * @param ev_profile_id[in] - EV profile
- * @param index[in]         - Index of the EV entry
- * @param entry[in]         - Updated values for the EV entry
+ * @param ev_range[in]      - Range of EVs to update
+ * @param ev_state[in]      - State to set each matching EV
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
  * @retval EPERM Process lacks sufficient permissions.
  */
-int mrc_ctl_update_ev_entry(struct mrc_context *mrc_ctx,
-			    uint64_t ev_profile_id,
-			    int index,
-			    struct mrc_ctl_ev_entry *entry);
-
-/**
- * @brief Get the length of the deny list
- *
- * Retrieve the length of the deny list from the EV profile.
- *
- * @param mrc_ctx[in]       - MRC context
- * @param ev_profile_id[in] - EV profile
- *
- * @return Deny list length on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval EPERM Process lacks sufficient permissions.
- */
-int mrc_ctl_get_ev_deny_list_length(struct mrc_context *mrc_ctx,
-				    uint64_t ev_profile_id);
-
-/**
- * @brief Get an EV deny list entry
- *
- * Retrieve the deny list entry from the EV profile.
- *
- * @param mrc_ctx[in]       - MRC context
- * @param ev_profile_id[in] - EV profile
- * @param index[in]         - Index of deny entry to read (must be less than
- *                            the deny list length)
- * @param deny[out]         - Deny list entry
- *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval EPERM Process lacks sufficient permissions.
- */
-int mrc_ctl_get_ev_deny(struct mrc_context *mrc_ctx,
-			uint64_t ev_profile_id,
-			int index,
-			struct mrc_ctl_ev_deny *deny);
-
-/**
- * @brief Update the deny list
- *
- * Update the deny list of EVs on an EV profile.
- *
- * NOTE: Deny lists are supported only for the generated EV mode. In explicit
- * EV mode, the application is expected to replace any EVs it does not want
- * to use or update entries to the DENY state.
- *
- * @param mrc_ctx[in]       - MRC context
- * @param ev_profile_id[in] - EV profile
- * @param deny[in]          - Updated array of deny values
- * @param length[in]        - Length of the deny list
- *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval EPERM Process lacks sufficient permissions.
- * @retval ENOTSUP If unable to update the deny list.
- */
-int mrc_ctl_update_ev_deny_list(struct mrc_context *mrc_ctx,
-				uint64_t ev_profile_id,
-				struct mrc_ctl_ev_deny *deny,
-				uint32_t length);
-
-/**
- * @brief Update the generation bits of an EV array
- *
- * Provide an update to the generation rules of an EV profile. The new EVs
- * will be generated according to the ev_allowed_bits.
- *
- * NOTE: Support for updating the EV generation bits after any QP that is
- * associated with the EV profile has transitioned to RTS is indicated using
- * MRC_CTL_OPT_CAP_EV_GEN_UPDATE_ALLOWED_BITS_RTS.
- *
- * @param mrc_ctx[in]         - MRC context
- * @param ev_profile_id[in]   - EV profile
- * @param ev_allowed_bits[in] - Updated allowed_bits
- *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval EPERM Process lacks sufficient permissions.
- * @retval ENOTSUP If unable to update the deny list.
- */
-int mrc_ctl_update_ev_gen_fmt_allowed_bits(struct mrc_context *mrc_ctx,
-					   uint64_t ev_profile_id,
-					   uint32_t ev_allowed_bits);
+int mrc_ctl_update_ev(struct mrc_context *mrc_ctx,
+		      uint64_t ev_profile_id,
+		      struct mrc_ctl_ev_range *ev_range,
+		      enum mrc_ctl_ev_state ev_state);
 
 /**
  * @brief Create an EV Event CQ
@@ -650,7 +539,7 @@ struct mrc_cq *mrc_ctl_create_ev_event_cq(struct mrc_context *mrc_ctx,
  */
 struct mrc_ctl_ev_event {
 	uint64_t ev_profile_id;
-	struct mrc_ctl_ev_entry ev;
+	struct mrc_ctl_ev ev;
 	/*
 	 * If MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT is set, this field
 	 * contains the number of EV Events dropped between the previous and
