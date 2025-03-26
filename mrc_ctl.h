@@ -85,7 +85,7 @@ enum mrc_ctl_attr_opt {
 	MRC_CTL_OPT_CAP_EV_GEN_UPDATE_ALLOWED_BITS_RTS	= (1<<5),
 	/*
 	 * The implementation supports the ev_min_allowed_vals field in the
-	 * mrc_ctl_ev_gen_allow_fmt.
+	 * mrc_ctl_ev_gen_fmt_profile.
 	 */
 	MRC_CTL_OPT_CAP_EV_GEN_MIN_ALLOWED_VALS		= (1<<6),
 	/* The implementation supports EV Probes. */
@@ -107,28 +107,18 @@ struct mrc_ctl_attr {
 		 * by the device.
 		 */
 		uint32_t ev_max_gen_fmt_profiles;
+
 		/*
 		 * Number of active EV generation format profiles programmed
 		 * on the device.
 		 */
 		uint32_t ev_active_gen_fmt_profiles;
-		/*
-		 * Controller defined data for EV generation format profiles
-		 * can be stored in a cookie. This field is opaque to the
-		 * provider and the default value is 0.
-		 */
-		uint64_t ev_gen_fmt_profile_cookie;
 
 		/* Maximum number of EV profiles supported by the device. */
 		uint32_t ev_max_profiles;
+
 		/* Number of active EV profiles programmed on the device. */
 		uint32_t ev_active_profiles;
-		/*
-		 * Controller defined data for EV profiles can be stored in
-		 * a cookie. This field is opaque to the provider and the
-		 * default value is 0.
-		 */
-		uint64_t ev_profile_cookie;
 
 		/*
 		 * Maximum number of EVs supported per profile. If the
@@ -136,6 +126,7 @@ struct mrc_ctl_attr {
 		 * contain at most this many EVs.
 		 */
 		uint32_t ev_max_count;
+
 		/*
 		 * Alignment requirements for the number of EVs that are
 		 * required in an EV array. The alignment value implies the
@@ -149,6 +140,7 @@ struct mrc_ctl_attr {
 		 * means any EV count increment is supported.
 		 */
 		uint32_t ev_count_align;
+
 		/*
 		 * Maximum EV value supported per profile. This represents
 		 * the number of consecutive bits in an EV value that are
@@ -194,6 +186,7 @@ struct mrc_ctl_ev_gen_fmt_profile {
 	 * [0..(ev_max_gen_fmt_profiles - 1)].
 	 */
 	uint64_t ev_gen_fmt_profile_id;
+
 	/*
 	 * EV format mask. The bitmask can contain several fields. Bitmask
 	 * encoding rules are described below.
@@ -209,6 +202,15 @@ struct mrc_ctl_ev_gen_fmt_profile {
 	 * 2. 0x0F0F0F0F indicates 7 bit fields, each 4 bits wide.
 	 */
 	uint32_t ev_format_mask;
+
+	/*
+	 * Specify the number of LSB bits in the EV that denote the plane.
+	 * When the value is 0, the application is not identifying the plane
+	 * bits. When the value is non-zero, the plane bits and their location
+	 * in the ev_format_mask are denoted using 1s. For example:
+	 * 0xF indicates LSB 4 bits indicate the plane.
+	 */
+	uint32_t ev_lsb_plane_bits;
 
 	/*
 	 * The max value of each field that is allowed. The ev_allowed_bits
@@ -288,6 +290,24 @@ int mrc_ctl_query_ev_gen_fmt_profile(
 	struct mrc_ctl_ev_gen_fmt_profile *ev_gen_fmt_profile);
 
 /**
+ * @brief Destroy an EV generation format profile
+ *
+ * Destroy an EV generation format profile. All EV profiles that are using
+ * this EV generation format profile must be destroyed before the profile
+ * can be destroyed.
+ *
+ * @param mrc_ctx[in]               - MRC context
+ * @param ev_gen_fmt_profile_id[in] - Profile to destroy
+ *
+ * @return 0 on success.
+ * @retval EINVAL One or more supplied arguments are invalid.
+ * @retval EBUSY Profile is still being used by an EV profile.
+ * @retval EPERM Process lacks sufficient permissions.
+ */
+int mrc_ctl_destroy_ev_gen_fmt_profile(struct mrc_context *mrc_ctx,
+				       uint64_t ev_gen_fmt_profile_id);
+
+/**
  * @brief Supported EV modes
  */
 enum mrc_ctl_ev_mode {
@@ -344,21 +364,12 @@ struct mrc_ctl_ev_profile {
 	 * The EV mode to use for this profile.
 	 * - MRC_CTL_EV_MODE_AUTO: No explicit or generated EVs will be
 	 *   specified in this profile. Entropy is vendor defined (ECMP).
-	 *   MRC_CTL_EV_MODE_EXP_ARRAY: Caller must provide the EV array in
+	 * - MRC_CTL_EV_MODE_EXP_ARRAY: Caller must provide the EV array in
 	 *   'ev_exp.ev_exp_array'.
-	 * - MRC_CTL_EV_MODE_GEN_ARRAY: the caller must fill in all 'ev_gen'
-	 *   fields.
+	 * - MRC_CTL_EV_MODE_GEN_ARRAY: the caller must specify the generation
+	 *   format profile ID.
 	 */
 	enum mrc_ctl_ev_mode ev_mode;
-
-	/*
-	 * Specify the number of LSB bits in the EV that denote the plane.
-	 * When the value is 0, the application is not identifying the plane
-	 * bits. When the value is non-zero, the plane bits and their location
-	 * in the ev are denoted using 1s. For example: 0xF indicates
-	 * LSB 4 bits indicate the plane.
-	 */
-	uint32_t ev_lsb_plane_bits;
 
 	/*
 	 * For explicit EVs this field specifies the length of the explicit
@@ -378,12 +389,15 @@ struct mrc_ctl_ev_profile {
 		/* For explicit EVs, the following fields are valid. */
 		struct {
 			/*
-			 * The explicit array of EVs to be programmed in this
+			 * The explicit array of EVs programmed in this
 			 * profile. The length of the array is specified by
-			 * ev_count. This field is only valid when creating a
-			 * new EV profile and calling
-			 * mrc_ctl_modify_ev_profile(). Upon return this array
-			 * can be freed safely by the caller.
+			 * ev_count.
+			 * - mrc_ctl_modify_ev_profile() - this field is used
+			 *   by the controller to set the EVs to be used
+			 * - mrc_ctl_query_ev_profile() - this field is
+			 *   allocated and returned by the provider
+			 * In both cases, upon return this array can be freed
+			 * safely by the caller.
 			 */
 			struct mrc_ctl_ev_entry *ev_exp_array;
 		} ev_exp;
@@ -392,6 +406,7 @@ struct mrc_ctl_ev_profile {
 		struct {
 			/* The associated EV generation format profile. */
 			uint64_t ev_gen_fmt_profile_id;
+
 			/*
 			 * The EV allowed bits specify the bits that a provider
 			 * can flip to generate valid EV values. The fields are
@@ -402,6 +417,18 @@ struct mrc_ctl_ev_profile {
 			 * state.
 			 */
 			uint32_t ev_allowed_bits;
+
+			/*
+			 * The generated array of EVs programmed in this
+			 * profile. The length of the array is specified by
+			 * ev_count.
+			 * - mrc_ctl_modify_ev_profile() - ignored always
+			 * - mrc_ctl_query_ev_profile() - this field is
+			 *   allocated and returned by the provider
+			 * In both cases, upon return this array can be freed
+			 * safely by the caller.
+			 */
+			struct mrc_ctl_ev_entry *ev_gen_array;
 		} ev_gen;
 	} u;
 
@@ -464,7 +491,7 @@ int mrc_ctl_query_ev_profile(struct mrc_context *mrc_ctx,
  * @retval EBUSY Profile is still being used by a QP.
  * @retval EPERM Process lacks sufficient permissions.
  */
-int mrc_ctl_ev_profile_destroy(struct mrc_context *mrc_ctx,
+int mrc_ctl_destroy_ev_profile(struct mrc_context *mrc_ctx,
 			       uint64_t ev_profile_id);
 
 /**
@@ -579,9 +606,9 @@ int mrc_ctl_update_ev_deny_list(struct mrc_context *mrc_ctx,
  * associated with the EV profile has transitioned to RTS is indicated using
  * MRC_CTL_OPT_CAP_EV_GEN_UPDATE_ALLOWED_BITS_RTS.
  *
- * @param mrc_ctx[in]          - MRC context
- * @param ev_profile_id[in]    - EV profile
- * @param ev_allowed_bits [in] - Updated allowed_bits
+ * @param mrc_ctx[in]         - MRC context
+ * @param ev_profile_id[in]   - EV profile
+ * @param ev_allowed_bits[in] - Updated allowed_bits
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -623,8 +650,7 @@ struct mrc_cq *mrc_ctl_create_ev_event_cq(struct mrc_context *mrc_ctx,
  */
 struct mrc_ctl_ev_event {
 	uint64_t ev_profile_id;
-	uint32_t ev;
-	enum mrc_ctl_ev_state state;
+	struct mrc_ctl_ev_entry ev;
 	/*
 	 * If MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT is set, this field
 	 * contains the number of EV Events dropped between the previous and
