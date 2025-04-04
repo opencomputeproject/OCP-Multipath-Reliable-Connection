@@ -78,9 +78,9 @@ enum mrc_ctl_attr_opt {
 	 */
 	MRC_CTL_OPT_CAP_EV_EXP_ARRAY_RANGE		= (1<<4),
 	/* The implementation supports EV Probes. */
-	MRC_CTL_OPT_CAP_EV_PROBE			= (1<<7),
+	MRC_CTL_OPT_CAP_EV_PROBE			= (1<<5),
 	/* The implementation supports precise EV Event drop counts. */
-	MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= (1<<8),
+	MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= (1<<6),
 };
 
 /**
@@ -509,6 +509,27 @@ int mrc_ctl_update_ev(struct mrc_context *mrc_ctx,
 		      enum mrc_ctl_ev_state ev_state);
 
 /**
+ * @brief Replace the value of an EV in an explicit EV array
+ *
+ * If the device does not advertise the MRC_CTL_OPT_CAP_EV_UPDATE_RTS
+ * capability, an EV update can only be performed BEFORE any QPs associated
+ * with the profile have been modified using mrc_modify_qp().
+ *
+ * @param mrc_ctx[in]       - MRC context
+ * @param ev_profile_id[in] - EV profile
+ * @param ev_old[in]        - Old EV value to replace
+ * @param ev_new[in]        - New EV value
+ *
+ * @return 0 on success.
+ * @retval EINVAL One or more supplied arguments are invalid.
+ * @retval EPERM Process lacks sufficient permissions.
+ */
+int mrc_ctl_replace_ev(struct mrc_context *mrc_ctx,
+		       uint64_t ev_profile_id,
+		       struct mrc_ctl_ev *ev_old,
+		       struct mrc_ctl_ev *ev_new);
+
+/**
  * @brief Create an EV Event CQ
  *
  * EV CQs are used to obtain EV Events. They differ from other CQs in that
@@ -581,9 +602,9 @@ struct mrc_ctl_ev_probe_req {
 	/* Destination GID; only ROCE_V2 GID type supported. */
 	union ibv_gid dgid;
 	/* Probe request EV. */
-	uint32_t req_ev;
+	struct mrc_ctl_ev req_ev;
 	/* Probe response EV. */
-	uint32_t rsp_ev;
+	struct mrc_ctl_ev rsp_ev;
 };
 
 /**
