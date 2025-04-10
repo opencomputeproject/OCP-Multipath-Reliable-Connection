@@ -509,7 +509,7 @@ int mrc_destroy_qp(struct mrc_qp *qp);
  * RTR         MRC_QP_MAX_WIMM_DEST
  *             MRC_QP_MPR_DEST
  *             MRC_QP_DYNAMIC_MPR_DEST
- * 	       MRC_QP_VERSION
+ * 	       MRC_QP_PROTOCOL_VERSION
  *
  * RTS         MRC_QP_MAX_WIMM
  *             MRC_QP_MPR
@@ -533,8 +533,8 @@ enum mrc_qp_attr_mask {
 	MRC_QP_EV_PROFILE_ID		= (1<<6),
 	/* QP hint */
 	MRC_QP_HINT			= (1<<7),
-	/* MRC version */
-	MRC_QP_VERSION			= (1<<8),
+	/* MRC protocol version */
+	MRC_QP_PROTOCOL_VERSION		= (1<<8),
 // TODO: Uncomment after HW spec is updated (1.09)
 //	/* QP (fixed+exponential) retry counter */
 //	MRC_QP_RETRY_CNT		= (1<<8),
