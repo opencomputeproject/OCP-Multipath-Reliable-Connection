@@ -265,10 +265,13 @@ struct mrc_qp_group_init_attr {
  * to optimize the allocation of underlying resources given the application's
  * desired usage scenario.
  *
- * The number of QPs in a group is fixed upon the group's creation. QPs are
- * added one at a time to the group via the QP hints handle specified when
- * a QP is created. It is erroneous to add more QPs to the group than num_qps
- * specified during group creation.
+ * The number of QPs in a group is specified when the group is created. QPs
+ * are added one at a time to the group via the QP hints handle specified when
+ * a QP is created. It is an error to add more QPs to the group than num_qps
+ * specified during group creation. The QP group can be modified to change
+ * the number of QPs within the group. If the number of QPs is made smaller,
+ * it cannot be changed to a value less than the current number of QPs
+ * assigned to the group.
  *
  * If a QP from a group was destroyed, such as due to network failure, then
  * another QP replacing it can be added to the group.

@@ -307,13 +307,21 @@ enum mrc_ctl_ev_state {
 };
 
 /**
- * @brief EV entry
+ * @brief EV value
  */
 struct mrc_ctl_ev {
+	uint32_t val;
+};
+typedef struct mrc_ctl_ev mrc_ctl_ev_t;
+
+/**
+ * @brief EV entry
+ */
+struct mrc_ctl_ev_entry {
 	/* State of the EV */
 	enum mrc_ctl_ev_state state;
 	/* Value of the EV */
-	uint32_t val;
+	mrc_ctl_ev_t val;
 };
 
 /**
@@ -365,7 +373,7 @@ struct mrc_ctl_ev_profile {
 			 * In both cases, upon return this array can be freed
 			 * safely by the caller.
 			 */
-			struct mrc_ctl_ev *ev_exp_array;
+			struct mrc_ctl_ev_entry *ev_exp_array;
 		} ev_exp;
 
 		/* For generated EVs, the following fields are valid. */
@@ -383,7 +391,7 @@ struct mrc_ctl_ev_profile {
 			 * In both cases, upon return this array can be freed
 			 * safely by the caller.
 			 */
-			struct mrc_ctl_ev *ev_gen_array;
+			struct mrc_ctl_ev_entry *ev_gen_array;
 		} ev_gen;
 	} u;
 
@@ -462,9 +470,9 @@ int mrc_ctl_destroy_ev_profile(struct mrc_context *mrc_ctx,
  * Both the start and end values are inclusive.
  */
 struct mrc_ctl_ev_range {
-   uint32_t ev_mask;
-   uint32_t start_ev;
-   uint32_t end_ev;
+	mrc_ctl_ev_t ev_mask;
+	mrc_ctl_ev_t start_ev;
+	mrc_ctl_ev_t end_ev;
 };
 
 /**
@@ -484,7 +492,7 @@ struct mrc_ctl_ev_range {
  */
 int mrc_ctl_get_ev(struct mrc_context *mrc_ctx,
 		   uint64_t ev_profile_id,
-		   struct mrc_ctl_ev *ev);
+		   struct mrc_ctl_ev_entry *ev);
 
 /**
  * @brief Update the state on a range of EV entries
@@ -496,7 +504,8 @@ int mrc_ctl_get_ev(struct mrc_context *mrc_ctx,
  *
  * @param mrc_ctx[in]       - MRC context
  * @param ev_profile_id[in] - EV profile
- * @param ev_range[in]      - Range of EVs to update
+ * @param ev_range[in]      - Ranges of EVs to update
+ * @param num_ranges[in]    - Length of the EV range list
  * @param ev_state[in]      - State to set each matching EV
  *
  * @return 0 on success.
@@ -506,6 +515,7 @@ int mrc_ctl_get_ev(struct mrc_context *mrc_ctx,
 int mrc_ctl_update_ev(struct mrc_context *mrc_ctx,
 		      uint64_t ev_profile_id,
 		      struct mrc_ctl_ev_range *ev_range,
+		      int num_ranges,
 		      enum mrc_ctl_ev_state ev_state);
 
 /**
@@ -526,8 +536,8 @@ int mrc_ctl_update_ev(struct mrc_context *mrc_ctx,
  */
 int mrc_ctl_replace_ev(struct mrc_context *mrc_ctx,
 		       uint64_t ev_profile_id,
-		       struct mrc_ctl_ev *ev_old,
-		       struct mrc_ctl_ev *ev_new);
+		       mrc_ctl_ev_t *ev_old,
+		       mrc_ctl_ev_t *ev_new);
 
 /**
  * @brief Create an EV Event CQ
@@ -560,7 +570,7 @@ struct mrc_cq *mrc_ctl_create_ev_event_cq(struct mrc_context *mrc_ctx,
  */
 struct mrc_ctl_ev_event {
 	uint64_t ev_profile_id;
-	struct mrc_ctl_ev ev;
+	mrc_ctl_ev_t ev;
 	/*
 	 * If MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT is set, this field
 	 * contains the number of EV Events dropped between the previous and
@@ -602,9 +612,9 @@ struct mrc_ctl_ev_probe_req {
 	/* Destination GID; only ROCE_V2 GID type supported. */
 	union ibv_gid dgid;
 	/* Probe request EV. */
-	struct mrc_ctl_ev req_ev;
+	mrc_ctl_ev_t req_ev;
 	/* Probe response EV. */
-	struct mrc_ctl_ev rsp_ev;
+	mrc_ctl_ev_t rsp_ev;
 };
 
 /**
