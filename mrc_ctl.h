@@ -91,18 +91,6 @@ struct mrc_ctl_attr {
 	uint32_t mrc_ctl_version;
 
 	struct {
-		/*
-		 * Maximum number of EV generation format profiles supported
-		 * by the device.
-		 */
-		uint32_t ev_max_gen_fmt_profiles;
-
-		/*
-		 * Number of active EV generation format profiles programmed
-		 * on the device.
-		 */
-		uint32_t ev_active_gen_fmt_profiles;
-
 		/* Maximum number of EV profiles supported by the device. */
 		uint32_t ev_max_profiles;
 
@@ -160,130 +148,72 @@ int mrc_ctl_query_device(struct ibv_context *context,
 			 struct mrc_ctl_attr *ctl_attr);
 
 /**
- * @brief EV generation format profile
+ * @brief Set the EV generation fields
  *
- * This profile is required only if generated EVs are to be used. The
- * mrc_ctl_ev_gen_fmt_profile is chosen by the system administrator,
- * particularly for fields such as ev_format_mask. The controller application
- * is expected to consult the system vendor and use the right ev_format_mask,
- * otherwise mrc_ctl_modify_ev_gen_fmt_profile() may fail with an error.
- */
-struct mrc_ctl_ev_gen_fmt_profile {
-	/*
-	 * The controller specified EV generation format profile identifier.
-	 * The available EV generation format profile IDs are in the range of
-	 * [0..(ev_max_gen_fmt_profiles - 1)].
-	 */
-	uint64_t ev_gen_fmt_profile_id;
-
-	/*
-	 * EV format mask. The bitmask can contain several fields. Bitmask
-	 * encoding rules are described below.
-	 * - The field transitions are marked using alternating 0s and 1s.
-	 * - When the number of fields is even, the field described in LSB
-	 *   should be 0s.
-	 * - When the number of fields is odd, the field described in LSB
-	 *   should be 1s.
-	 * - The above rules result in unused bits in MSB always being 0s.
-	 *
-	 * For example:
-	 * 1. 0xF0F0F0F0 indicates 8 bit fields, each 4 bits wide.
-	 * 2. 0x0F0F0F0F indicates 7 bit fields, each 4 bits wide.
-	 */
-	uint32_t ev_format_mask;
-
-	/*
-	 * Specify the number of LSB bits in the EV that denote the plane.
-	 * When the value is 0, the application is not identifying the plane
-	 * bits. When the value is non-zero, the plane bits and their location
-	 * in the ev_format_mask are denoted using 1s. For example:
-	 * 0xF indicates LSB 4 bits indicate the plane.
-	 */
-	uint32_t ev_lsb_plane_bits;
-
-	/*
-	 * A realistic example in source routed mode:
-	 * Construct an ev_format_mask and deny list for 4 hops and
-	 * includes the plane. Since the number of hops is even, the first
-	 * field mask is 0's and the last is 1's.
-	 *
-	 * 1st hop: 0x7   max = 7    (8 planes)
-	 * 2nd hop: 0xff  max = 179  (180 links)
-	 * 3rd hop: 0xf   max = 15   (16 links)
-	 * 4th hop: 0xf   max = 15   (16 links)
-	 *
-	 * ev_format_mask = 0x000787f8
-	 *
-	 * Call mrc_ctl_update_ev(ev_range[], MRC_CTL_EV_DENIED) to deny EVs
-	 * in each field beyond their identified max values:
-	 *
-	 *   ev_range[] = {
-	 *     {
-	 *       .ev_mask = 0x7f8 (0xff << 3)
-	 *       .start_ev = 180
-	 *       .end_ev = 255
-	 *     }
-	 *   }
-	 */
-};
-
-/**
- * @brief Modify an EV generation format profile
+ * Used to configure the EV generation fields format used by the provider.
+ * The generation fields can only be modified if there are not any existing
+ * mrc_ctl_ev_profile's of type MRC_CTL_EV_MODE_GEN_ARRAY allocated.
  *
- * Used to configure an EV generation format profile. Once configured, the
- * specified ev_gen_fmt_profile_id can be used by any to be created EV
- * profiles for generated EVs.
+ * A realistic example in source routed mode:
  *
- * NOTE: The ev_gen_fmt_profile_id is assigned by the calling controller
- * application.
+ *   - 1st hop: 0x7(3b)   max = 7    (8 planes)
+ *   - 2nd hop: 0xff(8b)  max = 179  (180 links)
+ *   - 3rd hop: 0xf(4b)   max = 15   (16 links)
+ *   - 4th hop: 0xf(4b)   max = 15   (16 links)
  *
- * @param mrc_ctx[in]            - MRC context
- * @param ev_gen_fmt_profile[in] - Profile to create/update
+ *   // set the EV generation fields
+ *   mrc_ctl_ev_gen_fields_set(mrc_ctx, [ 3, 8, 4, 4 ], 4);
  *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval ENOMEM Unable to create a new profile (max reached).
- * @retval EPERM Process lacks sufficient permissions.
- */
-int mrc_ctl_modify_ev_gen_fmt_profile(
-	struct mrc_context *mrc_ctx,
-	struct mrc_ctl_ev_gen_fmt_profile *ev_gen_fmt_profile);
-
-/**
- * @brief Get an EV generation format profile
+ *   // create an EV profile for generated EVs
+ *   mrc_ctl_modify_ev_profile(mrc_ctx,
+ *                             { ev_prof_id,
+ *                               MRC_CTL_EV_MODE_GEN_ARRAY,
+ *                               ... });
  *
- * Get an EV generation format profile configuration.
+ *   // get the current set of generated EVs
+ *   mrc_ctl_query_ev_profile(mrc_ctx, ev_prof_id, &ev_prof);
  *
- * @param mrc_ctx[in]               - MRC context
- * @param ev_gen_fmt_profile_id[in] - Profile to get
- * @param ev_gen_fmt_profile[out]   - Profile's configuration
+ *   // deny some paths in field 2
+ *   for (i = 180; i <= 255; i++) {
+ *       for (j = 0; j < ev_prof.ev_count; j++) {
+ *           mrc_ctl_ev_t *ev = &ev_prof.u.ev_gen.ev_gen_array[j].val;
+ *           if ((ev->val & (0xff << 3)) == (i << 3)) {
+ *               mrc_ctl_update_ev(mrc_ctx, ev_prof_id, ev, MRC_CTL_EV_DENIED);
+ *           }
+ *       }
+ *   }
+ *
+ * @param mrc_ctx[in]      - MRC context
+ * @param field_widths[in] - Array of bit widths defining each field
+ * @param num_fields[in]   - Number of fields in the array
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
  * @retval EPERM Process lacks sufficient permissions.
  */
-int mrc_ctl_query_ev_gen_fmt_profile(
-	struct mrc_context *mrc_ctx,
-	uint64_t ev_gen_fmt_profile_id,
-	struct mrc_ctl_ev_gen_fmt_profile *ev_gen_fmt_profile);
+int mrc_ctl_ev_gen_fields_set(struct mrc_context *mrc_ctx,
+			      uint8_t *field_widths,
+			      int num_fields);
 
 /**
- * @brief Destroy an EV generation format profile
+ * @brief Get the EV generation fields
  *
- * Destroy an EV generation format profile. All EV profiles that are using
- * this EV generation format profile must be destroyed before the profile
- * can be destroyed.
+ * Used to get the current configuration of the EV generation fields format
+ * used by the provider.
  *
- * @param mrc_ctx[in]               - MRC context
- * @param ev_gen_fmt_profile_id[in] - Profile to destroy
+ * Upon return the caller is responsible for freeing the ev_fields array.
+ *
+ * @param mrc_ctx[in]       - MRC context
+ * @param field_widths[out] - Array of bit widths defining each field
+ * @param num_fields[out]   - Number of fields in the array
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
- * @retval EBUSY Profile is still being used by an EV profile.
  * @retval EPERM Process lacks sufficient permissions.
  */
-int mrc_ctl_destroy_ev_gen_fmt_profile(struct mrc_context *mrc_ctx,
-				       uint64_t ev_gen_fmt_profile_id);
+int mrc_ctl_ev_gen_fields_get(struct mrc_context *mrc_ctx,
+			      uint8_t **field_widths,
+			      int *num_fields);
 
 /**
  * @brief Supported EV modes
@@ -348,7 +278,7 @@ struct mrc_ctl_ev_profile {
 	/*
 	 * For explicit EVs this field specifies the length of the explicit
 	 * EV array. For generated EVs it is the number of EVs that the
-	 * provider will generate in accordance with the ev_gen_fmt_profile.
+	 * provider will generate.
 	 */
 	uint32_t ev_count;
 
@@ -378,9 +308,6 @@ struct mrc_ctl_ev_profile {
 
 		/* For generated EVs, the following fields are valid. */
 		struct {
-			/* The associated EV generation format profile. */
-			uint64_t ev_gen_fmt_profile_id;
-
 			/*
 			 * The generated array of EVs programmed in this
 			 * profile. The length of the array is specified by
@@ -430,7 +357,7 @@ int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
  *
  * @param mrc_ctx[in]             - MRC context
  * @param ev_profile_id[in]       - Profile to get
- * @param ev_gen_fmt_profile[out] - Profile's configuration
+ * @param mrc_ctl_ev_profile[out] - Profile's configuration
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -458,24 +385,6 @@ int mrc_ctl_destroy_ev_profile(struct mrc_context *mrc_ctx,
 			       uint64_t ev_profile_id);
 
 /**
- * @brief EV range
- *
- * The EV range structure specifies a set of EVs to be targetted. The EVs
- * will be identified by the following logic:
- *
- *     is_target = (((ev & ev_mask) >= start_ev) &&
- *                  ((ev & ev_mask) <= end_ev))
- *
- * To target a single EV, set both start_ev and end_ev to same EV value.
- * Both the start and end values are inclusive.
- */
-struct mrc_ctl_ev_range {
-	mrc_ctl_ev_t ev_mask;
-	mrc_ctl_ev_t start_ev;
-	mrc_ctl_ev_t end_ev;
-};
-
-/**
  * @brief Get an EV's state
  *
  * This can be performed immediately after an EV profile using explicit EVs
@@ -495,18 +404,19 @@ int mrc_ctl_get_ev(struct mrc_context *mrc_ctx,
 		   struct mrc_ctl_ev_entry *ev);
 
 /**
- * @brief Update the state on a range of EV entries
+ * @brief Update the state of an EV
  *
  * The valid values of the state are MRC_CTL_EV_GOOD and MRC_CTL_EV_DENIED.
  * If the device does not advertise the MRC_CTL_OPT_CAP_EV_UPDATE_RTS
  * capability, an EV update can only be performed BEFORE any QPs associated
  * with the profile have been modified using mrc_modify_qp().
  *
+ * An EV's state can be set for both explicit and generated EVs.
+ *
  * @param mrc_ctx[in]       - MRC context
  * @param ev_profile_id[in] - EV profile
- * @param ev_range[in]      - Ranges of EVs to update
- * @param num_ranges[in]    - Length of the EV range list
- * @param ev_state[in]      - State to set each matching EV
+ * @param ev[in]            - EV to update
+ * @param ev_state[in]      - State to set
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -514,8 +424,7 @@ int mrc_ctl_get_ev(struct mrc_context *mrc_ctx,
  */
 int mrc_ctl_update_ev(struct mrc_context *mrc_ctx,
 		      uint64_t ev_profile_id,
-		      struct mrc_ctl_ev_range *ev_range,
-		      int num_ranges,
+		      mrc_ctl_ev_t *ev,
 		      enum mrc_ctl_ev_state ev_state);
 
 /**
@@ -524,6 +433,8 @@ int mrc_ctl_update_ev(struct mrc_context *mrc_ctx,
  * If the device does not advertise the MRC_CTL_OPT_CAP_EV_UPDATE_RTS
  * capability, an EV update can only be performed BEFORE any QPs associated
  * with the profile have been modified using mrc_modify_qp().
+ *
+ * An EV's value can only be set for explicit EVs.
  *
  * @param mrc_ctx[in]       - MRC context
  * @param ev_profile_id[in] - EV profile

@@ -304,14 +304,16 @@ int mrc_destroy_qp_group(struct mrc_qp_group *qp_group);
  *
  * Query an MRC QP group.
  *
- * @param qp_group[in]       - MRC QP group
- * @param qp_group_attr[out] - MRC QP group attributes
+ * @param qp_group[in]           - MRC QP group
+ * @param qp_group_attr[out]     - MRC QP group attributes
+ * @param qp_group_attr_mask[in] - MRC QP group attributes to query
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
  */
 int mrc_query_qp_group(struct mrc_qp_group *qp_group,
-		       struct mrc_qp_group_attr *qp_group_attr);
+		       struct mrc_qp_group_attr *qp_group_attr,
+		       enum mrc_qp_group_attr_mask qp_group_attr_mask);
 
 /**
  * @brief Modify an MRC QP group
@@ -425,14 +427,16 @@ int mrc_destroy_qp_hint(struct mrc_qp_hint *qp_hint);
  *
  * Query an MRC QP hint.
  *
- * @param qp_hint[in]       - MRC QP hint
- * @param qp_hint_attr[out] - MRC QP hint attributes
+ * @param qp_hint[in]           - MRC QP hint
+ * @param qp_hint_attr[out]     - MRC QP hint attributes
+ * @param qp_hint_attr_mask[in] - MRC QP hint attributes to query
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
  */
 int mrc_query_qp_hint(struct mrc_qp_hint *qp_hint,
-		      struct mrc_qp_hint_attr *qp_hint_attr);
+		      struct mrc_qp_hint_attr *qp_hint_attr,
+		      enum mrc_qp_hint_attr_mask qp_hint_attr_mask);
 
 /**
  * @brief Modify an MRC QP hint
@@ -440,7 +444,7 @@ int mrc_query_qp_hint(struct mrc_qp_hint *qp_hint,
  * Modify an MRC QP hint.
  *
  * @param qp_hint[in]           - MRC QP
- * @param qp_hint_attr[in]      - MRC QP hint attributes to modify
+ * @param qp_hint_attr[in]      - MRC QP hint attributes
  * @param qp_hint_attr_mask[in] - MRC QP hint attributes to modify
  *
  * @return 0 on success.
