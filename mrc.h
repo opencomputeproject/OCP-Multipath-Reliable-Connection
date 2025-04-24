@@ -313,7 +313,7 @@ int mrc_destroy_qp_group(struct mrc_qp_group *qp_group);
  */
 int mrc_query_qp_group(struct mrc_qp_group *qp_group,
 		       struct mrc_qp_group_attr *qp_group_attr,
-		       enum mrc_qp_group_attr_mask qp_group_attr_mask);
+		       int qp_group_attr_mask);
 
 /**
  * @brief Modify an MRC QP group
@@ -329,7 +329,7 @@ int mrc_query_qp_group(struct mrc_qp_group *qp_group,
  */
 int mrc_modify_qp_group(struct mrc_qp_group *qp_group,
 			struct mrc_qp_group_attr *qp_group_attr,
-			enum mrc_qp_group_attr_mask qp_group_attr_mask);
+			int qp_group_attr_mask);
 
 /**
  * @brief MRC QP hint attribute mask
@@ -436,7 +436,7 @@ int mrc_destroy_qp_hint(struct mrc_qp_hint *qp_hint);
  */
 int mrc_query_qp_hint(struct mrc_qp_hint *qp_hint,
 		      struct mrc_qp_hint_attr *qp_hint_attr,
-		      enum mrc_qp_hint_attr_mask qp_hint_attr_mask);
+		      int qp_hint_attr_mask);
 
 /**
  * @brief Modify an MRC QP hint
@@ -452,7 +452,7 @@ int mrc_query_qp_hint(struct mrc_qp_hint *qp_hint,
  */
 int mrc_modify_qp_hint(struct mrc_qp_hint *qp_hint,
 		       struct mrc_qp_hint_attr *qp_hint_attr,
-		       enum mrc_qp_hint_attr_mask qp_hint_attr_mask);
+		       int qp_hint_attr_mask);
 
 /**
  * @brief MRC QP initialization attributes
@@ -602,7 +602,7 @@ int mrc_query_qp(struct mrc_qp *qp,
 		 struct ibv_qp_attr *vattr,
 		 int vattr_mask,
 		 struct mrc_qp_attr *mrc_attr,
-		 enum mrc_qp_attr_mask mrc_attr_mask,
+		 int mrc_attr_mask,
 		 struct mrc_qp_init_attr *init_attr);
 
 /**
@@ -635,7 +635,7 @@ int mrc_modify_qp(struct mrc_qp *qp,
 		  struct ibv_qp_attr *vattr,
 		  int vattr_mask,
 		  struct mrc_qp_attr *mrc_attr,
-		  enum mrc_qp_attr_mask mrc_attr_mask);
+		  int mrc_attr_mask);
 
 /**
  * @brief Retrieve the QP number
