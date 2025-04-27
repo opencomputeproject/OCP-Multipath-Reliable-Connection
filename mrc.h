@@ -265,10 +265,13 @@ struct mrc_qp_group_init_attr {
  * to optimize the allocation of underlying resources given the application's
  * desired usage scenario.
  *
- * The number of QPs in a group is fixed upon the group's creation. QPs are
- * added one at a time to the group via the QP hints handle specified when
- * a QP is created. It is erroneous to add more QPs to the group than num_qps
- * specified during group creation.
+ * The number of QPs in a group is specified when the group is created. QPs
+ * are added one at a time to the group via the QP hints handle specified when
+ * a QP is created. It is an error to add more QPs to the group than num_qps
+ * specified during group creation. The QP group can be modified to change
+ * the number of QPs within the group. If the number of QPs is made smaller,
+ * it cannot be changed to a value less than the current number of QPs
+ * assigned to the group.
  *
  * If a QP from a group was destroyed, such as due to network failure, then
  * another QP replacing it can be added to the group.
@@ -301,14 +304,16 @@ int mrc_destroy_qp_group(struct mrc_qp_group *qp_group);
  *
  * Query an MRC QP group.
  *
- * @param qp_group[in]       - MRC QP group
- * @param qp_group_attr[out] - MRC QP group attributes
+ * @param qp_group[in]           - MRC QP group
+ * @param qp_group_attr[out]     - MRC QP group attributes
+ * @param qp_group_attr_mask[in] - MRC QP group attributes to query
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
  */
 int mrc_query_qp_group(struct mrc_qp_group *qp_group,
-		       struct mrc_qp_group_attr *qp_group_attr);
+		       struct mrc_qp_group_attr *qp_group_attr,
+		       int qp_group_attr_mask);
 
 /**
  * @brief Modify an MRC QP group
@@ -324,7 +329,7 @@ int mrc_query_qp_group(struct mrc_qp_group *qp_group,
  */
 int mrc_modify_qp_group(struct mrc_qp_group *qp_group,
 			struct mrc_qp_group_attr *qp_group_attr,
-			enum mrc_qp_group_attr_mask qp_group_attr_mask);
+			int qp_group_attr_mask);
 
 /**
  * @brief MRC QP hint attribute mask
@@ -422,14 +427,16 @@ int mrc_destroy_qp_hint(struct mrc_qp_hint *qp_hint);
  *
  * Query an MRC QP hint.
  *
- * @param qp_hint[in]       - MRC QP hint
- * @param qp_hint_attr[out] - MRC QP hint attributes
+ * @param qp_hint[in]           - MRC QP hint
+ * @param qp_hint_attr[out]     - MRC QP hint attributes
+ * @param qp_hint_attr_mask[in] - MRC QP hint attributes to query
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
  */
 int mrc_query_qp_hint(struct mrc_qp_hint *qp_hint,
-		      struct mrc_qp_hint_attr *qp_hint_attr);
+		      struct mrc_qp_hint_attr *qp_hint_attr,
+		      int qp_hint_attr_mask);
 
 /**
  * @brief Modify an MRC QP hint
@@ -437,7 +444,7 @@ int mrc_query_qp_hint(struct mrc_qp_hint *qp_hint,
  * Modify an MRC QP hint.
  *
  * @param qp_hint[in]           - MRC QP
- * @param qp_hint_attr[in]      - MRC QP hint attributes to modify
+ * @param qp_hint_attr[in]      - MRC QP hint attributes
  * @param qp_hint_attr_mask[in] - MRC QP hint attributes to modify
  *
  * @return 0 on success.
@@ -445,7 +452,7 @@ int mrc_query_qp_hint(struct mrc_qp_hint *qp_hint,
  */
 int mrc_modify_qp_hint(struct mrc_qp_hint *qp_hint,
 		       struct mrc_qp_hint_attr *qp_hint_attr,
-		       enum mrc_qp_hint_attr_mask qp_hint_attr_mask);
+		       int qp_hint_attr_mask);
 
 /**
  * @brief MRC QP initialization attributes
@@ -595,7 +602,7 @@ int mrc_query_qp(struct mrc_qp *qp,
 		 struct ibv_qp_attr *vattr,
 		 int vattr_mask,
 		 struct mrc_qp_attr *mrc_attr,
-		 enum mrc_qp_attr_mask mrc_attr_mask,
+		 int mrc_attr_mask,
 		 struct mrc_qp_init_attr *init_attr);
 
 /**
@@ -628,7 +635,7 @@ int mrc_modify_qp(struct mrc_qp *qp,
 		  struct ibv_qp_attr *vattr,
 		  int vattr_mask,
 		  struct mrc_qp_attr *mrc_attr,
-		  enum mrc_qp_attr_mask mrc_attr_mask);
+		  int mrc_attr_mask);
 
 /**
  * @brief Retrieve the QP number
