@@ -231,9 +231,9 @@ enum mrc_ctl_ev_mode {
  * @brief Supported EV states
  */
 enum mrc_ctl_ev_state {
-	MRC_CTL_EV_GOOD		= (1<<0),
-	MRC_CTL_EV_ASSUMED_BAD	= (1<<1),
-	MRC_CTL_EV_DENIED	= (1<<2),
+	MRC_CTL_EV_GOOD		= 1,
+	MRC_CTL_EV_ASSUMED_BAD	= 2,
+	MRC_CTL_EV_DENIED	= 3,
 };
 
 /**
@@ -481,7 +481,7 @@ struct mrc_cq *mrc_ctl_create_ev_event_cq(struct mrc_context *mrc_ctx,
  */
 struct mrc_ctl_ev_event {
 	uint64_t ev_profile_id;
-	mrc_ctl_ev_t ev;
+	struct mrc_ctl_ev_entry ev;
 	/*
 	 * If MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT is set, this field
 	 * contains the number of EV Events dropped between the previous and
