@@ -231,9 +231,9 @@ enum mrc_ctl_ev_mode {
  * @brief Supported EV states
  */
 enum mrc_ctl_ev_state {
-	MRC_CTL_EV_GOOD		= 1,
-	MRC_CTL_EV_ASSUMED_BAD	= 2,
-	MRC_CTL_EV_DENIED	= 3,
+	MRC_CTL_EV_GOOD		= (1<<0),
+	MRC_CTL_EV_ASSUMED_BAD	= (1<<1),
+	MRC_CTL_EV_DENIED	= (1<<2),
 };
 
 /**
