@@ -46,6 +46,9 @@ extern "C" {
 #warning "MRC_CTL_API_VER_USED is equal to MRC_CTL_API_LAST_SUPPORTED version, may become obsolete"
 #endif
 
+/* Maximum number of CC algorithms that can be supported by a device.*/
+#define MRC_CTL_CC_NUM_MAX (31)
+
 enum mrc_ctl_version {
 	MRC_CTL_VERSION_0	= 0, /* MRC not supported */
 	MRC_CTL_VERSION_1	= (1 << 0),
@@ -128,6 +131,23 @@ struct mrc_ctl_attr {
 		 */
 		uint32_t ev_max_bits;
 	} ev;
+
+	struct {
+		/* Maximum number of CC profiles supported by the device. */
+		uint32_t cc_max_profiles;
+
+		/* Number of active CC profiles programmed on the device. */
+		uint32_t cc_active_profiles;
+
+		/* Array of string pointers listing available CC algorithms.
+		 * Consumers may stop iterating at the first NULL value.
+		 * The final element is always NULL.
+		 *
+		 * The following common strings are defined:
+		 *   "mrc-smtrk-1.00" - MRCv1 SmaRTTrack 1.00
+		 */
+		const char *cc_algorithms[MRC_CTL_CC_NUM_MAX + 1];
+	} cc;
 
 	/* bitmap of all optional features supported (mrc_ctl_attr_opt) */
 	uint32_t opt_attr;
@@ -383,6 +403,108 @@ int mrc_ctl_query_ev_profile(struct mrc_context *mrc_ctx,
  */
 int mrc_ctl_destroy_ev_profile(struct mrc_context *mrc_ctx,
 			       uint64_t ev_profile_id);
+
+/**
+ * @brief CC profile
+ */
+struct mrc_ctl_cc_profile {
+	/*
+	 * The controller specified CC profile identifier. The available CC
+	 * profile IDs are in the range of [0..(cc_max_profiles - 1)].
+	 */
+	uint64_t cc_profile_id;
+
+	/*
+	 * String describing CC algorithm to associate with this profile.
+	 * Available algorithms are listed in the mrc_ctl_attr.cc.cc_algorithms
+	 * structure. A NULL pointer indicates no CC algorithm is active for this
+	 * profile.
+	 *
+	 * The following common strings are defined:
+	 *   "mrc-smtrk-1.00" - MRCv1 SmaRTTrack 1.00
+	 */
+	const char *cc_algorithm;
+
+	/*
+	 * Configuration structure to use for this profile.  The structure is
+	 * algorithm specific.
+	 *
+	 * The following common structures are defined:
+	 *   mrc_ctl_cc_smtrk_cfg - SmaRTTrack config. structure
+	 */
+	const void *cc_config;
+};
+
+/* SmaRTTrack configuration structure. */
+struct mrc_ctl_cc_smtrk_cfg {
+	uint32_t adjust_bytes_threshold;   /* unit = 1B */
+	uint32_t adjust_period_threshold;  /* unit = 1ns */
+	uint32_t base_rtt;                 /* unit = 1ns */
+	float eta;
+	float fi;
+	float fi_scale;
+	float gamma;
+	float max_md_jump;
+	uint32_t max_cwnd;                 /* unit = 1B */
+	uint8_t qa_gate;
+	uint32_t qa_threshold;             /* unit = 1ns */
+	uint32_t target_delay;             /* unit = 1ns */
+};
+
+/**
+ * @brief Create or modify a CC profile
+ *
+ * Used to configure a CC profile. Once configured, the specified
+ * cc_profile_id can be used by any to be created QP. Fields may
+ * not be modified while any active QPs are associated with the profile.
+ *
+ * NOTE: The cc_profile_id is defined by the calling controller application.
+ *
+ * @param mrc_ctx[in]    - MRC context
+ * @param cc_profile[in] - Profile to create/update
+ *
+ * @return 0 on success.
+ * @retval EINVAL One or more supplied arguments are invalid.
+ * @retval ENOMEM Unable to create a new profile (max reached).
+ * @retval EPERM Process lacks sufficient permissions.
+ */
+int mrc_ctl_modify_cc_profile(struct mrc_context *mrc_ctx,
+	struct mrc_ctl_cc_profile *cc_profile);
+
+/**
+* @brief Get a CC profile.
+*
+* Get a CC profile configuration.
+*
+* @param mrc_ctx[in]             - MRC context
+* @param cc_profile_id[in]       - Profile to get
+* @param mrc_ctl_cc_profile[out] - Profile's configuration
+*
+* @return 0 on success.
+* @retval EINVAL One or more supplied arguments are invalid.
+* @retval EPERM Process lacks sufficient permissions.
+*/
+int mrc_ctl_query_cc_profile(struct mrc_context *mrc_ctx,
+   uint64_t cc_profile_id,
+   struct mrc_ctl_cc_profile *cc_profile);
+
+/**
+* @brief Destroy ac CC profile
+*
+* Destroy an CC profile. All QPs that are using this CC profile must be
+* destroyed before the profile can be destroyed.
+*
+* @param mrc_ctx[in]       - MRC context
+* @param ev_profile_id[in] - Profile to destroy
+*
+* @return 0 on success.
+* @retval EINVAL One or more supplied arguments are invalid.
+* @retval EBUSY Profile is still being used by a QP.
+* @retval EPERM Process lacks sufficient permissions.
+*/
+int mrc_ctl_destroy_cc_profile(struct mrc_context *mrc_ctx,
+	 uint64_t cc_profile_id);
+
 
 /**
  * @brief Get an EV's state

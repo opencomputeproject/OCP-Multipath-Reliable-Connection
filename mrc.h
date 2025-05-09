@@ -528,8 +528,8 @@ enum mrc_qp_attr_mask {
 	MRC_QP_DYNAMIC_MPR_DEST		= (1<<4),
 	/* QP ACK timeout */
 	MRC_QP_TIMEOUT			= (1<<5),
-	/* EV profile ID */
-	MRC_QP_EV_PROFILE_ID		= (1<<6),
+	/* QP EV and CC Profile */
+	MRC_QP_PROFILE	= (1<<6),
 	/* QP hint */
 	MRC_QP_HINT			= (1<<7),
 // TODO: Uncomment after HW spec is updated (1.09)
@@ -562,14 +562,17 @@ struct mrc_qp_attr {
 	uint8_t timeout;
 
 	/*
-	 * Application specified EV profile ID. The EV profile ID is learned
+	 * Application specified profile. The profile is learned
 	 * OOB by the application and is used by the provider to associate
-	 * the QP with an EV profile that was previously programmed by a
+	 * the QP with an EV and CC profile that was previously programmed by a
 	 * system controller.
 	 */
-	uint64_t ev_profile_id;
+	struct {
+		uint64_t ev_prof_id;
+		uint64_t cc_prof_id;
+	} profile;
 
-// TODO: Uncomment after HW spec is updated (1.09)
+	// TODO: Uncomment after HW spec is updated (1.09)
 //	struct {
 //		/* Fixed interval retry count; Max value = 8 */
 //		uint8_t retry_cnt_fixed;
