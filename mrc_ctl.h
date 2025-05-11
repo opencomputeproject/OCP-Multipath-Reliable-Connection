@@ -100,12 +100,18 @@ struct mrc_ctl_attr {
 		/* Number of active EV profiles programmed on the device. */
 		uint32_t ev_active_profiles;
 
+		/* Maximum number of EV resources avilable across all profiles. */
+		uint32_t ev_max_count;
+
+		/* Free number of EV resources avilable across all profiles. */
+		uint32_t ev_free_count;
+
 		/*
 		 * Maximum number of EVs supported per profile. If the
 		 * controller is supplying an EV array, then that array can
 		 * contain at most this many EVs.
 		 */
-		uint32_t ev_max_count;
+		uint32_t ev_max_count_profile;
 
 		/*
 		 * Alignment requirements for the number of EVs that are
@@ -157,6 +163,7 @@ struct mrc_ctl_attr {
  * @brief Query Device
  *
  * Query the device to check MRC support and other attributes.
+ * Should be called after EV generation fields are configured.
  *
  * @param context[in]    - IB Verbs context
  * @param ctl_attrs[out] - MRC Control attributes
