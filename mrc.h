@@ -86,6 +86,13 @@ struct mrc_attr {
 		/* Maximum number of QP hints supported by the device. */
 		uint32_t max_qp_hint;
 	} qp_attr;
+
+	struct {
+		/* Number of active CC profiles programmed on the device. */
+		uint32_t cc_active_profiles;
+		/* Number of active EV profiles programmed on the device. */
+		uint32_t ev_active_profiles;
+	} profile_attr;
 };
 
 /**
@@ -772,6 +779,55 @@ int mrc_get_cq_event(struct mrc_comp_channel *channel,
 void mrc_ack_cq_events(struct mrc_cq *cq,
 		       unsigned int nevents);
 
+/**
+ * @brief MRC EV profile structure
+ */
+struct mrc_ev_profile {
+	/* The controller specified EV profile identifier. */
+	uint64_t ev_profile_id;
+};
+
+/**
+ * @brief Query an EV profile by index
+ *
+ * Retrieves the EV profile information for the specified index.
+ *
+ * @param mrc_ctx[in]     MRC context handle.
+ * @param index[in]       Index of the EV profile to query; range [0, ev_active_profiles)]
+ * @param ev_profile[out] Pointer to a struct mrc_ev_profile.
+ *
+ * @return 0 on success.
+ * @retval EINVAL One or more supplied arguments are invalid.
+ * @retval EIO Implementation specific error occurred.
+ */
+int mrc_query_ev_profile(struct mrc_context *mrc_ctx,
+		unsigned int index,
+		struct mrc_ev_profile *ev_profile);
+
+/**
+ * @brief MRC CC profile structure
+ */
+struct mrc_cc_profile {
+	/* The controller specified CC profile identifier. */
+	uint64_t cc_profile_id;
+};
+
+/**
+ * @brief Query a CC profile by index
+ *
+ * Retrieves the CC profile information for the specified index.
+ *
+ * @param mrc_ctx[in]     MRC context handle.
+ * @param index[in]       Index of the CC profile to query; range [0, cc_active_profiles)]
+ * @param cc_profile[out] Pointer to a struct mrc_cc_profile.
+ *
+ * @return 0 on success.
+ * @retval EINVAL One or more supplied arguments are invalid.
+ * @retval EIO Implementation specific error occurred.
+ */
+int mrc_query_cc_profile(struct mrc_context *mrc_ctx,
+		unsigned int index,
+		struct mrc_cc_profile *cc_profile);
 #ifdef __cplusplus
 }
 #endif
