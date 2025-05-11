@@ -793,7 +793,7 @@ struct mrc_ev_profile {
  * Retrieves the EV profile information for the specified index.
  *
  * @param mrc_ctx[in]     MRC context handle.
- * @param index[in]       Index of the EV profile to query; range [0, ev_active_profiles)]
+ * @param index[in]       Index of the EV profile to query; range [0, ev_active_profiles)
  * @param ev_profile[out] Pointer to a struct mrc_ev_profile.
  *
  * @return 0 on success.
@@ -818,7 +818,7 @@ struct mrc_cc_profile {
  * Retrieves the CC profile information for the specified index.
  *
  * @param mrc_ctx[in]     MRC context handle.
- * @param index[in]       Index of the CC profile to query; range [0, cc_active_profiles)]
+ * @param index[in]       Index of the CC profile to query; range [0, cc_active_profiles)
  * @param cc_profile[out] Pointer to a struct mrc_cc_profile.
  *
  * @return 0 on success.
