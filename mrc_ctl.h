@@ -257,12 +257,13 @@ enum mrc_ctl_ev_state {
 };
 
 /**
- * @brief EV value
+ * @brief EV types and structures
  */
+typedef uint32_t mrc_ctl_ev_type_t;
 struct mrc_ctl_ev {
-	uint32_t val;
+	mrc_ctl_ev_type_t val;
+	uint8_t port;
 };
-typedef struct mrc_ctl_ev mrc_ctl_ev_t;
 
 /**
  * @brief EV entry
@@ -270,8 +271,8 @@ typedef struct mrc_ctl_ev mrc_ctl_ev_t;
 struct mrc_ctl_ev_entry {
 	/* State of the EV */
 	enum mrc_ctl_ev_state state;
-	/* Value of the EV */
-	mrc_ctl_ev_t val;
+	/* EV value and port */
+	struct mrc_ctl_ev ev;
 };
 
 /**
@@ -283,6 +284,15 @@ struct mrc_ctl_ev_profile {
 	 * profile IDs are in the range of [0..(ev_max_profiles - 1)].
 	 */
 	uint64_t ev_profile_id;
+
+	/*
+	 * EV port mask for this profile; a bitmask of active ports for this
+	 * profile. The port mask is used as to determine the active ports
+	 * for generated arrays and to validate ports in explicit arrays.  The
+	 * numbers used in the mask correspond to port numbers used in 
+	 * ibv_query_port() (i.e., 1-based).
+	*/
+	uint64_t port_mask;
 
 	/*
 	 * The EV mode to use for this profile.
@@ -537,7 +547,7 @@ int mrc_ctl_get_ev(struct mrc_context *mrc_ctx,
  *
  * @param mrc_ctx[in]       - MRC context
  * @param ev_profile_id[in] - EV profile
- * @param ev[in]            - EV to update
+ * @param ev[in]            - EV value and port to update
  * @param ev_state[in]      - State to set
  *
  * @return 0 on success.
@@ -546,7 +556,7 @@ int mrc_ctl_get_ev(struct mrc_context *mrc_ctx,
  */
 int mrc_ctl_update_ev(struct mrc_context *mrc_ctx,
 		      uint64_t ev_profile_id,
-		      mrc_ctl_ev_t *ev,
+		      struct mrc_ctl_ev *ev,
 		      enum mrc_ctl_ev_state ev_state);
 
 /**
@@ -560,8 +570,8 @@ int mrc_ctl_update_ev(struct mrc_context *mrc_ctx,
  *
  * @param mrc_ctx[in]       - MRC context
  * @param ev_profile_id[in] - EV profile
- * @param ev_old[in]        - Old EV value to replace
- * @param ev_new[in]        - New EV value
+ * @param ev_old[in]        - Old EV value and port to replace
+ * @param ev_new[in]        - New EV value and port
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -569,8 +579,8 @@ int mrc_ctl_update_ev(struct mrc_context *mrc_ctx,
  */
 int mrc_ctl_replace_ev(struct mrc_context *mrc_ctx,
 		       uint64_t ev_profile_id,
-		       mrc_ctl_ev_t *ev_old,
-		       mrc_ctl_ev_t *ev_new);
+		       struct mrc_ctl_ev *ev_old,
+		       struct mrc_ctl_ev *ev_new);
 
 /**
  * @brief Create an EV Event CQ
@@ -603,7 +613,7 @@ struct mrc_cq *mrc_ctl_create_ev_event_cq(struct mrc_context *mrc_ctx,
  */
 struct mrc_ctl_ev_event {
 	uint64_t ev_profile_id;
-	mrc_ctl_ev_t ev;
+	struct mrc_ctl_ev ev;
 	/*
 	 * If MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT is set, this field
 	 * contains the number of EV Events dropped between the previous and
@@ -644,10 +654,10 @@ struct mrc_ctl_ev_probe_req {
 	union ibv_gid sgid;
 	/* Destination GID; only ROCE_V2 GID type supported. */
 	union ibv_gid dgid;
-	/* Probe request EV. */
-	mrc_ctl_ev_t req_ev;
-	/* Probe response EV. */
-	mrc_ctl_ev_t rsp_ev;
+	/* Probe request EV value and port. */
+	struct mrc_ctl_ev req_ev;
+	/* Probe response EV value. */
+	mrc_ctl_ev_type_t rsp_ev;
 };
 
 /**
