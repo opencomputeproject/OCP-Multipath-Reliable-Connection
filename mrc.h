@@ -828,6 +828,7 @@ struct mrc_cc_profile {
 int mrc_query_cc_profile(struct mrc_context *mrc_ctx,
 		unsigned int index,
 		struct mrc_cc_profile *cc_profile);
+
 #ifdef __cplusplus
 }
 #endif
