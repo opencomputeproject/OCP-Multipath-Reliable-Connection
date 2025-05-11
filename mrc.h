@@ -575,8 +575,8 @@ struct mrc_qp_attr {
 	 * system controller.
 	 */
 	struct {
-		uint64_t ev_prof_id;
-		uint64_t cc_prof_id;
+		uint64_t ev_profile_id;
+		uint64_t cc_profile_id;
 	} profile;
 
 	// TODO: Uncomment after HW spec is updated (1.09)
