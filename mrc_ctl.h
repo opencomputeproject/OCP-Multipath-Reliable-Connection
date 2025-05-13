@@ -48,11 +48,18 @@ extern "C" {
 
 /* Maximum number of CC algorithms that can be supported by a device.*/
 #define MRC_CTL_CC_NUM_MAX (31)
+/* Invalid EV definition */
+#define MRC_CTL_EV_INVALID (struct mrc_ctl_ev){.val = 0, .port = 0}
 
 enum mrc_ctl_version {
 	MRC_CTL_VERSION_0	= 0, /* MRC not supported */
 	MRC_CTL_VERSION_1	= (1 << 0),
 };
+
+
+/*****************************************************************************
+ * Device Query
+/****************************************************************************/
 
 /**
  * @brief Optional control features supported by the implementation
@@ -167,6 +174,10 @@ struct mrc_ctl_attr {
 int mrc_ctl_query_device(struct ibv_context *context,
 			 struct mrc_ctl_attr *ctl_attr);
 
+
+/*****************************************************************************
+ * EV Field Mask
+/****************************************************************************/
 /**
  * @brief Modify the EV field mask
  *
@@ -212,16 +223,18 @@ int mrc_ctl_query_ev_field_mask(struct mrc_context *mrc_ctx,
                   int ev_field_count,
                   int *cur_ev_field_count);
 
+
+/*****************************************************************************
+ * EV Structures
+/****************************************************************************/
 /**
- * @brief Supported EV modes
+ * @brief EV types and structures
  */
-enum mrc_ctl_ev_mode {
-	/* Controller will not provide any EVs (vendor managed e.g., ECMP) */
-	MRC_CTL_EV_MODE_AUTO		= 0,
-	/* Explicit EVs (MRC_CTL_OPT_CAP_EV_EXPLICIT) */
-	MRC_CTL_EV_MODE_EXPLICIT	= 1,
-	/* Generated EVs (MRC_CTL_OPT_CAP_EV_GENERATED) */
-	MRC_CTL_EV_MODE_GENERATED	= 2,
+typedef uint32_t mrc_ctl_ev_type_t;
+
+struct mrc_ctl_ev {
+	mrc_ctl_ev_type_t val;
+	uint8_t port;
 };
 
 /**
@@ -234,35 +247,30 @@ enum mrc_ctl_ev_state {
 	MRC_CTL_EV_UNKNOWN	= (1<<31)
 };
 
-/**
- * @brief EV types and structures
- */
-typedef uint32_t mrc_ctl_ev_type_t;
-struct mrc_ctl_ev {
-	mrc_ctl_ev_type_t val;
-	uint8_t port;
-};
-#define MRC_CTL_EV_INVALID (struct mrc_ctl_ev){.val = 0, .port = 0}
 
-
+/*****************************************************************************
+ * EV Profile
+/****************************************************************************/
 /**
- * @brief EV entry
- */
-struct mrc_ctl_ev_entry {
-	/* State of the EV */
-	enum mrc_ctl_ev_state state;
-	/* EV value and port */
-	struct mrc_ctl_ev ev;
-};
-
-/**
- * @brief MRC Control Profiles
+ * @brief MRC Control Profile State
  */
 enum mrc_ctl_profile_state {
 	MRC_CTL_PROFILE_INIT,
 	MRC_CTL_PROFILE_OFFLINE,
 	MRC_CTL_PROFILE_ONLINE,
 	MRC_CTL_PROFILE_UNKNOWN
+};
+
+/**
+ * @brief Supported EV modes
+ */
+enum mrc_ctl_ev_mode {
+	/* Controller will not provide any EVs (vendor managed e.g., ECMP) */
+	MRC_CTL_EV_MODE_AUTO		= 0,
+	/* Explicit EVs (MRC_CTL_OPT_CAP_EV_EXPLICIT) */
+	MRC_CTL_EV_MODE_EXPLICIT	= 1,
+	/* Generated EVs (MRC_CTL_OPT_CAP_EV_GENERATED) */
+	MRC_CTL_EV_MODE_GENERATED	= 2,
 };
 
 /**
@@ -448,6 +456,9 @@ int mrc_ctl_query_ev_state(struct mrc_context *mrc_ctx,
 		   struct mrc_ctl_ev ev,
 		   enum mrc_ctl_ev_state *state);
 
+/*****************************************************************************
+ * CC Profile
+/****************************************************************************/
 /**
  * @brief CC profile attr mask
  */
@@ -475,7 +486,9 @@ struct mrc_ctl_cc_profile_attr {
 	const void *cc_config;
 };
 
-/* SmaRTTrack configuration structure. */
+/**
+ * @brief SmaRTTrack configuration structure
+ */
 struct mrc_ctl_cc_smtrk_cfg {
 	uint32_t adjust_bytes_threshold;   /* unit = 1B */
 	uint32_t adjust_period_threshold;  /* unit = 1ns */
@@ -545,6 +558,30 @@ int mrc_ctl_query_cc_profile(struct mrc_context *mrc_ctx,
                 struct mrc_ctl_cc_profile_attr *attr,
                 int attr_mask);
 
+
+/****************************************************************************
+ * EV Events
+/****************************************************************************/
+/**
+ * @brief EV Event structure
+ *
+ * EV Event structure. Hardware generates an EV Event for every EV state
+ * change that matches monitored EV states in the EV profile's event
+ * mask field.
+ */
+struct mrc_ctl_ev_event {
+	uint64_t ev_profile_id;
+	struct mrc_ctl_ev ev;
+	/*
+	 * If MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT is set, this field
+	 * contains the number of EV Events dropped between the previous and
+	 * current event delivered to the queue. If not set, this field is
+	 * 1/true if any events were dropped between the previous and current
+	 * event, and 0 otherwise.
+	 */
+	uint32_t drop_count;
+};
+
 /**
  * @brief Create an EV Event CQ
  *
@@ -568,26 +605,6 @@ struct mrc_cq *mrc_ctl_create_ev_event_cq(struct mrc_context *mrc_ctx,
 					  int comp_vector);
 
 /**
- * @brief EV Event structure
- *
- * EV Event structure. Hardware generates an EV Event for every EV state
- * change that matches monitored EV states in the EV profile's event
- * mask field.
- */
-struct mrc_ctl_ev_event {
-	uint64_t ev_profile_id;
-	struct mrc_ctl_ev ev;
-	/*
-	 * If MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT is set, this field
-	 * contains the number of EV Events dropped between the previous and
-	 * current event delivered to the queue. If not set, this field is
-	 * 1/true if any events were dropped between the previous and current
-	 * event, and 0 otherwise.
-	 */
-	uint32_t drop_count;
-};
-
-/**
  * @brief Poll for EV Events
  *
  * Polls the EV Event CQ for EV Events and returns the first num_entries (or
@@ -607,6 +624,10 @@ int mrc_ctl_poll_ev_event(struct mrc_cq *ev_cq,
 			  int num_entries,
 			  struct mrc_ctl_ev_event *ev_event);
 
+
+/****************************************************************************
+ * EV Probes
+/****************************************************************************/
 /**
  * @brief EV Probe Request
  */
