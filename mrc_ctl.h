@@ -60,23 +60,25 @@ enum mrc_ctl_version {
 enum mrc_ctl_attr_opt {
 	/* Device supports modifying ONLINE (in use by QPs) EV profiles */
 	MRC_CTL_OPT_CAP_EV_PROFILE_MODIFY_ONLINE = (1<<0),
+	/* Device supports modifying ONLINE (in use by QPs) CC profiles */
+	MRC_CTL_OPT_CAP_CC_PROFILE_MODIFY_ONLINE = (1<<1),
 	/* The implementation supports EV Events */
-	MRC_CTL_OPT_CAP_EV_EVENT			= (1<<1),
+	MRC_CTL_OPT_CAP_EV_EVENT			= (1<<2),
 	/* The implementation supports explicit EV arrays */
-	MRC_CTL_OPT_CAP_EV_EXP_ARRAY			= (1<<2),
+	MRC_CTL_OPT_CAP_EV_EXP_ARRAY			= (1<<3),
 	/* The implementation supports generated EV arrays */
-	MRC_CTL_OPT_CAP_EV_GEN_ARRAY			= (1<<3),
+	MRC_CTL_OPT_CAP_EV_GEN_ARRAY			= (1<<4),
 	/*
 	 * The implementation only supports ranges of explicit EV values in
 	 * the explicit mode. In this mode, the first EV value supplied is
 	 * the base, and the last EV value is 'first_ev_val + (ev_count - 1)',
 	 * where ev_count is defined by the EV profile.
 	 */
-	MRC_CTL_OPT_CAP_EV_EXP_ARRAY_RANGE		= (1<<4),
+	MRC_CTL_OPT_CAP_EV_EXP_ARRAY_RANGE		= (1<<5),
 	/* The implementation supports EV Probes. */
-	MRC_CTL_OPT_CAP_EV_PROBE			= (1<<5),
+	MRC_CTL_OPT_CAP_EV_PROBE			= (1<<6),
 	/* The implementation supports precise EV Event drop counts. */
-	MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= (1<<6),
+	MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= (1<<7),
 };
 
 /**
@@ -352,7 +354,7 @@ struct mrc_ctl_ev_profile_attr {
  * @brief Modify an EV profile
  *
  * EV profile state machine:
- *   INIT    -> OFFLINE -> ONLINE -> OFFLINE -> INIT
+ *   INIT -> OFFLINE -> ONLINE -> OFFLINE -> INIT
  *
  * States:
  *   INIT:    Profile created, not yet configured.
@@ -469,33 +471,29 @@ int mrc_ctl_query_ev_state(struct mrc_context *mrc_ctx,
 		   enum mrc_ctl_ev_state *state);
 
 /**
- * @brief CC profile
+ * @brief CC profile attr mask
  */
-struct mrc_ctl_cc_profile {
-	/*
-	 * The controller specified CC profile identifier. The available CC
-	 * profile IDs are in the range of [0..(cc_max_profiles - 1)].
-	 */
-	uint64_t cc_profile_id;
+enum mrc_ctl_cc_profile_attr_mask {
+	MRC_CTL_CC_PROFILE_STATE		= 1 << 0,
+	MRC_CTL_CC_PROFILE_CUR_STATE	= 1 << 1,
+	MRC_CTL_CC_PROFILE_ALGORITHM	= 1 << 2,
+	MRC_CTL_CC_PROFILE_CONFIG		= 1 << 3
+};
 
-	/*
-	 * String describing CC algorithm to associate with this profile.
-	 * Available algorithms are listed in the mrc_ctl_attr.cc.cc_algorithms
-	 * structure. A NULL pointer indicates no CC algorithm is active for this
-	 * profile.
-	 *
-	 * The following common strings are defined:
-	 *   "mrc-smtrk-1.00" - MRCv1 SmaRTTrack 1.00
-	 */
+/**
+ * @brief CC Profile attributes
+ */
+struct mrc_ctl_cc_profile_attr {
+	/* Move the profile to this state. */
+	enum mrc_ctl_profile_state profile_state;
+
+	/* Assume this is the current profile state. */
+	enum mrc_ctl_profile_state cur_profile_state;
+
+	/* String describing CC algorithm to associate with this profile. */
 	const char *cc_algorithm;
 
-	/*
-	 * Configuration structure to use for this profile.  The structure is
-	 * algorithm specific.
-	 *
-	 * The following common structures are defined:
-	 *   mrc_ctl_cc_smtrk_cfg - SmaRTTrack config. structure
-	 */
+	/* Algorithm-specific configuration structure. */
 	const void *cc_config;
 };
 
@@ -516,59 +514,55 @@ struct mrc_ctl_cc_smtrk_cfg {
 };
 
 /**
- * @brief Create or modify a CC profile
+ * @brief Modify a CC profile
  *
- * Used to configure a CC profile. Once configured, the specified
- * cc_profile_id can be used by any to be created QP. Fields may
- * not be modified while any active QPs are associated with the profile.
+ * CC profile state machine:
+ *   INIT -> OFFLINE -> ONLINE -> OFFLINE -> INIT
  *
- * NOTE: The cc_profile_id is defined by the calling controller application.
+ * States:
+ *   INIT:    Profile created, not yet configured.
+ *   OFFLINE: Configured but inactive; can be modified.
+ *   ONLINE:  Active and usable by QPs; only limited modifications allowed.
  *
- * @param mrc_ctx[in]    - MRC context
- * @param cc_profile[in] - Profile to create/update
+ * Required attributes for state transitions:
+ *   To OFFLINE: ALGORITHM
+ *   To ONLINE:  CONFIG
+ *
+ * @param mrc_ctx[in]      - MRC context
+ * @param profile_id[in]   - CC Profile ID
+ * @param attr[in]         - CC Profile attribute structure
+ * @param attr_mask[in]    - Bitmask of mrc_ctl_cc_profile_attr_mask attributes
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
- * @retval ENOMEM Unable to create a new profile (max reached).
+ * @retval EIO Implementation specific error occurred.
  * @retval EPERM Process lacks sufficient permissions.
+ * @retval EBUSY One or more active QPs are associated with this profile.
  */
 int mrc_ctl_modify_cc_profile(struct mrc_context *mrc_ctx,
-	struct mrc_ctl_cc_profile *cc_profile);
+                  uint64_t profile_id,
+                  struct mrc_ctl_cc_profile_attr *attr,
+                  int attr_mask);
 
 /**
-* @brief Get a CC profile.
-*
-* Get a CC profile configuration.
-*
-* @param mrc_ctx[in]             - MRC context
-* @param cc_profile_id[in]       - Profile to get
-* @param mrc_ctl_cc_profile[out] - Profile's configuration
-*
-* @return 0 on success.
-* @retval EINVAL One or more supplied arguments are invalid.
-* @retval EPERM Process lacks sufficient permissions.
-*/
+ * @brief Query a CC profile.
+ *
+ * Query a CC profile configuration.
+ *
+ * @param mrc_ctx[in]      - MRC context
+ * @param profile_id[in]   - CC Profile ID
+ * @param attr[out]        - CC Profile attribute structure
+ * @param attr_mask[in]    - Bitmask of mrc_ctl_cc_profile_attr_mask attributes
+ *
+ * @return 0 on success.
+ * @retval EINVAL One or more supplied arguments are invalid.
+ * @retval EIO Implementation specific error occurred.
+ * @retval EPERM Process lacks sufficient permissions.
+ */
 int mrc_ctl_query_cc_profile(struct mrc_context *mrc_ctx,
-   uint64_t cc_profile_id,
-   struct mrc_ctl_cc_profile *cc_profile);
-
-/**
-* @brief Destroy ac CC profile
-*
-* Destroy an CC profile. All QPs that are using this CC profile must be
-* destroyed before the profile can be destroyed.
-*
-* @param mrc_ctx[in]       - MRC context
-* @param ev_profile_id[in] - Profile to destroy
-*
-* @return 0 on success.
-* @retval EINVAL One or more supplied arguments are invalid.
-* @retval EBUSY Profile is still being used by a QP.
-* @retval EPERM Process lacks sufficient permissions.
-*/
-int mrc_ctl_destroy_cc_profile(struct mrc_context *mrc_ctx,
-	 uint64_t cc_profile_id);
-
+                uint64_t profile_id,
+                struct mrc_ctl_cc_profile_attr *attr,
+                int attr_mask);
 
 /**
  * @brief Create an EV Event CQ
