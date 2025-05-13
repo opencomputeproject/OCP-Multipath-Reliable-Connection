@@ -170,72 +170,49 @@ int mrc_ctl_query_device(struct ibv_context *context,
 			 struct mrc_ctl_attr *ctl_attr);
 
 /**
- * @brief Set the EV generation fields
+ * @brief Modify the EV field mask
  *
- * Used to configure the EV generation fields format used by the provider.
- * The generation fields can only be modified if there are not any existing
- * mrc_ctl_ev_profile's of type MRC_CTL_EV_MODE_GEN_ARRAY allocated.
+ * Modifies the hardware EV field mask. This operation is only allowed if
+ * no EV or CC profiles are in the ONLINE state.
  *
- * A realistic example in source routed mode:
- *
- *   - 1st hop: 0x7(3b)   max = 7    (8 planes)
- *   - 2nd hop: 0xff(8b)  max = 179  (180 links)
- *   - 3rd hop: 0xf(4b)   max = 15   (16 links)
- *   - 4th hop: 0xf(4b)   max = 15   (16 links)
- *
- *   // set the EV generation fields
- *   mrc_ctl_ev_gen_fields_set(mrc_ctx, [ 3, 8, 4, 4 ], 4);
- *
- *   // create an EV profile for generated EVs
- *   mrc_ctl_modify_ev_profile(mrc_ctx,
- *                             { ev_prof_id,
- *                               MRC_CTL_EV_MODE_GEN_ARRAY,
- *                               ... });
- *
- *   // get the current set of generated EVs
- *   mrc_ctl_query_ev_profile(mrc_ctx, ev_prof_id, &ev_prof);
- *
- *   // deny some paths in field 2
- *   for (i = 180; i <= 255; i++) {
- *       for (j = 0; j < ev_prof.ev_count; j++) {
- *           mrc_ctl_ev_t *ev = &ev_prof.u.ev_gen.ev_gen_array[j].val;
- *           if ((ev->val & (0xff << 3)) == (i << 3)) {
- *               mrc_ctl_update_ev(mrc_ctx, ev_prof_id, ev, MRC_CTL_EV_DENIED);
- *           }
- *       }
- *   }
- *
- * @param mrc_ctx[in]      - MRC context
- * @param field_widths[in] - Array of bit widths defining each field
- * @param num_fields[in]   - Number of fields in the array
+ * @param mrc_ctx[in]         - MRC context
+ * @param ev_field_width[in]  - Array containing the bit width of each EV field
+ * @param ev_field_count[in]  - Number of elements in the ev_field_width array
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
+ * @retval EIO Implementation specific error occurred.
+ * @retval EBUSY One or more EV or CC profiles are in ONLINE state.
+ * @retval E2BIG Supplied parameter combination is unsupportable.
  * @retval EPERM Process lacks sufficient permissions.
  */
-int mrc_ctl_ev_gen_fields_set(struct mrc_context *mrc_ctx,
-			      uint8_t *field_widths,
-			      int num_fields);
+int mrc_ctl_modify_ev_field_mask(struct mrc_context *mrc_ctx,
+			      uint8_t *ev_field_width,
+			      int ev_field_count);
 
 /**
- * @brief Get the EV generation fields
+ * @brief Query the EV field mask.
  *
- * Used to get the current configuration of the EV generation fields format
- * used by the provider.
+ * Retrieves the hardware EV field mask.
  *
- * Upon return the caller is responsible for freeing the ev_fields array.
+ * If the supplied array length parameter is smaller than the current field
+ * count only the elements up to provided count will be returned in the array.
  *
- * @param mrc_ctx[in]       - MRC context
- * @param field_widths[out] - Array of bit widths defining each field
- * @param num_fields[out]   - Number of fields in the array
+ * @param mrc_ctx[in]             - MRC context
+ * @param ev_field_width[out]     - Array to be filled with the bit width of each EV field
+ * @param ev_field_count[in]      - Size of the ev_field_width array
+ * @param cur_ev_field_count[out] - Actual number of EV fields in the current field mask
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
+ * @retval EIO Implementation specific error occurred.
+ * @retval ERANGE Output result truncated due to too small input array length.
  * @retval EPERM Process lacks sufficient permissions.
  */
-int mrc_ctl_ev_gen_fields_get(struct mrc_context *mrc_ctx,
-			      uint8_t **field_widths,
-			      int *num_fields);
+int mrc_ctl_query_ev_field_mask(struct mrc_context *mrc_ctx,
+                  uint8_t *ev_field_width,
+                  int ev_field_count,
+                  int *cur_ev_field_count);
 
 /**
  * @brief Supported EV modes
