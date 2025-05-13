@@ -365,6 +365,9 @@ struct mrc_ctl_ev_profile_attr {
  *   To OFFLINE: PORT_MASK, EV_MODE, EV_COUNT
  *   To ONLINE:  EV_MIN_ACTIVE, EV_EVENT_MASK, EVs (EV Array)
  *
+ * Allowed in ONLINE state (if EV_PROFILE_MODIFY_ONLINE advertised):
+ *   EV_EVENT_MASK, mrc_ctl_replace_ev()
+ *
  * @param mrc_ctx[in]    - MRC context
  * @param profile_id[in] - EV Profile ID
  * @param attr[in]       - EV Profile attribute structure
@@ -527,6 +530,9 @@ struct mrc_ctl_cc_smtrk_cfg {
  * Required attributes for state transitions:
  *   To OFFLINE: ALGORITHM
  *   To ONLINE:  CONFIG
+ *
+ * Allowed in ONLINE state (if CC_PROFILE_MODIFY_ONLINE advertised):
+ *   CONFIG
  *
  * @param mrc_ctx[in]      - MRC context
  * @param profile_id[in]   - CC Profile ID
