@@ -788,7 +788,7 @@ void mrc_ack_cq_events(struct mrc_cq *cq,
  */
 struct mrc_ev_profile {
 	/* The controller specified EV profile identifier. */
-	uint64_t ev_profile_id;
+	uint64_t profile_id;
 	/* The EV profile's active port mask. */
 	uint64_t port_mask;
 	/* The source GID table length for this profile.*/
@@ -802,7 +802,7 @@ struct mrc_ev_profile {
  *
  * @param mrc_ctx[in]     MRC context handle.
  * @param index[in]       Index of the EV profile to query; range [0, ev_active_profiles)
- * @param ev_profile[out] Pointer to a struct mrc_ev_profile.
+ * @param profile[out]    Pointer to a struct mrc_ev_profile.
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -810,14 +810,14 @@ struct mrc_ev_profile {
  */
 int mrc_query_ev_profile(struct mrc_context *mrc_ctx,
 		unsigned int index,
-		struct mrc_ev_profile *ev_profile);
+		struct mrc_ev_profile *profile);
 
 /**
  * @brief MRC CC profile structure
  */
 struct mrc_cc_profile {
 	/* The controller specified CC profile identifier. */
-	uint64_t cc_profile_id;
+	uint64_t profile_id;
 };
 
 /**
@@ -827,7 +827,7 @@ struct mrc_cc_profile {
  *
  * @param mrc_ctx[in]     MRC context handle.
  * @param index[in]       Index of the CC profile to query; range [0, cc_active_profiles)
- * @param cc_profile[out] Pointer to a struct mrc_cc_profile.
+ * @param profile[out]    Pointer to a struct mrc_cc_profile.
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -835,7 +835,7 @@ struct mrc_cc_profile {
  */
 int mrc_query_cc_profile(struct mrc_context *mrc_ctx,
 		unsigned int index,
-		struct mrc_cc_profile *cc_profile);
+		struct mrc_cc_profile *profile);
 
 /**
  * @brief Query a GID for an EV profile by index
@@ -845,7 +845,7 @@ int mrc_query_cc_profile(struct mrc_context *mrc_ctx,
  * available on every port included in the profile's port mask.
  *
  * @param mrc_ctx[in]       MRC context handle.
- * @param ev_profile_id[in] EV profile identifier.
+ * @param profile_id[in] EV profile identifier.
  * @param index[in]         GID table index to query; range [0, gid_table_len)
  * @param gid[out]          Pointer to a union ibv_gid to be filled with the GID.
  *
@@ -854,7 +854,7 @@ int mrc_query_cc_profile(struct mrc_context *mrc_ctx,
  * @retval EIO    Implementation specific error occurred.
  */
 int mrc_query_gid(struct mrc_context *mrc_ctx,
-		uint64_t ev_profile_id,
+		uint64_t profile_id,
 		int index,
 		union ibv_gid *gid);
 

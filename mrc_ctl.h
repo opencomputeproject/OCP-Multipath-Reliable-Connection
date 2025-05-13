@@ -58,20 +58,13 @@ enum mrc_ctl_version {
  * @brief Optional control features supported by the implementation
  */
 enum mrc_ctl_attr_opt {
-	/*
-	 * The implementation supports the capability to update EV profiles
-	 * after one or more QPs using the profile has transitioned to
-	 * the RTR stage.
-	 */
-	MRC_CTL_OPT_CAP_EV_UPDATE_RTS			= (1<<0),
+	/* Device supports modifying ONLINE (in use by QPs) EV profiles */
+	MRC_CTL_OPT_CAP_EV_PROFILE_MODIFY_ONLINE = (1<<0),
 	/* The implementation supports EV Events */
 	MRC_CTL_OPT_CAP_EV_EVENT			= (1<<1),
 	/* The implementation supports explicit EV arrays */
 	MRC_CTL_OPT_CAP_EV_EXP_ARRAY			= (1<<2),
-	/*
-	 * The implementation supports generated EV arrays where the values
-	 * are generated using bitmasks.
-	 */
+	/* The implementation supports generated EV arrays */
 	MRC_CTL_OPT_CAP_EV_GEN_ARRAY			= (1<<3),
 	/*
 	 * The implementation only supports ranges of explicit EV values in
@@ -246,7 +239,7 @@ int mrc_ctl_ev_gen_fields_get(struct mrc_context *mrc_ctx,
  * @brief Supported EV modes
  */
 enum mrc_ctl_ev_mode {
-	/* Controller will not provide any EVs (vendor defined e.g., ECMP) */
+	/* Controller will not provide any EVs (vendor managed e.g., ECMP) */
 	MRC_CTL_EV_MODE_AUTO		= 0,
 	/* Explicit EVs (MRC_CTL_OPT_CAP_EV_EXP_ARRAY) */
 	MRC_CTL_EV_MODE_EXP_ARRAY	= 1,
@@ -261,6 +254,7 @@ enum mrc_ctl_ev_state {
 	MRC_CTL_EV_GOOD		= (1<<0),
 	MRC_CTL_EV_ASSUMED_BAD	= (1<<1),
 	MRC_CTL_EV_DENIED	= (1<<2),
+	MRC_CTL_EV_UNKNOWN	= (1<<31)
 };
 
 /**
@@ -271,6 +265,8 @@ struct mrc_ctl_ev {
 	mrc_ctl_ev_type_t val;
 	uint8_t port;
 };
+#define MRC_CTL_EV_INVALID (struct mrc_ctl_ev){.val = 0, .port = 0};
+
 
 /**
  * @brief EV entry
@@ -283,39 +279,56 @@ struct mrc_ctl_ev_entry {
 };
 
 /**
- * @brief EV profile
+ * @brief MRC Control Profiles
  */
-struct mrc_ctl_ev_profile {
-	/*
-	 * The controller specified EV profile identifier. The available EV
-	 * profile IDs are in the range of [0..(ev_max_profiles - 1)].
-	 */
-	uint64_t ev_profile_id;
+enum mrc_ctl_profile_state {
+	MRC_CTL_PROFILE_INIT,
+	MRC_CTL_PROFILE_OFFLINE,
+	MRC_CTL_PROFILE_ONLINE,
+	MRC_CTL_PROFILE_UNKNOWN
+};
+
+/**
+ * @brief EV profile attr mask
+ */
+enum mrc_ctl_ev_profile_attr_mask {
+	MRC_CTL_EV_PROFILE_STATE = 1 << 0,
+	MRC_CTL_EV_PROFILE_CUR_STATE = 1 << 1,
+	MRC_CTL_EV_PROFILE_PORT_MASK = 1 << 2,
+	MRC_CTL_EV_PROFILE_EV_MODE = 1 << 3,
+	MRC_CTL_EV_PROFILE_EV_COUNT = 1 << 4,
+	MRC_CTL_EV_PROFILE_EV_MIN_ACTIVE = 1 << 5,
+	MRC_CTL_EV_PROFILE_EV_EVENT_MASK = 1 << 6
+};
+
+/**
+ * @brief EV Profile attributes
+ */
+struct mrc_ctl_ev_profile_attr {
+
+	/* Move the profile to this state. */
+	enum mrc_ctl_profile_state profile_state;
+
+	/* Assume this is the current profile state. */
+	enum mrc_ctl_profile_state cur_profile_state;
 
 	/*
-	 * EV port mask for this profile; a bitmask of active ports for this
-	 * profile. The port mask is used as to determine the active ports
-	 * for generated arrays and to validate ports in explicit arrays.  The
-	 * numbers used in the mask correspond to port numbers used in 
-	 * ibv_query_port() (i.e., 1-based).
-	*/
+	 * EV port mask for this profile; each bit represents an active port.
+	 * The port numbers correspond to those returned by ibv_query_port() (1-based).
+	 */
 	uint64_t port_mask;
 
 	/*
-	 * The EV mode to use for this profile.
-	 * - MRC_CTL_EV_MODE_AUTO: No explicit or generated EVs will be
-	 *   specified in this profile. Entropy is vendor defined (ECMP).
-	 * - MRC_CTL_EV_MODE_EXP_ARRAY: Caller must provide the EV array in
-	 *   'ev_exp.ev_exp_array'.
-	 * - MRC_CTL_EV_MODE_GEN_ARRAY: the caller must specify the generation
-	 *   format profile ID.
+	 * The EV mode for this profile:
+	 * - MRC_CTL_EV_MODE_AUTO: No explicit or generated EVs; entropy is vendor-defined.
+	 * - MRC_CTL_EV_MODE_EXP_ARRAY: Caller must provide the explicit EV array.
+	 * - MRC_CTL_EV_MODE_GEN_ARRAY: Hardware generates the EV array according to field mask.
 	 */
 	enum mrc_ctl_ev_mode ev_mode;
 
 	/*
-	 * For explicit EVs this field specifies the length of the explicit
-	 * EV array. For generated EVs it is the number of EVs that the
-	 * provider will generate.
+	 * For explicit EVs: the size of the explicit EV array.
+	 * For generated EVs: the number of generated EVs.
 	 */
 	uint32_t ev_count;
 
@@ -326,100 +339,134 @@ struct mrc_ctl_ev_profile {
 	 */
 	uint32_t ev_min_active;
 
-	union {
-		/* For explicit EVs, the following fields are valid. */
-		struct {
-			/*
-			 * The explicit array of EVs programmed in this
-			 * profile. The length of the array is specified by
-			 * ev_count.
-			 * - mrc_ctl_modify_ev_profile() - this field is used
-			 *   by the controller to set the EVs to be used
-			 * - mrc_ctl_query_ev_profile() - this field is
-			 *   allocated and returned by the provider
-			 * In both cases, upon return this array can be freed
-			 * safely by the caller.
-			 */
-			struct mrc_ctl_ev_entry *ev_exp_array;
-		} ev_exp;
-
-		/* For generated EVs, the following fields are valid. */
-		struct {
-			/*
-			 * The generated array of EVs programmed in this
-			 * profile. The length of the array is specified by
-			 * ev_count.
-			 * - mrc_ctl_modify_ev_profile() - ignored always
-			 * - mrc_ctl_query_ev_profile() - this field is
-			 *   allocated and returned by the provider
-			 * In both cases, upon return this array can be freed
-			 * safely by the caller.
-			 */
-			struct mrc_ctl_ev_entry *ev_gen_array;
-		} ev_gen;
-	} u;
-
 	/*
 	 * EV event mask for EV state change notifications on this profile.
-	 * Only EV_ASSUMED_BAD and EV_GOOD is supported.
+	 * Only EV_ASSUMED_BAD and EV_GOOD is supported.  May be modified when
+	 * the profile is in ONLINE state if the provider advertises
+	 * EV_PROFILE_MODIFY_ONLINE capability.
 	 */
 	int ev_event_mask;
 };
 
 /**
- * @brief Create or modify an EV profile
+ * @brief Modify an EV profile
  *
- * Used to configure an EV profile. Once configured, the specified
- * ev_profile_id can be used by any to be created QP. Some fields
- * may be modified after the EV profile has been created (see
- * mrc_ctl_ev_profile).
+ * EV profile state machine:
+ *   INIT    -> OFFLINE -> ONLINE -> OFFLINE -> INIT
  *
- * NOTE: The ev_profile_id is defined by the calling controller application.
+ * States:
+ *   INIT:    Profile created, not yet configured.
+ *   OFFLINE: Configured but inactive; can be modified.
+ *   ONLINE:  Active and usable by QPs; only limited modifications allowed.
+ *
+ * Required attributes for state transitions:
+ *   To OFFLINE: PORT_MASK, EV_MODE, EV_COUNT
+ *   To ONLINE:  EV_MIN_ACTIVE, EV_EVENT_MASK, EVs (EV Array)
  *
  * @param mrc_ctx[in]    - MRC context
- * @param ev_profile[in] - Profile to create/update
+ * @param profile_id[in] - EV Profile ID
+ * @param attr[in]       - EV Profile attribute structure
+ * @param attr_mask[in]  - Bitmask of mrc_ctl_ev_profile_attr_mask attributes
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
- * @retval ENOMEM Unable to create a new profile (max reached).
+ * @retval EIO Implementation specific error occurred.
  * @retval EPERM Process lacks sufficient permissions.
+ * @retval EBUSY One or more active QPs are associated with this profile.
  */
 int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
-			      struct mrc_ctl_ev_profile *ev_profile);
+				uint64_t profile_id,
+				struct mrc_ctl_ev_profile_attr *attr,
+				int attr_mask);
 
 /**
- * @brief Get an EV profile.
+ * @brief Query an EV profile.
  *
- * Get an EV profile configuration.
+ * Query an EV profile configuration.
  *
- * @param mrc_ctx[in]             - MRC context
- * @param ev_profile_id[in]       - Profile to get
- * @param mrc_ctl_ev_profile[out] - Profile's configuration
+ * @param mrc_ctx[in]    - MRC context
+ * @param profile_id[in] - EV Profile ID
+ * @param attr[in]       - EV Profile attribute structure
+ * @param attr_mask[in]  - Bitmask of mrc_ctl_ev_profile_attr_mask attributes
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
+ * @retval EIO Implementation specific error occurred.
  * @retval EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_query_ev_profile(struct mrc_context *mrc_ctx,
-			     uint64_t ev_profile_id,
-			     struct mrc_ctl_ev_profile *ev_profile);
+				uint64_t profile_id,
+				struct mrc_ctl_ev_profile_attr *attr,
+				int attr_mask);
 
 /**
- * @brief Destroy an EV profile
+ * @brief Modify the state of an explicit or generated EV.
  *
- * Destroy an EV profile. All QPs that are using this EV profile must be
- * destroyed before the profile can be destroyed.
+ * All matching EV instances are updated.
  *
  * @param mrc_ctx[in]       - MRC context
- * @param ev_profile_id[in] - Profile to destroy
+ * @param profile_id[in]    - EV profile
+ * @param ev[in]            - EV to update
+ * @param state[in]         - EV state (EV_GOOD or EV_DENIED)
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
- * @retval EBUSY Profile is still being used by a QP.
+ * @retval ENOENT EV not found.
  * @retval EPERM Process lacks sufficient permissions.
  */
-int mrc_ctl_destroy_ev_profile(struct mrc_context *mrc_ctx,
-			       uint64_t ev_profile_id);
+int mrc_ctl_modify_ev_state(struct mrc_context *mrc_ctx,
+				uint64_t profile_id,
+				struct mrc_ctl_ev ev,
+				enum mrc_ctl_ev_state state);
+
+/**
+ * @brief Replace the value of an EV in an Explicit EV array
+ *
+ * If the device does not support EV_PROFILE_MODIFY_ONLINE,
+ * EV replacement is only allowed when the profile is OFFLINE.
+ *
+ * If duplicates exist, only one instance of the EV is replaced.
+ *
+ * When an EV array profile transitions from INIT to OFFLINE,
+ * all EVs in the array are set to MRC_CTL_EV_INVALID.
+ * These must be replaced with valid EVs before moving the profile ONLINE.
+ *
+ * @param mrc_ctx[in]       - MRC context
+ * @param profile_id[in]    - EV profile
+ * @param cur_ev[in]        - Current EV
+ * @param new_ev[in]        - New EV
+ *
+ * @return 0 on success.
+ * @retval EINVAL One or more supplied arguments are invalid.
+ * @retval ENOENT EV not found.
+ * @retval EIO Implementation specific error occurred.
+ * @retval EPERM Process lacks sufficient permissions.
+ */
+int mrc_ctl_replace_ev(struct mrc_context *mrc_ctx,
+		       uint64_t profile_id,
+		       struct mrc_ctl_ev cur_ev,
+		       struct mrc_ctl_ev new_ev);
+
+/**
+ * @brief Query an EV's state
+ *
+ * Supported when a profile is OFFLINE and ONLINE state.
+ *
+ * @param mrc_ctx[in]       - MRC context
+ * @param profile_id[in]    - EV profile
+ * @param ev[in]            - EV
+ * @param state[out]        - Returned EV state
+ *
+ * @return 0 on success.
+ * @retval EINVAL One or more supplied arguments are invalid.
+ * @retval ENOENT EV not found.
+ * @retval EIO Implementation specific error occurred.
+ * @retval EPERM Process lacks sufficient permissions.
+ */
+int mrc_ctl_query_ev_state(struct mrc_context *mrc_ctx,
+		   uint64_t ev_profile_id,
+		   struct mrc_ctl_ev ev,
+		   enum mrc_ctl_ev_state *state);
 
 /**
  * @brief CC profile
@@ -522,72 +569,6 @@ int mrc_ctl_query_cc_profile(struct mrc_context *mrc_ctx,
 int mrc_ctl_destroy_cc_profile(struct mrc_context *mrc_ctx,
 	 uint64_t cc_profile_id);
 
-
-/**
- * @brief Get an EV's state
- *
- * This can be performed immediately after an EV profile using explicit EVs
- * has been created. For generated EVs, this can be performed after the first
- * QP associated with the EV profile has reached the RTR state.
- *
- * @param mrc_ctx[in]       - MRC context
- * @param ev_profile_id[in] - EV profile
- * @param ev[in/out]        - EV value [in], state [out]
- *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval EPERM Process lacks sufficient permissions.
- */
-int mrc_ctl_get_ev(struct mrc_context *mrc_ctx,
-		   uint64_t ev_profile_id,
-		   struct mrc_ctl_ev_entry *ev);
-
-/**
- * @brief Update the state of an EV
- *
- * The valid values of the state are MRC_CTL_EV_GOOD and MRC_CTL_EV_DENIED.
- * If the device does not advertise the MRC_CTL_OPT_CAP_EV_UPDATE_RTS
- * capability, an EV update can only be performed BEFORE any QPs associated
- * with the profile have been modified using mrc_modify_qp().
- *
- * An EV's state can be set for both explicit and generated EVs.
- *
- * @param mrc_ctx[in]       - MRC context
- * @param ev_profile_id[in] - EV profile
- * @param ev[in]            - EV value and port to update
- * @param ev_state[in]      - State to set
- *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval EPERM Process lacks sufficient permissions.
- */
-int mrc_ctl_update_ev(struct mrc_context *mrc_ctx,
-		      uint64_t ev_profile_id,
-		      struct mrc_ctl_ev *ev,
-		      enum mrc_ctl_ev_state ev_state);
-
-/**
- * @brief Replace the value of an EV in an explicit EV array
- *
- * If the device does not advertise the MRC_CTL_OPT_CAP_EV_UPDATE_RTS
- * capability, an EV update can only be performed BEFORE any QPs associated
- * with the profile have been modified using mrc_modify_qp().
- *
- * An EV's value can only be set for explicit EVs.
- *
- * @param mrc_ctx[in]       - MRC context
- * @param ev_profile_id[in] - EV profile
- * @param ev_old[in]        - Old EV value and port to replace
- * @param ev_new[in]        - New EV value and port
- *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval EPERM Process lacks sufficient permissions.
- */
-int mrc_ctl_replace_ev(struct mrc_context *mrc_ctx,
-		       uint64_t ev_profile_id,
-		       struct mrc_ctl_ev *ev_old,
-		       struct mrc_ctl_ev *ev_new);
 
 /**
  * @brief Create an EV Event CQ
