@@ -265,7 +265,7 @@ struct mrc_ctl_ev {
 	mrc_ctl_ev_type_t val;
 	uint8_t port;
 };
-#define MRC_CTL_EV_INVALID (struct mrc_ctl_ev){.val = 0, .port = 0};
+#define MRC_CTL_EV_INVALID (struct mrc_ctl_ev){.val = 0, .port = 0}
 
 
 /**
