@@ -65,14 +65,12 @@ enum mrc_ctl_attr_opt {
 	/* The implementation supports EV Events */
 	MRC_CTL_OPT_CAP_EV_EVENT			= (1<<2),
 	/* The implementation supports explicit EV arrays */
-	MRC_CTL_OPT_CAP_EV_EXP_ARRAY			= (1<<3),
+	MRC_CTL_OPT_CAP_EV_EXPLICIT			= (1<<3),
 	/* The implementation supports generated EV arrays */
-	MRC_CTL_OPT_CAP_EV_GEN_ARRAY			= (1<<4),
+	MRC_CTL_OPT_CAP_EV_GENERATED		= (1<<4),
 	/*
-	 * The implementation only supports ranges of explicit EV values in
-	 * the explicit mode. In this mode, the first EV value supplied is
-	 * the base, and the last EV value is 'first_ev_val + (ev_count - 1)',
-	 * where ev_count is defined by the EV profile.
+	* Only contiguous ranges supported in explicit mode. First EV value is
+	* base; last is 'base_ev_val + (ev_count - 1)'
 	 */
 	MRC_CTL_OPT_CAP_EV_EXP_ARRAY_RANGE		= (1<<5),
 	/* The implementation supports EV Probes. */
@@ -103,16 +101,16 @@ struct mrc_ctl_attr {
 
 		/*
 		 * Maximum number of EVs supported per profile. If the
-		 * controller is supplying an EV array, then that array can
+		 * controller is supplying an explicit EV array, then that array can
 		 * contain at most this many EVs.
 		 */
 		uint32_t ev_max_count_profile;
 
 		/*
 		 * Alignment requirements for the number of EVs that are
-		 * required in an EV array. The alignment value implies the
-		 * minimum count required and it provides the EV array sizing
-		 * requirements. The EV array size should be:
+		 * required in an expclit EV array. The alignment value implies the
+		 * minimum count required and it provides the array sizing
+		 * requirements. The array size should be:
 		 *   (ev_count_align + (k * ev_count_align))
 		 * where 'k' is a multiple chosen by the application. For
 		 * example, if a provider supports EVs in multiples of 8, it
@@ -220,10 +218,10 @@ int mrc_ctl_query_ev_field_mask(struct mrc_context *mrc_ctx,
 enum mrc_ctl_ev_mode {
 	/* Controller will not provide any EVs (vendor managed e.g., ECMP) */
 	MRC_CTL_EV_MODE_AUTO		= 0,
-	/* Explicit EVs (MRC_CTL_OPT_CAP_EV_EXP_ARRAY) */
-	MRC_CTL_EV_MODE_EXP_ARRAY	= 1,
-	/* Generated EVs (MRC_CTL_OPT_CAP_EV_GEN_ARRAY) */
-	MRC_CTL_EV_MODE_GEN_ARRAY	= 2,
+	/* Explicit EVs (MRC_CTL_OPT_CAP_EV_EXPLICIT) */
+	MRC_CTL_EV_MODE_EXPLICIT	= 1,
+	/* Generated EVs (MRC_CTL_OPT_CAP_EV_GENERATED) */
+	MRC_CTL_EV_MODE_GENERATED	= 2,
 };
 
 /**
@@ -340,7 +338,7 @@ struct mrc_ctl_ev_profile_attr {
  *
  * Required attributes for state transitions:
  *   To OFFLINE: PORT_MASK, EV_MODE, EV_COUNT
- *   To ONLINE:  EV_MIN_ACTIVE, EV_EVENT_MASK, EVs (EV Array)
+ *   To ONLINE:  EV_MIN_ACTIVE, EV_EVENT_MASK, EVs (Explicit EV Array)
  *
  * Allowed in ONLINE state (if EV_PROFILE_MODIFY_ONLINE advertised):
  *   EV_EVENT_MASK, mrc_ctl_replace_ev()
@@ -409,7 +407,7 @@ int mrc_ctl_modify_ev_state(struct mrc_context *mrc_ctx,
  *
  * If duplicates exist, only one instance of the EV is replaced.
  *
- * When an EV array profile transitions from INIT to OFFLINE,
+ * When an Explicit EV array profile transitions from INIT to OFFLINE,
  * all EVs in the array are set to MRC_CTL_EV_INVALID.
  * These must be replaced with valid EVs before moving the profile ONLINE.
  *
