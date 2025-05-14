@@ -461,7 +461,6 @@ struct mrc_qp_init_attr {
 	void               *qp_context;
 	struct mrc_cq      *send_cq;
 	struct mrc_cq      *recv_cq;
-	struct mrc_cq      *ev_cq;
 	struct ibv_qp_cap   cap;
 	int                 sq_sig_all;
 	struct ibv_pd      *pd;
