@@ -78,7 +78,7 @@ enum mrc_ctl_attr_opt {
 	* Only contiguous ranges supported in explicit mode. First EV value is
 	* base; last is 'base_ev_val + (ev_count - 1)'
 	 */
-	MRC_CTL_OPT_CAP_EV_EXP_ARRAY_RANGE		= (1<<5),
+	MRC_CTL_OPT_CAP_EV_EXPLICIT_RANGE	= (1<<5),
 	/* The implementation supports EV Probes. */
 	MRC_CTL_OPT_CAP_EV_PROBE			= (1<<6),
 	/* The implementation supports precise EV Event drop counts. */
@@ -305,8 +305,8 @@ struct mrc_ctl_ev_profile_attr {
 	/*
 	 * The EV mode for this profile:
 	 * - MRC_CTL_EV_MODE_AUTO: No explicit or generated EVs; entropy is vendor-defined.
-	 * - MRC_CTL_EV_MODE_EXP_ARRAY: Caller must provide the explicit EV array.
-	 * - MRC_CTL_EV_MODE_GEN_ARRAY: Hardware generates the EV array according to field mask.
+	 * - MRC_CTL_EV_MODE_EXPLICIT: Caller must provide the explicit EV array.
+	 * - MRC_CTL_EV_MODE_GENERATED: Hardware generates the EV array according to field mask.
 	 */
 	enum mrc_ctl_ev_mode ev_mode;
 
