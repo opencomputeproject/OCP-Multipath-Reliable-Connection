@@ -60,7 +60,6 @@ enum mrc_ctl_version {
 /*****************************************************************************
  * Device Query
 /****************************************************************************/
-
 /**
  * @brief Optional control features supported by the implementation
  */
