@@ -46,8 +46,6 @@ extern "C" {
 #warning "MRC_CTL_API_VER_USED is equal to MRC_CTL_API_LAST_SUPPORTED version, may become obsolete"
 #endif
 
-/* Maximum number of CC algorithms that can be supported by a device.*/
-#define MRC_CTL_CC_NUM_MAX (31)
 /* Invalid EV definition */
 #define MRC_CTL_EV_INVALID (struct mrc_ctl_ev){.val = 0, .port = 0}
 
@@ -151,7 +149,7 @@ struct mrc_ctl_attr {
 		 * The following common strings are defined:
 		 *   "mrc-smtrk-1.00" - MRCv1 SmaRTTrack 1.00
 		 */
-		const char *cc_algorithms[MRC_CTL_CC_NUM_MAX + 1];
+		const char **cc_algorithms;
 	} cc;
 
 	/* bitmap of all optional features supported (mrc_ctl_attr_opt) */
