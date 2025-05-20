@@ -143,8 +143,8 @@ struct mrc_ctl_attr {
 		uint32_t cc_active_profiles;
 
 		/* Array of string pointers listing available CC algorithms.
-		 * Consumers may stop iterating at the first NULL value.
-		 * The final element is always NULL.
+		 * The final element will always be NULL; consumers must stop
+		 * iterating when they reach this value.
 		 *
 		 * The following common strings are defined:
 		 *   "mrc-smtrk-1.00" - MRCv1 SmaRTTrack 1.00
