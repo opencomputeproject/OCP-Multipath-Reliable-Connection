@@ -787,37 +787,36 @@ void mrc_ack_cq_events(struct mrc_cq *cq,
  * @brief MRC EV profile structure
  */
 struct mrc_ev_profile {
-	/* The controller specified EV profile identifier. */
+	/* EV profile identifier. */
 	uint64_t profile_id;
-	/* The EV profile's active port mask. */
-	uint64_t port_mask;
-	/* The source GID table length for this profile.*/
-	int gid_table_len;
+	/* Non-zero if the EV profile is online. */
+	int online;
 };
 
 /**
- * @brief Query an EV profile by index
+ * @brief Query an EV profile by ID
  *
- * Retrieves the EV profile information for the specified index.
+ * Retrieves EV profile state.
  *
- * @param mrc_ctx[in]     MRC context handle.
- * @param index[in]       Index of the EV profile to query; range [0, ev_active_profiles)
- * @param profile[out]    Pointer to a struct mrc_ev_profile.
+ * @param mrc_ctx[in]		MRC context handle.
+ * @param profile[in, out]    Pointer to mrc_ev_profile structure.
  *
  * @return 0 on success.
+ * @return ENOENT Provided profile identifier is not in valid range.
  * @retval EINVAL One or more supplied arguments are invalid.
  * @retval EIO Implementation specific error occurred.
  */
 int mrc_query_ev_profile(struct mrc_context *mrc_ctx,
-		unsigned int index,
 		struct mrc_ev_profile *profile);
 
 /**
  * @brief MRC CC profile structure
  */
 struct mrc_cc_profile {
-	/* The controller specified CC profile identifier. */
+	/* CC profile identifier. */
 	uint64_t profile_id;
+	/* Non-zero if the CC profile is online. */
+	int online;
 };
 
 /**
@@ -825,16 +824,15 @@ struct mrc_cc_profile {
  *
  * Retrieves the CC profile information for the specified index.
  *
- * @param mrc_ctx[in]     MRC context handle.
- * @param index[in]       Index of the CC profile to query; range [0, cc_active_profiles)
- * @param profile[out]    Pointer to a struct mrc_cc_profile.
+ * @param mrc_ctx[in]		MRC context handle.
+ * @param profile[in, out]    Pointer to a mrc_cc_profile structure.
  *
  * @return 0 on success.
+ * @return ENOENT Provided profile identifier is not in valid range.
  * @retval EINVAL One or more supplied arguments are invalid.
  * @retval EIO Implementation specific error occurred.
  */
 int mrc_query_cc_profile(struct mrc_context *mrc_ctx,
-		unsigned int index,
 		struct mrc_cc_profile *profile);
 
 /**
