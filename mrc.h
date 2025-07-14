@@ -516,7 +516,6 @@ int mrc_destroy_qp(struct mrc_qp *qp);
  * RTR         MRC_QP_MAX_WIMM_DEST
  *             MRC_QP_MPR_DEST
  *             MRC_QP_DYNAMIC_MPR_DEST
- *             MRC_QP_AV
  *
  * RTS         MRC_QP_MAX_WIMM
  *             MRC_QP_MPR
@@ -543,8 +542,6 @@ enum mrc_qp_attr_mask {
 // TODO: Uncomment after HW spec is updated (1.09)
 //	/* QP (fixed+exponential) retry counter */
 //	MRC_QP_RETRY_CNT		= (1<<8),
-	/* QP Address Vector */
-	MRC_QP_AV		= (1<<9),
 	MRC_QP_VENDOR_CFG		= (1<<31)
 };
 
@@ -634,7 +631,12 @@ int mrc_query_qp(struct mrc_qp *qp,
  *     IBV_QP_MAX_DEST_RD_ATOMIC
  *     IBV_QP_ALT_PATH
  *     IBV_QP_PATH_MIG_STATE
- *     IBV_QP_AV (use MRC_QP_AV)
+ *
+ * The following IBV fields are modified:
+ *     IBV_QP_AV:
+ *         - ibv_ah_attr.port_num: unused
+ *         - ibv_ah_attr.grh.sgid_index: index passed into mrc_query_gid()
+ *         - ibv_ah_attr.grh.dgid: from mrc_query_gid()
  *
  * @param qp[in]            - MRC QP
  * @param vattr[in]         - Libibverbs attributes to modify
@@ -836,15 +838,14 @@ int mrc_query_cc_profile(struct mrc_context *mrc_ctx,
 		struct mrc_cc_profile *profile);
 
 /**
- * @brief Query a GID for an EV profile by index
+ * @brief Query an MRC device's GID table
  *
- * Retrieves the GID entry for the specified EV profile and index.
+ * Retrieves the GID entry at the specified index.
  * All GIDs returned by this function are guaranteed to be configured and
  * available on every port included in the profile's port mask.
  *
  * @param mrc_ctx[in]       MRC context handle.
- * @param profile_id[in] EV profile identifier.
- * @param index[in]         GID table index to query; range [0, gid_table_len)
+ * @param index[in]         GID table index to query
  * @param gid[out]          Pointer to a union ibv_gid to be filled with the GID.
  *
  * @return 0 on success.
@@ -852,9 +853,7 @@ int mrc_query_cc_profile(struct mrc_context *mrc_ctx,
  * @retval EIO    Implementation specific error occurred.
  */
 int mrc_query_gid(struct mrc_context *mrc_ctx,
-		uint64_t profile_id,
-		int index,
-		union ibv_gid *gid);
+		int index, union ibv_gid *gid);
 
 #ifdef __cplusplus
 }
