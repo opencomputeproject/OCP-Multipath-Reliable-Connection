@@ -94,9 +94,6 @@ struct mrc_ctl_attr {
 		/* Maximum number of EV profiles supported by the device. */
 		uint32_t ev_max_profiles;
 
-		/* Number of active EV profiles programmed on the device. */
-		uint32_t ev_active_profiles;
-
 		/* Maximum number of EV resources avilable across all profiles. */
 		uint32_t ev_max_count;
 
@@ -138,9 +135,6 @@ struct mrc_ctl_attr {
 	struct {
 		/* Maximum number of CC profiles supported by the device. */
 		uint32_t cc_max_profiles;
-
-		/* Number of active CC profiles programmed on the device. */
-		uint32_t cc_active_profiles;
 
 		/* Array of string pointers listing available CC algorithms.
 		 * The final element will always be NULL; consumers must stop
