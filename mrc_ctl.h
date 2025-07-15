@@ -136,9 +136,9 @@ struct mrc_ctl_attr {
 		/* Maximum number of CC profiles supported by the device. */
 		uint32_t cc_max_profiles;
 
-		/* Array of string pointers listing available CC algorithms.
-		 * The final element will always be NULL; consumers must stop
-		 * iterating when they reach this value.
+		/* Array of CC algorithm strings.
+         * Last element is NULL; stop iterating at NULL.
+         * Consumers must NOT free these pointers.
 		 *
 		 * The following common strings are defined:
 		 *   "mrc-smtrk-1.00" - MRCv1 SmaRTTrack 1.00
