@@ -176,8 +176,8 @@ int mrc_ctl_query_device(struct ibv_context *context,
  * not in INIT state.
  *
  * @param mrc_ctx[in]         - MRC context
- * @param ev_field_width[in]  - Array containing the bit width of each EV field
- * @param ev_field_count[in]  - Number of elements in the ev_field_width array
+ * @param ev_field_widths[in]  - Array containing the bit width of each EV field
+ * @param ev_field_count[in]  - Number of elements in the ev_field_widths array
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -187,7 +187,7 @@ int mrc_ctl_query_device(struct ibv_context *context,
  * @retval EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_modify_ev_field_widths(struct mrc_context *mrc_ctx,
-			      uint8_t *ev_field_width,
+			      uint8_t *ev_field_widths,
 			      int ev_field_count);
 
 /**
@@ -199,8 +199,8 @@ int mrc_ctl_modify_ev_field_widths(struct mrc_context *mrc_ctx,
  * count only the elements up to provided count will be returned in the array.
  *
  * @param mrc_ctx[in]             - MRC context
- * @param ev_field_width[out]     - Array to be filled with the bit width of each EV field
- * @param ev_field_count[in]      - Size of the ev_field_width array
+ * @param ev_field_widths[out]     - Array to be filled with the bit width of each EV field
+ * @param ev_field_count[in]      - Size of the ev_field_widths array
  * @param cur_ev_field_count[out] - Actual number of EV fields in the current field mask
  *
  * @return 0 on success.
@@ -210,7 +210,7 @@ int mrc_ctl_modify_ev_field_widths(struct mrc_context *mrc_ctx,
  * @retval EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_query_ev_field_mask(struct mrc_context *mrc_ctx,
-                  uint8_t *ev_field_width,
+                  uint8_t *ev_field_widths,
                   int ev_field_count,
                   int *cur_ev_field_count);
 
