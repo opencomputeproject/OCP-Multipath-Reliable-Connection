@@ -245,10 +245,10 @@ enum mrc_ctl_ev_state {
  * @brief MRC Control Profile State
  */
 enum mrc_ctl_profile_state {
-	MRC_CTL_PROFILE_INIT,
-	MRC_CTL_PROFILE_OFFLINE,
-	MRC_CTL_PROFILE_ONLINE,
-	MRC_CTL_PROFILE_UNKNOWN
+	MRC_CTL_PROFILE_UNKNOWN,	/* Profile state cannot be reliably determined. */
+	MRC_CTL_PROFILE_INIT,		/* Profile is initialized and ready for config. */
+	MRC_CTL_PROFILE_OFFLINE,	/* Profile configured but not usable. */
+	MRC_CTL_PROFILE_ONLINE,		/* Profile is usable. */
 };
 
 /**
