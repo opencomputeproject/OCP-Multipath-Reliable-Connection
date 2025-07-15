@@ -406,8 +406,8 @@ int mrc_ctl_modify_ev_state(struct mrc_context *mrc_ctx,
  * If duplicates exist, only one instance of the EV is replaced.
  *
  * When an Explicit EV array profile transitions from INIT to OFFLINE,
- * all EVs in the array are set to MRC_CTL_EV_INVALID.
- * These must be replaced with valid EVs before moving the profile ONLINE.
+ * all EVs are set to MRC_CTL_EV_INVALID. All EVs must be replaced with
+ * valid values before moving the profile to ONLINE.
  *
  * @param mrc_ctx[in]       - MRC context
  * @param profile_id[in]    - EV profile
