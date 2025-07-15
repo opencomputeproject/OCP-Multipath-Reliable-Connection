@@ -284,7 +284,7 @@ struct mrc_ctl_ev_profile_attr {
 	/* Move the profile to this state. */
 	enum mrc_ctl_profile_state profile_state;
 
-	/* Assume this is the current profile state. */
+	/* Current profile state. */
 	enum mrc_ctl_profile_state cur_profile_state;
 
 	/*
