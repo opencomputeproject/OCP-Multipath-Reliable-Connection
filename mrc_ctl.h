@@ -170,10 +170,10 @@ int mrc_ctl_query_device(struct ibv_context *context,
  * EV Field Mask
 /****************************************************************************/
 /**
- * @brief Modify the EV field mask
+ * @brief Modify EV field widths
  *
- * Modifies the hardware EV field mask. This operation is only allowed if
- * no EV or CC profiles are in the ONLINE state.
+ * Sets hardware EV field widths. Not allowed if any EV or CC profile is
+ * not in INIT state.
  *
  * @param mrc_ctx[in]         - MRC context
  * @param ev_field_width[in]  - Array containing the bit width of each EV field
@@ -186,7 +186,7 @@ int mrc_ctl_query_device(struct ibv_context *context,
  * @retval E2BIG Supplied parameter combination is unsupportable.
  * @retval EPERM Process lacks sufficient permissions.
  */
-int mrc_ctl_modify_ev_field_mask(struct mrc_context *mrc_ctx,
+int mrc_ctl_modify_ev_field_widths(struct mrc_context *mrc_ctx,
 			      uint8_t *ev_field_width,
 			      int ev_field_count);
 
