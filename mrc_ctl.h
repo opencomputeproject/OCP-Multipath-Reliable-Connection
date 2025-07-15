@@ -191,25 +191,24 @@ int mrc_ctl_modify_ev_field_widths(struct mrc_context *mrc_ctx,
 			      int ev_field_count);
 
 /**
- * @brief Query the EV field mask.
+ * @brief Query the EV field widths.
  *
- * Retrieves the hardware EV field mask.
+ * Retrieves the hardware EV field widths.
  *
  * If the supplied array length parameter is smaller than the current field
  * count only the elements up to provided count will be returned in the array.
  *
  * @param mrc_ctx[in]             - MRC context
- * @param ev_field_widths[out]     - Array to be filled with the bit width of each EV field
+ * @param ev_field_widths[out]    - Array to be filled with the bit width of each EV field
  * @param ev_field_count[in]      - Size of the ev_field_widths array
  * @param cur_ev_field_count[out] - Actual number of EV fields in the current field mask
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
  * @retval EIO Implementation specific error occurred.
- * @retval ERANGE Output result truncated due to too small input array length.
  * @retval EPERM Process lacks sufficient permissions.
  */
-int mrc_ctl_query_ev_field_mask(struct mrc_context *mrc_ctx,
+int mrc_ctl_query_ev_field_widths(struct mrc_context *mrc_ctx,
                   uint8_t *ev_field_widths,
                   int ev_field_count,
                   int *cur_ev_field_count);
