@@ -167,8 +167,17 @@ int mrc_ctl_query_device(struct ibv_context *context,
 
 
 /*****************************************************************************
- * EV Field Mask
+ * EV Field Widths
 /****************************************************************************/
+/**
+ * @brief EV field width structures
+ */
+struct mrc_ctl_ev_field {
+	uint8_t width;		/* Field width in bits */
+	uint8_t min_val;	/* Min. supported val */
+	uint8_t max_val;	/* Max. supported val */
+};
+
 /**
  * @brief Modify EV field widths
  *
@@ -176,8 +185,8 @@ int mrc_ctl_query_device(struct ibv_context *context,
  * not in INIT state.
  *
  * @param mrc_ctx[in]         - MRC context
- * @param ev_field_widths[in]  - Array containing the bit width of each EV field
- * @param ev_field_count[in]  - Number of elements in the ev_field_widths array
+ * @param ev_fields[in]  	  - Array containing EV field widths and bounds
+ * @param ev_field_count[in]  - Length of ev_fields argument
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -187,7 +196,7 @@ int mrc_ctl_query_device(struct ibv_context *context,
  * @retval EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_modify_ev_field_widths(struct mrc_context *mrc_ctx,
-			      uint8_t *ev_field_widths,
+			      struct mrc_ctl_ev_field *ev_fields,
 			      int ev_field_count);
 
 /**
@@ -199,9 +208,9 @@ int mrc_ctl_modify_ev_field_widths(struct mrc_context *mrc_ctx,
  * count only the elements up to provided count will be returned in the array.
  *
  * @param mrc_ctx[in]             - MRC context
- * @param ev_field_widths[out]    - Array to be filled with the bit width of each EV field
- * @param ev_field_count[in]      - Size of the ev_field_widths array
- * @param cur_ev_field_count[out] - Actual number of EV fields in the current field mask
+ * @param ev_fields[out]    	  - Array populated with EV field widths and bounds
+ * @param ev_field_count[in]      - Length of provided ev_fields argument
+ * @param cur_ev_field_count[out] - Number of configued EV fields
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -209,7 +218,7 @@ int mrc_ctl_modify_ev_field_widths(struct mrc_context *mrc_ctx,
  * @retval EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_query_ev_field_widths(struct mrc_context *mrc_ctx,
-                  uint8_t *ev_field_widths,
+				  struct mrc_ctl_ev_field *ev_fields,
                   int ev_field_count,
                   int *cur_ev_field_count);
 
@@ -399,6 +408,8 @@ int mrc_ctl_modify_ev_state(struct mrc_context *mrc_ctx,
 
 /**
  * @brief Replace the value of an EV in an Explicit EV array
+ *
+ * All replacement EV fields must be within EV field bounds.
  *
  * If the device does not support EV_PROFILE_MODIFY_ONLINE,
  * EV replacement is only allowed when the profile is OFFLINE.
