@@ -350,10 +350,10 @@ struct mrc_ctl_ev_profile_attr {
  * Allowed in ONLINE state (if EV_PROFILE_MODIFY_ONLINE advertised):
  *   EV_EVENT_MASK, mrc_ctl_replace_ev()
  *
- * @param mrc_ctx[in]    - MRC context
- * @param profile_id[in] - EV Profile ID
- * @param attr[in]       - EV Profile attribute structure
- * @param attr_mask[in]  - Bitmask of mrc_ctl_ev_profile_attr_mask attributes
+ * @param mrc_ctx[in]       - MRC context
+ * @param ev_profile_id[in] - EV Profile ID
+ * @param attr[in]          - EV Profile attribute structure
+ * @param attr_mask[in]     - Bitmask of mrc_ctl_ev_profile_attr_mask attributes
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -362,7 +362,7 @@ struct mrc_ctl_ev_profile_attr {
  * @retval EBUSY One or more active QPs are associated with this profile.
  */
 int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
-				uint64_t profile_id,
+				uint64_t ev_profile_id,
 				struct mrc_ctl_ev_profile_attr *attr,
 				int attr_mask);
 
@@ -371,10 +371,10 @@ int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
  *
  * Query an EV profile configuration.
  *
- * @param mrc_ctx[in]    - MRC context
- * @param profile_id[in] - EV Profile ID
- * @param attr[out]       - EV Profile attribute structure
- * @param attr_mask[in]  - Bitmask of mrc_ctl_ev_profile_attr_mask attributes
+ * @param mrc_ctx[in]       - MRC context
+ * @param ev_profile_id[in] - EV Profile ID
+ * @param attr[out]         - EV Profile attribute structure
+ * @param attr_mask[in]     - Bitmask of mrc_ctl_ev_profile_attr_mask attributes
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -382,7 +382,7 @@ int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
  * @retval EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_query_ev_profile(struct mrc_context *mrc_ctx,
-				uint64_t profile_id,
+				uint64_t ev_profile_id,
 				struct mrc_ctl_ev_profile_attr *attr,
 				int attr_mask);
 
@@ -392,7 +392,7 @@ int mrc_ctl_query_ev_profile(struct mrc_context *mrc_ctx,
  * All matching EV instances are updated.
  *
  * @param mrc_ctx[in]       - MRC context
- * @param profile_id[in]    - EV profile
+ * @param ev_profile_id[in] - EV profile
  * @param ev[in]            - EV to update
  * @param state[in]         - EV state (EV_GOOD or EV_DENIED)
  *
@@ -402,7 +402,7 @@ int mrc_ctl_query_ev_profile(struct mrc_context *mrc_ctx,
  * @retval EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_modify_ev_state(struct mrc_context *mrc_ctx,
-				uint64_t profile_id,
+				uint64_t ev_profile_id,
 				struct mrc_ctl_ev ev,
 				enum mrc_ctl_ev_state state);
 
@@ -421,7 +421,7 @@ int mrc_ctl_modify_ev_state(struct mrc_context *mrc_ctx,
  * valid values before moving the profile to ONLINE.
  *
  * @param mrc_ctx[in]       - MRC context
- * @param profile_id[in]    - EV profile
+ * @param ev_profile_id[in] - EV profile
  * @param cur_ev[in]        - Current EV
  * @param new_ev[in]        - New EV
  *
@@ -432,7 +432,7 @@ int mrc_ctl_modify_ev_state(struct mrc_context *mrc_ctx,
  * @retval EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_replace_ev(struct mrc_context *mrc_ctx,
-		       uint64_t profile_id,
+		       uint64_t ev_profile_id,
 		       struct mrc_ctl_ev cur_ev,
 		       struct mrc_ctl_ev new_ev);
 
@@ -442,7 +442,7 @@ int mrc_ctl_replace_ev(struct mrc_context *mrc_ctx,
  * Supported when a profile is OFFLINE and ONLINE state.
  *
  * @param mrc_ctx[in]       - MRC context
- * @param profile_id[in]    - EV profile
+ * @param ev_profile_id[in] - EV profile
  * @param ev[in]            - EV
  * @param state[out]        - Returned EV state
  *
@@ -524,10 +524,10 @@ struct mrc_ctl_cc_smtrk_cfg {
  * Allowed in ONLINE state (if CC_PROFILE_MODIFY_ONLINE advertised):
  *   CONFIG
  *
- * @param mrc_ctx[in]      - MRC context
- * @param profile_id[in]   - CC Profile ID
- * @param attr[in]         - CC Profile attribute structure
- * @param attr_mask[in]    - Bitmask of mrc_ctl_cc_profile_attr_mask attributes
+ * @param mrc_ctx[in]       - MRC context
+ * @param cc_profile_id[in] - CC Profile ID
+ * @param attr[in]          - CC Profile attribute structure
+ * @param attr_mask[in]     - Bitmask of mrc_ctl_cc_profile_attr_mask attributes
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -536,7 +536,7 @@ struct mrc_ctl_cc_smtrk_cfg {
  * @retval EBUSY One or more active QPs are associated with this profile.
  */
 int mrc_ctl_modify_cc_profile(struct mrc_context *mrc_ctx,
-                  uint64_t profile_id,
+                  uint64_t cc_profile_id,
                   struct mrc_ctl_cc_profile_attr *attr,
                   int attr_mask);
 
@@ -545,10 +545,10 @@ int mrc_ctl_modify_cc_profile(struct mrc_context *mrc_ctx,
  *
  * Query a CC profile configuration.
  *
- * @param mrc_ctx[in]      - MRC context
- * @param profile_id[in]   - CC Profile ID
- * @param attr[out]        - CC Profile attribute structure
- * @param attr_mask[in]    - Bitmask of mrc_ctl_cc_profile_attr_mask attributes
+ * @param mrc_ctx[in]       - MRC context
+ * @param cc_profile_id[in] - CC Profile ID
+ * @param attr[out]         - CC Profile attribute structure
+ * @param attr_mask[in]     - Bitmask of mrc_ctl_cc_profile_attr_mask attributes
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -556,7 +556,7 @@ int mrc_ctl_modify_cc_profile(struct mrc_context *mrc_ctx,
  * @retval EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_query_cc_profile(struct mrc_context *mrc_ctx,
-                uint64_t profile_id,
+                uint64_t cc_profile_id,
                 struct mrc_ctl_cc_profile_attr *attr,
                 int attr_mask);
 
