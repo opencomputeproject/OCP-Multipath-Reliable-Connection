@@ -107,7 +107,7 @@ struct mrc_attr {
  * @return Errors like ibv_query_device().
  */
 int mrc_query_device(struct ibv_context *context,
-		     struct mrc_attr *attr);
+			 struct mrc_attr *attr);
 
 /* Context attributes declare the application's usage of MRC */
 struct mrc_context_attr {
@@ -139,7 +139,7 @@ struct mrc_context_attr {
  * @return NULL if the request fails.
  */
 struct mrc_context *mrc_create_context(struct ibv_context *vcontext,
-				       struct mrc_context_attr *context_attr);
+					   struct mrc_context_attr *context_attr);
 
 /**
  * @brief Destroy the MRC lib context
@@ -165,7 +165,7 @@ int mrc_destroy_context(struct mrc_context *mrc_ctx);
  * @return Errors like ibv_create_comp_channel().
  */
 int mrc_create_comp_channel(struct mrc_context *mrc_ctx,
-			    struct mrc_comp_channel **channel);
+				struct mrc_comp_channel **channel);
 
 /**
  * @brief Retrieve the completion channel's file descriptor
@@ -177,7 +177,7 @@ int mrc_create_comp_channel(struct mrc_context *mrc_ctx,
  * @return -1 on failure.
  */
 int mrc_get_comp_channel_fd(struct mrc_comp_channel *channel,
-			    int *fd);
+				int *fd);
 
 /**
  * @brief Destroy a completion channel
@@ -206,10 +206,10 @@ int mrc_destroy_comp_channel(struct mrc_comp_channel *channel);
  * @return NULL if the request fails. Errors like ibv_create_cq().
  */
 struct mrc_cq *mrc_create_cq(struct mrc_context *mrc_ctx,
-			     int cqe,
-			     void *cq_context,
-			     struct mrc_comp_channel *channel,
-			     int comp_vector);
+				 int cqe,
+				 void *cq_context,
+				 struct mrc_comp_channel *channel,
+				 int comp_vector);
 
 /**
  * @brief Poll for a Completion
@@ -319,8 +319,8 @@ int mrc_destroy_qp_group(struct mrc_qp_group *qp_group);
  * @retval EINVAL One or more supplied arguments are invalid.
  */
 int mrc_query_qp_group(struct mrc_qp_group *qp_group,
-		       struct mrc_qp_group_attr *qp_group_attr,
-		       int qp_group_attr_mask);
+			   struct mrc_qp_group_attr *qp_group_attr,
+			   int qp_group_attr_mask);
 
 /**
  * @brief Modify an MRC QP group
@@ -442,8 +442,8 @@ int mrc_destroy_qp_hint(struct mrc_qp_hint *qp_hint);
  * @retval EINVAL One or more supplied arguments are invalid.
  */
 int mrc_query_qp_hint(struct mrc_qp_hint *qp_hint,
-		      struct mrc_qp_hint_attr *qp_hint_attr,
-		      int qp_hint_attr_mask);
+			  struct mrc_qp_hint_attr *qp_hint_attr,
+			  int qp_hint_attr_mask);
 
 /**
  * @brief Modify an MRC QP hint
@@ -458,8 +458,8 @@ int mrc_query_qp_hint(struct mrc_qp_hint *qp_hint,
  * @retval EINVAL One or more supplied arguments are invalid.
  */
 int mrc_modify_qp_hint(struct mrc_qp_hint *qp_hint,
-		       struct mrc_qp_hint_attr *qp_hint_attr,
-		       int qp_hint_attr_mask);
+			   struct mrc_qp_hint_attr *qp_hint_attr,
+			   int qp_hint_attr_mask);
 
 /**
  * @brief MRC QP initialization attributes
@@ -488,7 +488,7 @@ struct mrc_qp_init_attr {
  * @return NULL if the request fails. Errors like ibv_create_qp().
  */
 struct mrc_qp *mrc_create_qp(struct mrc_context *mrc_ctx,
-			     struct mrc_qp_init_attr *mrc_qp_attr);
+				 struct mrc_qp_init_attr *mrc_qp_attr);
 
 /**
  * @brief Destroy a QP
@@ -746,7 +746,7 @@ void mrc_ack_async_event(struct mrc_async_event *event);
  * @return Errors like ibv_req_notify_cq().
  */
 int mrc_req_notify_cq(struct mrc_cq *cq,
-		      int solicited_only);
+			  int solicited_only);
 
 /**
  * @brief Get next CQ event
@@ -763,8 +763,8 @@ int mrc_req_notify_cq(struct mrc_cq *cq,
  * @return -1 on failure. Errors like ibv_get_cq_event().
  */
 int mrc_get_cq_event(struct mrc_comp_channel *channel,
-		     struct mrc_cq **cq,
-		     void **cq_context);
+			 struct mrc_cq **cq,
+			 void **cq_context);
 
 /**
  * @brief Acknowledge CQ completion events
@@ -783,7 +783,7 @@ int mrc_get_cq_event(struct mrc_comp_channel *channel,
  * @return void
  */
 void mrc_ack_cq_events(struct mrc_cq *cq,
-		       unsigned int nevents);
+			   unsigned int nevents);
 
 /**
  * @brief MRC EV profile structure
@@ -846,7 +846,7 @@ int mrc_query_cc_profile(struct mrc_context *mrc_ctx,
  *
  * @param mrc_ctx[in]       MRC context handle.
  * @param index[in]         GID table index to query
- * @param gid[out]          Pointer to a union ibv_gid to be filled with the GID.
+ * @param gid[out]          Output GID pointer
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
