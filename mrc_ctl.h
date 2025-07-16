@@ -208,7 +208,7 @@ int mrc_ctl_modify_ev_field_widths(struct mrc_context *mrc_ctx,
  * count only the elements up to provided count will be returned in the array.
  *
  * @param mrc_ctx[in]             - MRC context
- * @param ev_fields[out]    	  - Array populated with EV field widths and bounds
+ * @param ev_fields[out]    	  - Populated with EV field widths and bounds
  * @param ev_field_count[in]      - Length of provided ev_fields argument
  * @param cur_ev_field_count[out] - Number of configued EV fields
  *
@@ -254,10 +254,10 @@ enum mrc_ctl_ev_state {
  * @brief MRC Control Profile State
  */
 enum mrc_ctl_profile_state {
-	MRC_CTL_PROFILE_UNKNOWN,	/* Profile state cannot be reliably determined. */
-	MRC_CTL_PROFILE_INIT,		/* Profile is initialized and ready for config. */
-	MRC_CTL_PROFILE_OFFLINE,	/* Profile configured but not usable. */
-	MRC_CTL_PROFILE_ONLINE,		/* Profile is usable. */
+	MRC_CTL_PROFILE_UNKNOWN,	/* State cannot be reliably determined. */
+	MRC_CTL_PROFILE_INIT,		/* Initialized and ready for config. */
+	MRC_CTL_PROFILE_OFFLINE,	/* Configured but not usable. */
+	MRC_CTL_PROFILE_ONLINE,		/* Is usable. */
 };
 
 /**
@@ -298,15 +298,15 @@ struct mrc_ctl_ev_profile_attr {
 
 	/*
 	 * EV port mask for this profile; each bit represents an active port.
-	 * The port numbers correspond to those returned by ibv_query_port() (1-based).
+		 * Port numbers match ibv_query_port() (1-based).
 	 */
 	uint64_t port_mask;
 
 	/*
 	 * The EV mode for this profile:
-	 * - MRC_CTL_EV_MODE_AUTO: No explicit or generated EVs; entropy is vendor-defined.
-	 * - MRC_CTL_EV_MODE_EXPLICIT: Caller must provide the explicit EV array.
-	 * - MRC_CTL_EV_MODE_GENERATED: Hardware generates the EV array according to field mask.
+	 * - MRC_CTL_EV_MODE_AUTO: Vendor-defined mode.
+	 * - MRC_CTL_EV_MODE_EXPLICIT: Caller provides explicit EV values.
+	 * - MRC_CTL_EV_MODE_GENERATED: HW generated within EV field bounds.
 	 */
 	enum mrc_ctl_ev_mode ev_mode;
 
@@ -353,7 +353,7 @@ struct mrc_ctl_ev_profile_attr {
  * @param mrc_ctx[in]       - MRC context
  * @param ev_profile_id[in] - EV Profile ID
  * @param attr[in]          - EV Profile attribute structure
- * @param attr_mask[in]     - Bitmask of mrc_ctl_ev_profile_attr_mask attributes
+ * @param attr_mask[in]     - Bitmask of EV profile attribute mask
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -374,7 +374,7 @@ int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
  * @param mrc_ctx[in]       - MRC context
  * @param ev_profile_id[in] - EV Profile ID
  * @param attr[out]         - EV Profile attribute structure
- * @param attr_mask[in]     - Bitmask of mrc_ctl_ev_profile_attr_mask attributes
+ * @param attr_mask[in]     - Bitmask of EV profile attribute mask
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -527,7 +527,7 @@ struct mrc_ctl_cc_smtrk_cfg {
  * @param mrc_ctx[in]       - MRC context
  * @param cc_profile_id[in] - CC Profile ID
  * @param attr[in]          - CC Profile attribute structure
- * @param attr_mask[in]     - Bitmask of mrc_ctl_cc_profile_attr_mask attributes
+ * @param attr_mask[in]     - Bitmask of CC Profile attribute mask
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -548,7 +548,7 @@ int mrc_ctl_modify_cc_profile(struct mrc_context *mrc_ctx,
  * @param mrc_ctx[in]       - MRC context
  * @param cc_profile_id[in] - CC Profile ID
  * @param attr[out]         - CC Profile attribute structure
- * @param attr_mask[in]     - Bitmask of mrc_ctl_cc_profile_attr_mask attributes
+ * @param attr_mask[in]     - Bitmask of CC Profile attribute mask
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
