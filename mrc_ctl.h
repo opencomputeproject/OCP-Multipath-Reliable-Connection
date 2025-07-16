@@ -373,7 +373,7 @@ int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
  *
  * @param mrc_ctx[in]    - MRC context
  * @param profile_id[in] - EV Profile ID
- * @param attr[in]       - EV Profile attribute structure
+ * @param attr[out]       - EV Profile attribute structure
  * @param attr_mask[in]  - Bitmask of mrc_ctl_ev_profile_attr_mask attributes
  *
  * @return 0 on success.
