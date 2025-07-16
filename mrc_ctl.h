@@ -491,6 +491,7 @@ struct mrc_ctl_cc_profile_attr {
  * @brief SmaRTTrack configuration structure
  */
 struct mrc_ctl_cc_smtrk_cfg {
+	uint8_t disable_qa;                /* QA disabled if non-zero */
 	uint32_t adjust_bytes_threshold;   /* unit = 1B */
 	uint32_t adjust_period_threshold;  /* unit = 1ns */
 	uint32_t base_rtt;                 /* unit = 1ns */
