@@ -57,61 +57,9 @@ struct mrc_qp;
 struct mrc_cq;
 struct mrc_comp_channel;
 
-struct mrc_attr {
-	/* bitmap of all versions supported (see enum mrc_version) */
-	uint32_t mrc_version;
-
-	struct {
-		/* Max configurable wimm value as requestor. */
-		uint16_t max_wimm;
-		/* Max configurable wimm value as responder. */
-		uint16_t max_wimm_dest;
-	} wimm_attr;
-
-	struct {
-		/*
-		 * Maximum supported MPR value as requestor or responder.
-		 * units = 128 PSNs
-		 */
-		uint8_t max_mpr;
-		/* MPR resource allocation resolution; unit = 128 PSNs. */
-		uint8_t mpr_resolution;
-		/* if 1/true, implementation supports dynamic MPR */
-		uint8_t dynamic_mpr;
-	} mpr_attr;
-
-	struct {
-		/* Maximum number of QP groups supported by the device. */
-		uint32_t max_qp_group;
-		/* Maximum number of QP hints supported by the device. */
-		uint32_t max_qp_hint;
-	} qp_attr;
-
-	struct {
-		/* Number of active CC profiles programmed on the device. */
-		uint32_t cc_active_profiles;
-		/* Number of active EV profiles programmed on the device. */
-		uint32_t ev_active_profiles;
-	} profile_attr;
-};
-
-/**
- * @brief Query Device
- *
- * Query the device to check MRC support and other attributes.
- *
- * @param context[in] - IB Verbs context
- * @param attrs[out]  - MRC attributes
- *
- * @return 0 on success.
- * @return Errors like ibv_query_device().
- */
-int mrc_query_device(struct ibv_context *context,
-			 struct mrc_attr *attr);
-
 /* Context attributes declare the application's usage of MRC */
 struct mrc_context_attr {
-	/* API version used */
+	/* API version used; value from mrc_version */
 	uint32_t mrc_api_version_used;
 };
 
@@ -510,87 +458,19 @@ int mrc_destroy_qp(struct mrc_qp *qp);
  *
  * Next State  Required Attributes
  * ----------  -------------------
- * INIT        MRC_QP_EV_PROFILE_ID
+ * INIT        MRC_QP_PROFILE_ID
  *             MRC_QP_HINT
- *
- * RTR         MRC_QP_MAX_WIMM_DEST
- *             MRC_QP_MPR_DEST
- *             MRC_QP_DYNAMIC_MPR_DEST
- *
- * RTS         MRC_QP_MAX_WIMM
- *             MRC_QP_MPR
- *             MRC_QP_RETRY_CNT
- *             MRC_QP_TIMEOUT
  */
 enum mrc_qp_attr_mask {
-	/* Max WIMM as requestor */
-	MRC_QP_MAX_WIMM			= (1<<0),
-	/* Max WIMM as responder */
-	MRC_QP_MAX_WIMM_DEST		= (1<<1),
-	/* Requestor MPR */
-	MRC_QP_MPR			= (1<<2),
-	/* Responder MPR */
-	MRC_QP_MPR_DEST			= (1<<3),
-	/* Responder dynamic MPR support */
-	MRC_QP_DYNAMIC_MPR_DEST		= (1<<4),
-	/* QP ACK timeout */
-	MRC_QP_TIMEOUT			= (1<<5),
-	/* QP EV and CC Profile */
-	MRC_QP_PROFILE	= (1<<6),
-	/* QP hint */
-	MRC_QP_HINT			= (1<<7),
-// TODO: Uncomment after HW spec is updated (1.09)
-//	/* QP (fixed+exponential) retry counter */
-//	MRC_QP_RETRY_CNT		= (1<<8),
-	MRC_QP_VENDOR_CFG		= (1<<31)
+	MRC_QP_PROFILE	= (1<<0),	/* QP profile ID */
+	MRC_QP_HINT		= (1<<1),	/* QP hint */
 };
 
-#define MRC_MAX_VENDOR_CFG_SIZE 128
-
 struct mrc_qp_attr {
-
-	struct {
-		/* Requestor MPR value; unit=128 PSNs */
-		uint8_t mpr;
-		/* Responder MPR value; unit=128 PSNs */
-		uint8_t mpr_dest;
-		/* if 1/true, enable Responder dynamic MPR support */
-		uint8_t dynamic_mpr_dest;
-	} mpr;
-
-	struct {
-		/* Max inflight WIMMs as requestor */
-		uint16_t max_wimm;
-		/* Max inflight WIMMs as responder */
-		uint16_t max_wimm_dest;
-	} wimm;
-
-	/* Local ACK timeout; 1.024 * 2^timeout us. Max val = 24 (17.17s) */
-	uint8_t timeout;
-
-	/*
-	 * Application specified profile. The profile is learned
-	 * OOB by the application and is used by the provider to associate
-	 * the QP with an EV and CC profile that was previously programmed by a
-	 * system controller.
-	 */
-	struct {
-		uint64_t ev_profile_id;
-		uint64_t cc_profile_id;
-	} profile;
-
-	// TODO: Uncomment after HW spec is updated (1.09)
-//	struct {
-//		/* Fixed interval retry count; Max value = 8 */
-//		uint8_t retry_cnt_fixed;
-//		/* Exponential retry count; Max val = 32 (infinite retry) */
-//		uint8_t retry_cnt_exp;
-//	} retry_cnt;
+	uint64_t qp_profile_id;
 
 	/* QP hint, if NULL then no hint is assigned */
 	struct mrc_qp_hint *qp_hint;
-
-	uint8_t vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
 
 /**
@@ -623,8 +503,8 @@ int mrc_query_qp(struct mrc_qp *qp,
  *
  * The following IBV field masks are NOT supported:
  *     IBV_QP_PORT
- *     IBV_QP_TIMEOUT (use MRC_QP_TIMEOUT)
- *     IBV_QP_RETRY_CNT (use MRC_QP_RETRY_CNT)
+ *     IBV_QP_TIMEOUT
+ *     IBV_QP_RETRY_CNT
  *     IBV_QP_RNR_RETRY
  *     IBV_QP_MIN_RNR_TIMER
  *     IBV_QP_MAX_QP_RD_ATOMIC
@@ -634,9 +514,9 @@ int mrc_query_qp(struct mrc_qp *qp,
  *
  * The following IBV fields are modified:
  *     IBV_QP_AV:
- *         - ibv_ah_attr.port_num: unused
- *         - ibv_ah_attr.grh.sgid_index: index passed into mrc_query_gid()
- *         - ibv_ah_attr.grh.dgid: from mrc_query_gid()
+ *		ibv_ah_attr.port_num: unused
+ *		ibv_ah_attr.grh.sgid_index: index passed into mrc_query_gid()
+ *		ibv_ah_attr.grh.dgid: from mrc_query_gid()
  *
  * @param qp[in]            - MRC QP
  * @param vattr[in]         - Libibverbs attributes to modify
@@ -786,56 +666,30 @@ void mrc_ack_cq_events(struct mrc_cq *cq,
 			   unsigned int nevents);
 
 /**
- * @brief MRC EV profile structure
+ * @brief MRC QP profile status structure
  */
-struct mrc_ev_profile {
-	/* EV profile identifier. */
+struct mrc_qp_profile_status {
+	/* QP profile identifier. */
 	uint64_t profile_id;
-	/* Non-zero if the EV profile is online. */
+	/* Non-zero if the QP profile is allocated and online. */
 	int online;
 };
 
 /**
- * @brief Query an EV profile by ID
+ * @brief Query QP profile validity and allocation status
  *
- * Retrieves EV profile state.
+ * Checks if the provided profile ID is valid and allocated, and retrieves
+ * basic profile status information.
  *
- * @param mrc_ctx[in]		MRC context handle.
- * @param profile[in, out]    Pointer to mrc_ev_profile structure.
- *
- * @return 0 on success.
- * @return ENOENT Provided profile identifier is not in valid range.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval EIO Implementation specific error occurred.
- */
-int mrc_query_ev_profile(struct mrc_context *mrc_ctx,
-		struct mrc_ev_profile *profile);
-
-/**
- * @brief MRC CC profile structure
- */
-struct mrc_cc_profile {
-	/* CC profile identifier. */
-	uint64_t profile_id;
-	/* Non-zero if the CC profile is online. */
-	int online;
-};
-
-/**
- * @brief Query a CC profile by index
- *
- * Retrieves the CC profile information for the specified index.
- *
- * @param mrc_ctx[in]		MRC context handle.
- * @param profile[in, out]    Pointer to a mrc_cc_profile structure.
+ * @param mrc_ctx[in]		MRC context handle
+ * @param status[in, out]	Profile status information
  *
  * @return 0 on success.
- * @return ENOENT Provided profile identifier is not in valid range.
  * @retval EINVAL One or more supplied arguments are invalid.
- * @retval EIO Implementation specific error occurred.
+ * @retval EIO    Implementation specific error occurred.
  */
-int mrc_query_cc_profile(struct mrc_context *mrc_ctx,
-		struct mrc_cc_profile *profile);
+int mrc_query_qp_profile(struct mrc_context *mrc_ctx,
+	struct mrc_qp_profile_status *status);
 
 /**
  * @brief Query an MRC device's GID table
@@ -844,7 +698,7 @@ int mrc_query_cc_profile(struct mrc_context *mrc_ctx,
  * All GIDs returned by this function are guaranteed to be configured and
  * available on every port included in the profile's port mask.
  *
- * @param mrc_ctx[in]       MRC context handle.
+ * @param mrc_ctx[in]       MRC context handle
  * @param index[in]         GID table index to query
  * @param gid[out]          Output GID pointer
  *

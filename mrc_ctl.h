@@ -49,6 +49,9 @@ extern "C" {
 /* Invalid EV definition */
 #define MRC_CTL_EV_INVALID (struct mrc_ctl_ev){.val = 0, .port = 0}
 
+/* Maximum size of opaque vendor configuration data */
+#define MRC_MAX_VENDOR_CFG_SIZE 128
+
 enum mrc_ctl_version {
 	MRC_CTL_VERSION_0	= 0, /* MRC not supported */
 	MRC_CTL_VERSION_1	= (1 << 0),
@@ -88,6 +91,7 @@ struct mrc_ctl_attr {
 	/* bitmap of all versions supported (see enum mrc_ctl_version) */
 	uint32_t mrc_ctl_version;
 
+	/* EV attributes */
 	struct {
 		/* Maximum number of EV profiles supported by the device. */
 		uint32_t ev_max_profiles;
@@ -130,6 +134,7 @@ struct mrc_ctl_attr {
 		uint32_t ev_max_bits;
 	} ev;
 
+	/* CC attributes */
 	struct {
 		/* Maximum number of CC profiles supported by the device. */
 		uint32_t cc_max_profiles;
@@ -143,6 +148,32 @@ struct mrc_ctl_attr {
 		 */
 		const char **cc_algorithms;
 	} cc;
+
+	/* QP attributes */
+	struct {
+		/* WriteIMM attributes */
+		struct
+		{
+			/* Max configurable value as requestor. */
+			uint16_t max_wimm;
+			/* Max configurable value as responder. */
+			uint16_t max_wimm_dest;
+		} wimm_attr;
+
+		/* MPR attributes */
+		struct
+		{
+			/*
+			 * Maximum supported MPR value as requestor or responder.
+			 * units = 128 PSNs
+			 */
+			uint8_t max_mpr;
+			/* MPR resource allocation resolution; unit = 128 PSNs. */
+			uint8_t mpr_resolution;
+			/* if non-zero, implementation supports dynamic MPR */
+			uint8_t dynamic_mpr;
+		} mpr_attr;
+	} qp;
 
 	/*
 	 * Port mask for ports owned by this this function; each bit represents
@@ -327,26 +358,48 @@ enum mrc_ctl_qp_profile_state {
  * @brief QP profile attr mask
  */
 enum mrc_ctl_qp_profile_attr_mask {
+	/* Profile state attributes */
+	MRC_CTL_QP_PROFILE_STATE = 1 << 0,
+	MRC_CTL_QP_PROFILE_CUR_STATE = 1 << 1,
+
 	/* EV Profile attributes */
-	MRC_CTL_QP_PROFILE_EV_STATE = 1 << 0,
-	MRC_CTL_QP_PROFILE_EV_CUR_STATE = 1 << 1,
-	MRC_CTL_QP_PROFILE_EV_PORT_MASK = 1 << 2,
-	MRC_CTL_QP_PROFILE_EV_MODE = 1 << 3,
-	MRC_CTL_QP_PROFILE_EV_COUNT = 1 << 4,
-	MRC_CTL_QP_PROFILE_EV_MIN_ACTIVE = 1 << 5,
-	MRC_CTL_QP_PROFILE_EV_EVENT_MASK = 1 << 6,
+	MRC_CTL_QP_PROFILE_EV_STATE = 1 << 2,
+	MRC_CTL_QP_PROFILE_EV_CUR_STATE = 1 << 3,
+	MRC_CTL_QP_PROFILE_EV_PORT_MASK = 1 << 4,
+	MRC_CTL_QP_PROFILE_EV_MODE = 1 << 5,
+	MRC_CTL_QP_PROFILE_EV_COUNT = 1 << 6,
+	MRC_CTL_QP_PROFILE_EV_MIN_ACTIVE = 1 << 7,
+	MRC_CTL_QP_PROFILE_EV_EVENT_MASK = 1 << 8,
 	
 	/* CC Profile attributes */
-	MRC_CTL_QP_PROFILE_CC_STATE = 1 << 7,
-	MRC_CTL_QP_PROFILE_CC_CUR_STATE = 1 << 8,
-	MRC_CTL_QP_PROFILE_CC_ALGORITHM = 1 << 9,
-	MRC_CTL_QP_PROFILE_CC_CONFIG = 1 << 10
+	MRC_CTL_QP_PROFILE_CC_STATE = 1 << 9,
+	MRC_CTL_QP_PROFILE_CC_CUR_STATE = 1 << 10,
+	MRC_CTL_QP_PROFILE_CC_ALGORITHM = 1 << 11,
+	MRC_CTL_QP_PROFILE_CC_CONFIG = 1 << 12,
+
+	/* QP MPR Profile attributes */
+	MRC_CTL_QP_PROFILE_MPR = 1 << 13,
+	MRC_CTL_QP_PROFILE_MPR_DEST = 1 << 14,
+	MRC_CTL_QP_PROFILE_DYNAMIC_MPR_DEST = 1 << 15,
+
+	/* QP WIMM Profile attributes */
+	MRC_CTL_QP_PROFILE_MAX_WIMM = 1 << 16,
+	MRC_CTL_QP_PROFILE_MAX_WIMM_DEST = 1 << 17,
+	
+	/* QP attributes */
+	MRC_CTL_QP_PROFILE_TIMEOUT = 1 << 18,
+	MRC_CTL_QP_PROFILE_VENDOR_CFG = 1 << 19,
 };
 
 /**
  * @brief Unified QP Profile attributes - contains both EV and CC attributes
  */
 struct mrc_ctl_qp_profile_attr {
+	/* Move the profile to this state. */
+	enum mrc_ctl_qp_profile_state profile_state;
+	/* Current profile state. */
+	enum mrc_ctl_qp_profile_state cur_profile_state;
+
 	/* EV Profile attributes */
 	struct {
 		/*
@@ -388,11 +441,40 @@ struct mrc_ctl_qp_profile_attr {
 		const void *cc_config;
 	} cc;
 	
-	/* Move the profile to this state. */
-	enum mrc_ctl_qp_profile_state profile_state;
+	/* QP attributes */
+	struct {
+		struct
+		{
+			/* Requestor MPR value; unit=128 PSNs */
+			uint8_t mpr;
+			/* Responder MPR value; unit=128 PSNs */
+			uint8_t mpr_dest;
+			/* if 1/true, enable Responder dynamic MPR support */
+			uint8_t dynamic_mpr_dest;
+		} mpr;
 
-	/* Current profile state. */
-	enum mrc_ctl_qp_profile_state cur_profile_state;
+		struct
+		{
+			/* Max inflight WIMMs as requestor */
+			uint16_t max_wimm;
+			/* Max inflight WIMMs as responder */
+			uint16_t max_wimm_dest;
+		} wimm;
+	
+	/* Local ACK timeout; 1.024 * 2^timeout us. Max val = 24 (17.17s) */
+	uint8_t timeout;
+#if 0
+	 	//TODO: Uncomment after HW spec is updated (1.09)
+		struct
+		{
+			/* Fixed interval retry count; Max value = 8 */
+			uint8_t retry_cnt_fixed;
+			/* Exponential retry count; Max val = 32 (infinite retry) */
+			uint8_t retry_cnt_exp;
+		} retry_cnt;
+#endif
+	uint8_t vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
+	} qp;
 };
 
 /*****************************************************************************
