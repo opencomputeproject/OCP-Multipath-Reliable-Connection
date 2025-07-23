@@ -460,11 +460,11 @@ struct mrc_ctl_qp_profile_attr {
 			/* Max inflight WIMMs as responder */
 			uint16_t max_wimm_dest;
 		} wimm;
-	
+
 	/* Local ACK timeout; 1.024 * 2^timeout us. Max val = 24 (17.17s) */
 	uint8_t timeout;
 #if 0
-	 	//TODO: Uncomment after HW spec is updated (1.09)
+		//TODO: Uncomment after HW spec is updated (1.09)
 		struct
 		{
 			/* Fixed interval retry count; Max value = 8 */
