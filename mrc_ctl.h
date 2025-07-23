@@ -146,6 +146,12 @@ struct mrc_ctl_attr {
 		const char **cc_algorithms;
 	} cc;
 
+	/*
+	 * Port mask for ports owned by this this function; each bit represents
+	 * an active port.  Port numbers match ibv_query_port() (1-based).
+	 */
+	uint64_t port_mask;
+
 	/* bitmap of all optional features supported (mrc_ctl_attr_opt) */
 	uint32_t opt_attr;
 };
@@ -295,12 +301,6 @@ struct mrc_ctl_ev_profile_attr {
 
 	/* Current profile state. */
 	enum mrc_ctl_profile_state cur_profile_state;
-
-	/*
-	 * EV port mask for this profile; each bit represents an active port.
-		 * Port numbers match ibv_query_port() (1-based).
-	 */
-	uint64_t port_mask;
 
 	/*
 	 * The EV mode for this profile:
