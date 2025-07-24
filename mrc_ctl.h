@@ -385,10 +385,6 @@ enum mrc_ctl_qp_profile_attr_mask {
 	/* QP WIMM Profile attributes */
 	MRC_CTL_QP_PROFILE_MAX_WIMM = 1 << 16,
 	MRC_CTL_QP_PROFILE_MAX_WIMM_DEST = 1 << 17,
-	
-	/* QP attributes */
-	MRC_CTL_QP_PROFILE_TIMEOUT = 1 << 18,
-	MRC_CTL_QP_PROFILE_VENDOR_CFG = 1 << 19,
 };
 
 /**
@@ -461,8 +457,6 @@ struct mrc_ctl_qp_profile_attr {
 			uint16_t max_wimm_dest;
 		} wimm;
 
-	/* Local ACK timeout; 1.024 * 2^timeout us. Max val = 24 (17.17s) */
-	uint8_t timeout;
 #if 0
 		//TODO: Uncomment after HW spec is updated (1.09)
 		struct
@@ -473,7 +467,6 @@ struct mrc_ctl_qp_profile_attr {
 			uint8_t retry_cnt_exp;
 		} retry_cnt;
 #endif
-	uint8_t vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 	} qp;
 };
 

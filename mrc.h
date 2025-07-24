@@ -45,6 +45,9 @@ extern "C" {
 #warning "MRC_API_VER_USED is equal to MRC_API_LAST_SUPPORTED version, may become obsolete"
 #endif
 
+/* Maximum size of opaque vendor configuration data */
+#define MRC_MAX_VENDOR_CFG_SIZE 128
+
 enum mrc_version {
 	MRC_VERSION_0	= 0, /* MRC not supported */
 	MRC_VERSION_1	= (1 << 0),
@@ -456,14 +459,19 @@ int mrc_destroy_qp(struct mrc_qp *qp);
  * The list of attributes that may be changed upon transitioning QP
  * state from Reset->Init->RTR->RTS are:
  *
- * Next State  Required Attributes
- * ----------  -------------------
- * INIT        MRC_QP_PROFILE_ID
- *             MRC_QP_HINT
+ * Next State  	Required Attributes
+ * ----------  	-------------------
+ * INIT			MRC_QP_PROFILE_ID
+ *				MRC_QP_HINT
+ *
+ * RTS			MRC_QP_TIMEOUT
  */
+
 enum mrc_qp_attr_mask {
 	MRC_QP_PROFILE	= (1<<0),	/* QP profile ID */
 	MRC_QP_HINT		= (1<<1),	/* QP hint */
+	MRC_QP_TIMEOUT	= (1<<2),	/* Local ACK timeout */
+	MRC_QP_VENDOR_CFG = (1<<3),	/* Vendor configuration data */
 };
 
 struct mrc_qp_attr {
@@ -471,6 +479,12 @@ struct mrc_qp_attr {
 
 	/* QP hint, if NULL then no hint is assigned */
 	struct mrc_qp_hint *qp_hint;
+
+	/* Local ACK timeout; 1.024 * 2^timeout us. Max val = 24 (17.17s) */
+	uint8_t timeout;
+
+	/* Vendor-specific configuration data */
+	uint8_t vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
 
 /**
@@ -503,7 +517,7 @@ int mrc_query_qp(struct mrc_qp *qp,
  *
  * The following IBV field masks are NOT supported:
  *     IBV_QP_PORT
- *     IBV_QP_TIMEOUT
+ *     IBV_QP_TIMEOUT (use MRC_QP_TIMEOUT)
  *     IBV_QP_RETRY_CNT
  *     IBV_QP_RNR_RETRY
  *     IBV_QP_MIN_RNR_TIMER
