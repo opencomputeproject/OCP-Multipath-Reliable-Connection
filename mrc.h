@@ -28,23 +28,7 @@
 extern "C" {
 #endif
 
-#define MRC_API_CURRENT_VERSION	MRC_API_VER(1, 0, 0)
-
-#define MRC_API_LAST_SUPPORTED_VERSION	MRC_API_VER(0, 0, 0)
-
-#ifndef MRC_API_VER_USED
-#define MRC_API_VER_USED MRC_API_CURRENT_VERSION
-#elif MRC_API_VER_USED == MRC_API_VER_LATEST
-#undef MRC_API_VER_USED
-#define MRC_API_VER_USED MRC_API_CURRENT_VERSION
-#endif
-
-#if MRC_API_VER_USED < MRC_API_LAST_SUPPORTED_VERSION
-#error "MRC_API_VER_USED is less than MRC_API_LAST_SUPPORTED version"
-#elif MRC_API_VER_USED == MRC_API_LAST_SUPPORTED_VERSION
-#warning "MRC_API_VER_USED is equal to MRC_API_LAST_SUPPORTED version, may become obsolete"
-#endif
-
+/* Maximum size of opaque vendor configuration data */
 #define MRC_MAX_VENDOR_CFG_SIZE 128
 
 enum mrc_version {
