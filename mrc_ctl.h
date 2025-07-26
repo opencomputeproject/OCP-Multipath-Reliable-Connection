@@ -16,6 +16,17 @@
  * reserved.
  */
 
+/* MRC Controller API.
+ * -------------------
+ * This API is used by the network controller for configuration, management
+ * and monitoring of MRC QPs.
+ *
+ * Controller processes obtain an mrc_context via the mrc_open_context()
+ * function.
+ *
+ * Controller processes MUST possess CAP_NET_ADMIN capability privileges.
+ */
+
 #ifndef _MRC_CTL_API_H_
 #define _MRC_CTL_API_H_
 
@@ -33,11 +44,6 @@ extern "C" {
 
 /* Maximum size of opaque vendor configuration data */
 #define MRC_MAX_VENDOR_CFG_SIZE 128
-
-enum mrc_ctl_version {
-	MRC_CTL_VERSION_0	= 0, /* MRC not supported */
-	MRC_CTL_VERSION_1	= (1 << 0),
-};
 
 /*****************************************************************************
  * Device Query
