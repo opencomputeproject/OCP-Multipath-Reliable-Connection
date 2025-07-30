@@ -60,9 +60,28 @@ struct mrc_qp;
 struct mrc_cq;
 struct mrc_comp_channel;
 
+struct mrc_attr {
+	/* bitmap of all versions supported (see enum mrc_version) */
+	uint32_t mrc_version;
+};
+
+/**
+ * @brief Query Device
+ *
+ * Query the device to check MRC support and other attributes.
+ *
+ * @param context[in] - IB Verbs context
+ * @param attrs[out]  - MRC attributes
+ *
+ * @return 0 on success.
+ * @return Errors like ibv_query_device().
+ */
+int mrc_query_device(struct ibv_context *context,
+			 struct mrc_attr *attr);
+
 /* Context attributes declare the application's usage of MRC */
 struct mrc_context_attr {
-	/* API version used; value from mrc_version */
+	/* Value from mrc_version */
 	uint32_t mrc_api_version_used;
 };
 
