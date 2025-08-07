@@ -63,6 +63,11 @@ struct mrc_comp_channel;
 struct mrc_attr {
 	/* bitmap of all versions supported (see enum mrc_version) */
 	uint32_t mrc_version;
+
+	struct {
+		/* Maximum number of QP hints supported by the device. */
+		uint32_t max_qp_hint;
+	} qp_attr;
 };
 
 /**
