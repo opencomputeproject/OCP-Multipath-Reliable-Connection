@@ -308,7 +308,7 @@ enum mrc_ctl_ev_mode {
  * valid values before moving the profile to ONLINE.
  *
  * @param mrc_ctx[in]       - MRC context
- * @param ev_profile_id[in] - EV profile
+ * @param profile_id[in]    - QP Profile ID
  * @param cur_ev[in]        - Current EV
  * @param new_ev[in]        - New EV
  *
@@ -319,7 +319,7 @@ enum mrc_ctl_ev_mode {
  * @retval EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_replace_ev(struct mrc_context *mrc_ctx,
-			   uint64_t ev_profile_id,
+			   uint64_t profile_id,
 			   struct mrc_ctl_ev cur_ev,
 			   struct mrc_ctl_ev new_ev);
 
@@ -329,7 +329,7 @@ int mrc_ctl_replace_ev(struct mrc_context *mrc_ctx,
  * Supported when a profile is OFFLINE and ONLINE state.
  *
  * @param mrc_ctx[in]       - MRC context
- * @param ev_profile_id[in] - EV profile
+ * @param profile_id[in]    - QP Profile ID
  * @param ev[in]            - EV
  * @param state[out]        - Returned EV state
  *
@@ -340,7 +340,7 @@ int mrc_ctl_replace_ev(struct mrc_context *mrc_ctx,
  * @retval EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_query_ev_state(struct mrc_context *mrc_ctx,
-		   uint64_t ev_profile_id,
+		   uint64_t profile_id,
 		   struct mrc_ctl_ev ev,
 		   enum mrc_ctl_ev_state *state);
 
@@ -562,7 +562,7 @@ int mrc_ctl_query_qp_profile(struct mrc_context *mrc_ctx,
  * mask field.
  */
 struct mrc_ctl_ev_event {
-	uint64_t ev_profile_id;
+	uint64_t profile_id;
 	struct mrc_ctl_ev ev;
 	/*
 	 * If MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT is set, this field
