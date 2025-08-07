@@ -709,8 +709,8 @@ void mrc_ack_cq_events(struct mrc_cq *cq,
 struct mrc_qp_profile_status {
 	/* QP profile identifier. */
 	uint64_t profile_id;
-	/* Non-zero if the QP profile is allocated and online. */
-	int online;
+	/* Non-zero if the QP profile is available for use. */
+	int available;
 };
 
 /**
