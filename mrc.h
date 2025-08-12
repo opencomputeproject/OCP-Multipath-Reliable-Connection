@@ -49,7 +49,7 @@ extern "C" {
 #define MRC_MAX_VENDOR_CFG_SIZE 128
 
 enum mrc_version {
-	MRC_VERSION_0	= 0, /* MRC not supported */
+	MRC_VERSION_0	= 0, /* MRC version unspecified */
 	MRC_VERSION_1	= (1 << 0),
 };
 
@@ -61,7 +61,10 @@ struct mrc_cq;
 struct mrc_comp_channel;
 
 struct mrc_attr {
-	/* bitmap of all versions supported (see enum mrc_version) */
+	/* Bitmap of all versions supported (see enum mrc_version).
+	 * The value 0 indicates the provider should choose an
+	 * an appropriate version.
+	 */
 	uint32_t mrc_version;
 
 	struct {
@@ -93,15 +96,19 @@ struct mrc_attr {
  * @brief Query Device
  *
  * Query the device to check MRC support and other attributes.
+ * The value returned in `supported` is 0 when MRC support is not
+ * available.
  *
  * @param context[in] - IB Verbs context
  * @param attrs[out]  - MRC attributes
+ * @param supported[out] - MRC support
  *
  * @return 0 on success.
  * @return Errors like ibv_query_device().
  */
 int mrc_query_device(struct ibv_context *context,
-		     struct mrc_attr *attr);
+		     struct mrc_attr *attr,
+		     int *supported);
 
 /* Context attributes declare the application's usage of MRC */
 struct mrc_context_attr {
@@ -462,7 +469,6 @@ struct mrc_qp_init_attr {
 	void               *qp_context;
 	struct mrc_cq      *send_cq;
 	struct mrc_cq      *recv_cq;
-	struct mrc_cq      *ev_cq;
 	struct ibv_qp_cap   cap;
 	int                 sq_sig_all;
 	struct ibv_pd      *pd;
@@ -510,6 +516,7 @@ int mrc_destroy_qp(struct mrc_qp *qp);
  * RTR         MRC_QP_MAX_WIMM_DEST
  *             MRC_QP_MPR_DEST
  *             MRC_QP_DYNAMIC_MPR_DEST
+ * 	       MRC_QP_PROTOCOL_VERSION
  *
  * RTS         MRC_QP_MAX_WIMM
  *             MRC_QP_MPR
@@ -535,16 +542,18 @@ enum mrc_qp_attr_mask {
 	MRC_CC_PROFILE	= (1<<7),
 	/* QP hint */
 	MRC_QP_HINT			= (1<<8),
+	/* MRC protocol version */
+	MRC_QP_PROTOCOL_VERSION		= (1<<9),
 #if 0
-	/* TODO: Uncomment after HW spec is updated (1.09) */
-	/* QP (fixed+exponential) retry counter */
-	MRC_QP_RETRY_CNT		= (1<<8),
+	MRC_QP_RETRY_CNT		= (1<<10), /* QP (fixed + exponential) retry counter */
 #endif
-	/* QP Address Vector */
 	MRC_QP_VENDOR_CFG		= (1<<31)
 };
 
 struct mrc_qp_attr {
+
+	/* MRC version used for this QP */
+	enum mrc_version version;
 
 	struct {
 		/* Requestor MPR value; unit=128 PSNs */
