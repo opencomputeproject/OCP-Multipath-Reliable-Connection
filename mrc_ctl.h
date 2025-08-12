@@ -142,8 +142,8 @@ struct mrc_ctl_attr {
 		uint32_t cc_max_profiles;
 
 		/* Array of CC algorithm strings.
-		 * Last element is NULL; stop iterating at NULL.
-		 * Consumers must NOT free these pointers.
+         * Last element is NULL; stop iterating at NULL.
+         * Consumers must NOT free these pointers.
 		 *
 		 * The following common strings are defined:
 		 *   "mrc-smtrk-1.00" - MRCv1 SmaRTTrack 1.00
@@ -230,8 +230,8 @@ int mrc_ctl_modify_ev_field_widths(struct mrc_context *mrc_ctx,
  */
 int mrc_ctl_query_ev_field_widths(struct mrc_context *mrc_ctx,
 				  struct mrc_ctl_ev_field *ev_fields,
-				  int ev_field_count,
-				  int *cur_ev_field_count);
+                  int ev_field_count,
+                  int *cur_ev_field_count);
 
 
 /*****************************************************************************
@@ -295,9 +295,9 @@ enum mrc_ctl_ev_mode {
  * @retval EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_replace_ev(struct mrc_context *mrc_ctx,
-			   uint64_t profile_id,
-			   struct mrc_ctl_ev cur_ev,
-			   struct mrc_ctl_ev new_ev);
+		       uint64_t ev_profile_id,
+		       struct mrc_ctl_ev cur_ev,
+		       struct mrc_ctl_ev new_ev);
 
 /**
  * @brief Query an EV's state
@@ -525,9 +525,9 @@ int mrc_ctl_query_ev_profile(struct mrc_context *mrc_ctx,
  * @retval EBUSY One or more active QPs are associated with this profile.
  */
 int mrc_ctl_modify_cc_profile(struct mrc_context *mrc_ctx,
-				uint64_t cc_profile_id,
-				struct mrc_ctl_cc_profile_attr *attr,
-				int attr_mask);
+                  uint64_t cc_profile_id,
+                  struct mrc_ctl_cc_profile_attr *attr,
+                  int attr_mask);
 
 /**
  * @brief Query a CC profile
@@ -545,9 +545,9 @@ int mrc_ctl_modify_cc_profile(struct mrc_context *mrc_ctx,
  * @retval EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_query_cc_profile(struct mrc_context *mrc_ctx,
-				uint64_t cc_profile_id,
-				struct mrc_ctl_cc_profile_attr *attr,
-				int attr_mask);
+                uint64_t cc_profile_id,
+                struct mrc_ctl_cc_profile_attr *attr,
+                int attr_mask);
 
 /****************************************************************************
  * EV Events
@@ -672,12 +672,12 @@ struct mrc_ctl_ev_probe_rsp {
  * @retval ETIMEDOUT Timeout occurred before all responses received.
  */
 int mrc_ctl_probe_ev(struct mrc_context *mrc_ctx,
-			 uint8_t req_tc,
-			 struct mrc_ctl_ev_probe_req *req,
-			 int num_req,
-			 uint32_t rsp_timeout,
-			 struct mrc_ctl_ev_probe_rsp *rsp,
-			 int *num_rsp);
+		     uint8_t req_tc,
+		     struct mrc_ctl_ev_probe_req *req,
+		     int num_req,
+		     uint32_t rsp_timeout,
+		     struct mrc_ctl_ev_probe_rsp *rsp,
+		     int *num_rsp);
 
 #ifdef __cplusplus
 }
