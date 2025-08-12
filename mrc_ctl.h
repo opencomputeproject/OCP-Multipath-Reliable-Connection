@@ -143,7 +143,7 @@ struct mrc_ctl_attr {
          * Consumers must NOT free these pointers.
 		 *
 		 * The following common strings are defined:
-		 *   "mrc-smtrk-1.00" - MRCv1 SmaRTTrack 1.00
+		 *   "uet-1.0-nscc" - UET 1.0 NSCC
 		 */
 		const char **cc_algorithms;
 	} cc;
@@ -412,9 +412,9 @@ struct mrc_ctl_cc_profile_attr {
 *****************************************************************************/
 
 /**
- * @brief SmaRTTrack configuration structure
+ * @brief NSCC configuration structure
  */
-struct mrc_ctl_cc_smtrk_cfg {
+struct mrc_ctl_cc_nscc_cfg {
 	uint8_t disable_qa;                /* QA disabled if non-zero */
 	uint32_t adjust_bytes_threshold;   /* unit = 1B */
 	uint32_t adjust_period_threshold;  /* unit = 1ns */
