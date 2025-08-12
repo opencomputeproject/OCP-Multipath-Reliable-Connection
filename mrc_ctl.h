@@ -65,23 +65,25 @@ enum mrc_ctl_version {
  * @brief Optional control features supported by the implementation
  */
 enum mrc_ctl_attr_opt {
-	/* Device supports modifying ONLINE QP profiles */
-	MRC_CTL_OPT_CAP_QP_PROFILE_MODIFY_ONLINE = (1<<0),
+	/* Device supports modifying ONLINE EV profiles */
+	MRC_CTL_OPT_CAP_EV_PROFILE_MODIFY_ONLINE = (1<<0),
+	/* Device supports modifying ONLINE CC profiles */
+	MRC_CTL_OPT_CAP_CC_PROFILE_MODIFY_ONLINE = (1<<1),
 	/* The implementation supports EV Events */
-	MRC_CTL_OPT_CAP_EV_EVENT			= (1<<1),
+	MRC_CTL_OPT_CAP_EV_EVENT			= (1<<2),
 	/* The implementation supports explicit EV arrays */
-	MRC_CTL_OPT_CAP_EV_EXPLICIT			= (1<<2),
+	MRC_CTL_OPT_CAP_EV_EXPLICIT			= (1<<3),
 	/* The implementation supports generated EV arrays */
-	MRC_CTL_OPT_CAP_EV_GENERATED		= (1<<3),
+	MRC_CTL_OPT_CAP_EV_GENERATED		= (1<<4),
 	/*
 	* Only contiguous ranges supported in explicit mode. First EV value is
 	* base; last is 'base_ev_val + (ev_count - 1)'
 	 */
-	MRC_CTL_OPT_CAP_EV_EXPLICIT_RANGE	= (1<<4),
+	MRC_CTL_OPT_CAP_EV_EXPLICIT_RANGE	= (1<<5),
 	/* The implementation supports EV Probes. */
-	MRC_CTL_OPT_CAP_EV_PROBE			= (1<<5),
+	MRC_CTL_OPT_CAP_EV_PROBE			= (1<<6),
 	/* The implementation supports precise EV Event drop counts. */
-	MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= (1<<6),
+	MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= (1<<7),
 };
 
 /**
@@ -149,32 +151,6 @@ struct mrc_ctl_attr {
 		const char **cc_algorithms;
 	} cc;
 
-	/* QP attributes */
-	struct {
-		/* WriteIMM attributes */
-		struct
-		{
-			/* Max configurable value as requestor. */
-			uint16_t max_wimm;
-			/* Max configurable value as responder. */
-			uint16_t max_wimm_dest;
-		} wimm_attr;
-
-		/* MPR attributes */
-		struct
-		{
-			/*
-			 * Maximum supported MPR value as requestor or responder.
-			 * units = 128 PSNs
-			 */
-			uint8_t max_mpr;
-			/* MPR resource allocation resolution; unit = 128 PSNs. */
-			uint8_t mpr_resolution;
-			/* if non-zero, implementation supports dynamic MPR */
-			uint8_t dynamic_mpr;
-		} mpr_attr;
-	} qp;
-
 	/*
 	 * Port mask for ports owned by this this function; each bit represents
 	 * an active port.  Port numbers match ibv_query_port() (1-based).
@@ -231,8 +207,8 @@ struct mrc_ctl_ev_field {
  * @retval EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_modify_ev_field_widths(struct mrc_context *mrc_ctx,
-				  struct mrc_ctl_ev_field *ev_fields,
-				  int ev_field_count);
+			      struct mrc_ctl_ev_field *ev_fields,
+			      int ev_field_count);
 
 /**
  * @brief Query the EV field widths.
@@ -243,7 +219,7 @@ int mrc_ctl_modify_ev_field_widths(struct mrc_context *mrc_ctx,
  * count only the elements up to provided count will be returned in the array.
  *
  * @param mrc_ctx[in]             - MRC context
- * @param ev_fields[out]    	  - Populated with EV field widths and bounds
+ * @param ev_fields[out]          - Populated with EV field widths and bounds
  * @param ev_field_count[in]      - Length of provided ev_fields argument
  * @param cur_ev_field_count[out] - Number of configued EV fields
  *
@@ -340,14 +316,14 @@ int mrc_ctl_replace_ev(struct mrc_context *mrc_ctx,
  * @retval EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_query_ev_state(struct mrc_context *mrc_ctx,
-		   uint64_t profile_id,
+		   uint64_t ev_profile_id,
 		   struct mrc_ctl_ev ev,
 		   enum mrc_ctl_ev_state *state);
 
 /*****************************************************************************
- * QP Profile
+ * EV Profile
 *****************************************************************************/
-enum mrc_ctl_qp_profile_state {
+enum mrc_ctl_profile_state {
 	MRC_CTL_PROFILE_UNKNOWN,        /* State cannot be reliably determined. */
 	MRC_CTL_PROFILE_INIT,           /* Initialized and ready for config. */
 	MRC_CTL_PROFILE_OFFLINE,        /* Configured but not usable. */
@@ -355,119 +331,83 @@ enum mrc_ctl_qp_profile_state {
 };
 
 /**
- * @brief QP profile attr mask
+ * @brief EV profile attribute mask
  */
-enum mrc_ctl_qp_profile_attr_mask {
-	/* Profile state attributes */
-	MRC_CTL_QP_PROFILE_STATE = 1 << 0,
-	MRC_CTL_QP_PROFILE_CUR_STATE = 1 << 1,
-
-	/* EV Profile attributes */
-	MRC_CTL_QP_PROFILE_EV_STATE = 1 << 2,
-	MRC_CTL_QP_PROFILE_EV_CUR_STATE = 1 << 3,
-	MRC_CTL_QP_PROFILE_EV_PORT_MASK = 1 << 4,
-	MRC_CTL_QP_PROFILE_EV_MODE = 1 << 5,
-	MRC_CTL_QP_PROFILE_EV_COUNT = 1 << 6,
-	MRC_CTL_QP_PROFILE_EV_MIN_ACTIVE = 1 << 7,
-	MRC_CTL_QP_PROFILE_EV_EVENT_MASK = 1 << 8,
-	
-	/* CC Profile attributes */
-	MRC_CTL_QP_PROFILE_CC_STATE = 1 << 9,
-	MRC_CTL_QP_PROFILE_CC_CUR_STATE = 1 << 10,
-	MRC_CTL_QP_PROFILE_CC_ALGORITHM = 1 << 11,
-	MRC_CTL_QP_PROFILE_CC_CONFIG = 1 << 12,
-
-	/* QP MPR Profile attributes */
-	MRC_CTL_QP_PROFILE_MPR = 1 << 13,
-	MRC_CTL_QP_PROFILE_MPR_DEST = 1 << 14,
-	MRC_CTL_QP_PROFILE_DYNAMIC_MPR_DEST = 1 << 15,
-
-	/* QP WIMM Profile attributes */
-	MRC_CTL_QP_PROFILE_MAX_WIMM = 1 << 16,
-	MRC_CTL_QP_PROFILE_MAX_WIMM_DEST = 1 << 17,
+enum mrc_ctl_ev_profile_attr_mask {
+	MRC_CTL_EV_PROFILE_STATE       = 1 << 0,
+	MRC_CTL_EV_PROFILE_CUR_STATE   = 1 << 1,
+	MRC_CTL_EV_PROFILE_MODE        = 1 << 2,
+	MRC_CTL_EV_PROFILE_COUNT       = 1 << 3,
+	MRC_CTL_EV_PROFILE_MIN_ACTIVE  = 1 << 4,
+	MRC_CTL_EV_PROFILE_EVENT_MASK  = 1 << 5,
 };
 
 /**
- * @brief Unified QP Profile attributes - contains both EV and CC attributes
+ * @brief EV Profile attributes
  */
-struct mrc_ctl_qp_profile_attr {
+struct mrc_ctl_ev_profile_attr {
 	/* Move the profile to this state. */
-	enum mrc_ctl_qp_profile_state profile_state;
+	enum mrc_ctl_profile_state profile_state;
 	/* Current profile state. */
-	enum mrc_ctl_qp_profile_state cur_profile_state;
+	enum mrc_ctl_profile_state cur_profile_state;
 
-	/* EV Profile attributes */
-	struct {
-		/*
-		 * The EV mode for this profile:
-		 * - MRC_CTL_EV_MODE_AUTO: Vendor-defined mode.
-		 * - MRC_CTL_EV_MODE_EXPLICIT: Caller provides explicit EV values.
-		 * - MRC_CTL_EV_MODE_GENERATED: HW generated within EV field bounds.
-		 */
-		enum mrc_ctl_ev_mode ev_mode;
+	/*
+	 * The EV mode for this profile:
+	 * - MRC_CTL_EV_MODE_AUTO: Vendor-defined mode.
+	 * - MRC_CTL_EV_MODE_EXPLICIT: Caller provides explicit EV values.
+	 * - MRC_CTL_EV_MODE_GENERATED: HW generated within EV field bounds.
+	 */
+	enum mrc_ctl_ev_mode ev_mode;
 
-		/*
-		 * For explicit EVs: the size of the explicit EV array.
-		 * For generated EVs: the number of generated EVs.
-		 */
-		uint32_t ev_count;
+	/*
+	 * For explicit EVs: the size of the explicit EV array.
+	 * For generated EVs: the number of generated EVs.
+	 */
+	uint32_t ev_count;
 
-		/*
-		 * Min number of EVs that must remain active to avoid the situation of
-		 * marking too many EVs as ASSUMED_BAD. This value cannot be greater
-		 * then ev_count.
-		 */
-		uint32_t ev_min_active;
+	/*
+	 * Min number of EVs that must remain active to avoid the situation of
+	 * marking too many EVs as ASSUMED_BAD. This value cannot be greater
+	 * than ev_count.
+	 */
+	uint32_t ev_min_active;
 
-		/*
-		 * EV event mask for EV state change notifications on this profile.
-		 * Only EV_ASSUMED_BAD and EV_GOOD is supported.  May be modified when
-		 * the profile is in ONLINE state if the provider advertises
-		 * QP_PROFILE_MODIFY_ONLINE capability.
-		 */
-		int ev_event_mask;
-	} ev;
-	
-	/* CC Profile attributes */
-	struct {
-		/* String describing CC algorithm to associate with this profile. */
-		const char *cc_algorithm;
+	/*
+	 * EV event mask for EV state change notifications on this profile.
+	 * Only EV_ASSUMED_BAD and EV_GOOD is supported. May be modified when
+	 * the profile is in ONLINE state if the provider advertises
+	 * EV_PROFILE_MODIFY_ONLINE capability.
+	 */
+	int ev_event_mask;
+};
 
-		/* Algorithm-specific configuration structure. */
-		const void *cc_config;
-	} cc;
-	
-	/* QP attributes */
-	struct {
-		struct
-		{
-			/* Requestor MPR value; unit=128 PSNs */
-			uint8_t mpr;
-			/* Responder MPR value; unit=128 PSNs */
-			uint8_t mpr_dest;
-			/* if 1/true, enable Responder dynamic MPR support */
-			uint8_t dynamic_mpr_dest;
-		} mpr;
+/*****************************************************************************
+ * CC Profile
+*****************************************************************************/
+/**
+ * @brief CC profile attribute mask
+ */
+enum mrc_ctl_cc_profile_attr_mask {
+	MRC_CTL_CC_PROFILE_STATE     = 1 << 0,
+	MRC_CTL_CC_PROFILE_CUR_STATE = 1 << 1,
+	MRC_CTL_CC_PROFILE_ALGORITHM = 1 << 2,
+	MRC_CTL_CC_PROFILE_CONFIG    = 1 << 3,
+};
 
-		struct
-		{
-			/* Max inflight WIMMs as requestor */
-			uint16_t max_wimm;
-			/* Max inflight WIMMs as responder */
-			uint16_t max_wimm_dest;
-		} wimm;
+/**
+ * @brief CC Profile attributes
+ */
+struct mrc_ctl_cc_profile_attr {
+	/* Move the profile to this state. */
+	enum mrc_ctl_profile_state profile_state;
+	/* Current profile state. */
+	enum mrc_ctl_profile_state cur_profile_state;
 
-#if 0
-		//TODO: Uncomment after HW spec is updated (1.09)
-		struct
-		{
-			/* Fixed interval retry count; Max value = 8 */
-			uint8_t retry_cnt_fixed;
-			/* Exponential retry count; Max val = 32 (infinite retry) */
-			uint8_t retry_cnt_exp;
-		} retry_cnt;
-#endif
-	} qp;
+	/* String describing CC algorithm to associate with this profile. */
+	const char *cc_algorithm;
+
+	/* Algorithm-specific configuration structure. */
+	const void *cc_config;
 };
 
 /*****************************************************************************
@@ -494,13 +434,13 @@ struct mrc_ctl_cc_smtrk_cfg {
 };
 
 /*****************************************************************************
- * QP Profile
+ * EV Profile Management
 *****************************************************************************/
 
 /**
- * @brief Modify a QP profile
+ * @brief Modify an EV profile
  *
- * QP profile state machine:
+ * EV profile state machine:
  *   INIT -> OFFLINE -> ONLINE -> OFFLINE -> INIT
  *
  * States:
@@ -509,16 +449,16 @@ struct mrc_ctl_cc_smtrk_cfg {
  *   ONLINE:  Active and usable; only limited modifications allowed.
  *
  * Required attributes for state transitions:
- *   To OFFLINE: EV_MODE, EV_COUNT, CC_ALGORITHM
- *   To ONLINE:  EV_MIN_ACTIVE, EV_EVENT_MASK, CC_CONFIG, EVs (Exp. EV Array)
+ *   To OFFLINE: EV_MODE, EV_COUNT
+ *   To ONLINE:  EV_MIN_ACTIVE, EV_EVENT_MASK, EVs (for Explicit EV Array)
  *
- * Allowed in ONLINE state (if QP_PROFILE_MODIFY_ONLINE advertised):
- *   EV_EVENT_MASK, mrc_ctl_replace_ev(), CC_CONFIG
+ * Allowed in ONLINE state (if EV_PROFILE_MODIFY_ONLINE advertised):
+ *   EV_EVENT_MASK, mrc_ctl_replace_ev()
  *
  * @param mrc_ctx[in]     - MRC context
- * @param profile_id[in]  - QP Profile ID
- * @param attr[in]        - QP Profile attribute structure
- * @param attr_mask[in]   - Bitmask of QP Profile attribute mask
+ * @param ev_profile_id[in] - EV Profile ID
+ * @param attr[in]        - EV Profile attribute structure
+ * @param attr_mask[in]   - Bitmask of EV Profile attribute mask
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -526,29 +466,87 @@ struct mrc_ctl_cc_smtrk_cfg {
  * @retval EPERM Process lacks sufficient permissions.
  * @retval EBUSY One or more active QPs are associated with this profile.
  */
-int mrc_ctl_modify_qp_profile(struct mrc_context *mrc_ctx,
-				uint64_t profile_id,
-				struct mrc_ctl_qp_profile_attr *attr,
+int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
+				uint64_t ev_profile_id,
+				struct mrc_ctl_ev_profile_attr *attr,
 				int attr_mask);
 
 /**
- * @brief Query a QP profile
+ * @brief Query an EV profile
  *
- * Query a QP profile configuration.
+ * Query an EV profile configuration.
  *
  * @param mrc_ctx[in]     - MRC context
- * @param profile_id[in]  - QP Profile ID
- * @param attr[out]       - QP Profile attribute structure
- * @param attr_mask[in]   - Bitmask of QP Profile attribute mask
+ * @param ev_profile_id[in] - EV Profile ID
+ * @param attr[out]       - EV Profile attribute structure
+ * @param attr_mask[in]   - Bitmask of EV Profile attribute mask
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
  * @retval EIO Implementation specific error occurred.
  * @retval EPERM Process lacks sufficient permissions.
  */
-int mrc_ctl_query_qp_profile(struct mrc_context *mrc_ctx,
-				uint64_t profile_id,
-				struct mrc_ctl_qp_profile_attr *attr,
+int mrc_ctl_query_ev_profile(struct mrc_context *mrc_ctx,
+				uint64_t ev_profile_id,
+				struct mrc_ctl_ev_profile_attr *attr,
+				int attr_mask);
+
+/*****************************************************************************
+ * CC Profile Management
+*****************************************************************************/
+
+/**
+ * @brief Modify a CC profile
+ *
+ * CC profile state machine:
+ *   INIT -> OFFLINE -> ONLINE -> OFFLINE -> INIT
+ *
+ * States:
+ *   INIT:    Profile created, not yet configured.
+ *   OFFLINE: Configured but inactive; can be modified.
+ *   ONLINE:  Active and usable; only limited modifications allowed.
+ *
+ * Required attributes for state transitions:
+ *   To OFFLINE: CC_ALGORITHM
+ *   To ONLINE:  CC_CONFIG
+ *
+ * Allowed in ONLINE state (if CC_PROFILE_MODIFY_ONLINE advertised):
+ *   CC_CONFIG
+ *
+ * @param mrc_ctx[in]     - MRC context
+ * @param cc_profile_id[in] - CC Profile ID
+ * @param attr[in]        - CC Profile attribute structure
+ * @param attr_mask[in]   - Bitmask of CC Profile attribute mask
+ *
+ * @return 0 on success.
+ * @retval EINVAL One or more supplied arguments are invalid.
+ * @retval EIO Implementation specific error occurred.
+ * @retval EPERM Process lacks sufficient permissions.
+ * @retval EBUSY One or more active QPs are associated with this profile.
+ */
+int mrc_ctl_modify_cc_profile(struct mrc_context *mrc_ctx,
+				uint64_t cc_profile_id,
+				struct mrc_ctl_cc_profile_attr *attr,
+				int attr_mask);
+
+/**
+ * @brief Query a CC profile
+ *
+ * Query a CC profile configuration.
+ *
+ * @param mrc_ctx[in]     - MRC context
+ * @param cc_profile_id[in] - CC Profile ID
+ * @param attr[out]       - CC Profile attribute structure
+ * @param attr_mask[in]   - Bitmask of CC Profile attribute mask
+ *
+ * @return 0 on success.
+ * @retval EINVAL One or more supplied arguments are invalid.
+ * @retval EIO Implementation specific error occurred.
+ * @retval EPERM Process lacks sufficient permissions.
+ */
+int mrc_ctl_query_cc_profile(struct mrc_context *mrc_ctx,
+				uint64_t cc_profile_id,
+				struct mrc_ctl_cc_profile_attr *attr,
 				int attr_mask);
 
 /****************************************************************************
