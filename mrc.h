@@ -402,7 +402,7 @@ int mrc_destroy_qp(struct mrc_qp *qp);
  * Next State  Required Attributes
  * ----------  -------------------
  * INIT        MRC_QP_HINT
- * 	       MRC_QP_EV_PROFILE_ID
+ * 	       MRC_QP_EV_PROFILE_ID, MRC_QP_CC_PROFILE_ID
  *
  * RTR         MRC_QP_MAX_WIMM_DEST
  *             MRC_QP_MPR_DEST
@@ -428,9 +428,9 @@ enum mrc_qp_attr_mask {
 	/* QP ACK timeout */
 	MRC_QP_TIMEOUT			= (1<<5),
 	/* EV Profile */
-	MRC_EV_PROFILE	= (1<<6),
+	MRC_EV_PROFILE_ID = (1<<6),
 	/* CC Profile */
-	MRC_CC_PROFILE	= (1<<7),
+	MRC_CC_PROFILE_ID = (1<<7),
 	/* QP hint */
 	MRC_QP_HINT			= (1<<8),
 	/* MRC protocol version */
