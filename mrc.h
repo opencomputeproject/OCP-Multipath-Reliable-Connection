@@ -65,6 +65,9 @@ struct mrc_attr {
 	 */
 	uint32_t mrc_version;
 
+	/* Source GID table length.*/
+	int gid_tbl_len;
+
 	struct {
 		/* Max configurable wimm value as requestor. */
 		uint16_t max_wimm;
