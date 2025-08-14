@@ -238,10 +238,10 @@ int mrc_ctl_query_ev_field_widths(struct mrc_context *mrc_ctx,
 /**
  * @brief EV types and structures
  */
-typedef uint32_t mrc_ctl_ev_type_t;
+typedef uint32_t mrc_ctl_ev_t;
 
 struct mrc_ctl_ev {
-	mrc_ctl_ev_type_t val;
+	mrc_ctl_ev_t val;
 	uint8_t port;
 };
 
@@ -629,7 +629,7 @@ struct mrc_ctl_ev_probe_req {
 	/* Probe request EV value and port. */
 	struct mrc_ctl_ev req_ev;
 	/* Probe response EV value. */
-	mrc_ctl_ev_type_t rsp_ev;
+	mrc_ctl_ev_t rsp_ev;
 };
 
 /**
