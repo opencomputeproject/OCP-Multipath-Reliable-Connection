@@ -684,9 +684,8 @@ void mrc_ack_cq_events(struct mrc_cq *cq,
 /**
  * @brief Query a GID for an EV profile by index
  *
- * Retrieves the GID entry for the specified EV profile and index.
- * All GIDs returned by this function are guaranteed to be configured and
- * available on every port included in the profile's port mask.
+ * Retrieves a GID entry.
+ * index is a value between 0 and mrc_attr.gid_tbl_len
  *
  * @param mrc_ctx[in]       MRC context handle.
  * @param index[in]         GID table index to query.
