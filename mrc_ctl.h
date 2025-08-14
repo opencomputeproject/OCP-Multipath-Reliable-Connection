@@ -193,7 +193,7 @@ struct mrc_ctl_ev_field {
  * not in INIT state.
  *
  * @param mrc_ctx[in]         - MRC context
- * @param ev_fields[in]  	  - Array containing EV field widths and bounds
+ * @param ev_fields[in]       - Array containing EV field widths and bounds
  * @param ev_field_count[in]  - Length of ev_fields argument
  *
  * @return 0 on success.
