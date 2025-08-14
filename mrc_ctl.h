@@ -212,8 +212,8 @@ int mrc_ctl_modify_ev_field_widths(struct mrc_context *mrc_ctx,
  *
  * Retrieves the hardware EV field widths.
  *
- * If the supplied array length parameter is smaller than the current field
- * count only the elements up to provided count will be returned in the array.
+ * If ev_field_count is less than the total number of EV fields, the function
+ * returns an error and sets cur_ev_field_count to the required array size.
  *
  * @param mrc_ctx[in]             - MRC context
  * @param ev_fields[out]          - Populated with EV field widths and bounds
@@ -223,6 +223,7 @@ int mrc_ctl_modify_ev_field_widths(struct mrc_context *mrc_ctx,
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
  * @retval EIO Implementation specific error occurred.
+ * @return E2BIG EV field count is less than total number of EV fields.
  * @retval EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_query_ev_field_widths(struct mrc_context *mrc_ctx,
