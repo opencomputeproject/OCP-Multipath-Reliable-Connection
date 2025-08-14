@@ -139,8 +139,8 @@ struct mrc_ctl_attr {
 		uint32_t cc_max_profiles;
 
 		/* Array of CC algorithm strings.
-         * Last element is NULL; stop iterating at NULL.
-         * Consumers must NOT free these pointers.
+		* Last element is NULL; stop iterating at NULL.
+		* Consumers must NOT free these pointers.
 		 *
 		 * The following common strings are defined:
 		 *   "uet-1.0-nscc" - UET 1.0 NSCC
