@@ -335,9 +335,9 @@ int mrc_ctl_query_ev_state(struct mrc_context *mrc_ctx,
  * @retval EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_modify_ev_state(struct mrc_context *mrc_ctx,
-							uint64_t ev_profile_id,
-							struct mrc_ctl_ev ev,
-							enum mrc_ctl_ev_state state);
+		uint64_t ev_profile_id,
+		struct mrc_ctl_ev ev,
+		enum mrc_ctl_ev_state state);
 
 /*****************************************************************************
  * EV Profile
