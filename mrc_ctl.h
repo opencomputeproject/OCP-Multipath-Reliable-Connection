@@ -279,7 +279,8 @@ enum mrc_ctl_ev_mode {
  *
  * When an Explicit EV array profile transitions from INIT to OFFLINE,
  * all EVs are set to MRC_CTL_EV_INVALID. All EVs must be replaced with
- * valid values before moving the profile to ONLINE.
+ * valid values before moving the profile to ONLINE.  When an EV is replaced
+ * its initial state is EV_GOOD.
  *
  * @param mrc_ctx[in]       - MRC context
  * @param profile_id[in]    - QP Profile ID
