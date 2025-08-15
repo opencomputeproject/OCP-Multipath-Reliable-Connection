@@ -318,6 +318,26 @@ int mrc_ctl_query_ev_state(struct mrc_context *mrc_ctx,
 		   struct mrc_ctl_ev ev,
 		   enum mrc_ctl_ev_state *state);
 
+/**
+ * @brief Modify the state of an explicit or generated EV.
+ *
+ * All matching EV instances are updated.
+ *
+ * @param mrc_ctx[in]       - MRC context
+ * @param ev_profile_id[in] - EV profile
+ * @param ev[in]            - EV to update
+ * @param state[in]         - EV state (EV_GOOD or EV_DENIED)
+ *
+ * @return 0 on success.
+ * @retval EINVAL One or more supplied arguments are invalid.
+ * @retval ENOENT EV not found.
+ * @retval EPERM Process lacks sufficient permissions.
+ */
+int mrc_ctl_modify_ev_state(struct mrc_context *mrc_ctx,
+							uint64_t ev_profile_id,
+							struct mrc_ctl_ev ev,
+							enum mrc_ctl_ev_state state);
+
 /*****************************************************************************
  * EV Profile
 *****************************************************************************/
