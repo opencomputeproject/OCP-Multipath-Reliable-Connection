@@ -525,10 +525,8 @@ int mrc_query_qp(struct mrc_qp *qp,
  *     IBV_QP_PATH_MIG_STATE
  *
  * The following IBV fields are modified:
- *     IBV_QP_AV:
- *		ibv_ah_attr.port_num: unused
- *		ibv_ah_attr.grh.sgid_index: index passed into mrc_query_gid()
- *		ibv_ah_attr.grh.dgid: from mrc_query_gid()
+ *     IBV_QP_AV: SGID is retrieved using ibv_query_gid() on the ibv_context
+ *                associated with mrc_context
  *
  * @param qp[in]            - MRC QP
  * @param vattr[in]         - Libibverbs attributes to modify
@@ -676,24 +674,6 @@ int mrc_get_cq_event(struct mrc_comp_channel *channel,
  */
 void mrc_ack_cq_events(struct mrc_cq *cq,
 		       unsigned int nevents);
-
-
-/**
- * @brief Query a GID for an EV profile by index
- *
- * Retrieves a GID entry.
- * index is a value between 0 and mrc_attr.gid_tbl_len
- *
- * @param mrc_ctx[in]       MRC context handle.
- * @param index[in]         GID table index to query.
- * @param gid[out]          Output GID pointer.
- *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval EIO    Implementation specific error occurred.
- */
-int mrc_query_gid(struct mrc_context *mrc_ctx,
-		int index, union ibv_gid *gid);
 
 #ifdef __cplusplus
 }
