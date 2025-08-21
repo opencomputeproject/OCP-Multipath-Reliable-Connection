@@ -345,7 +345,6 @@ int mrc_ctl_modify_ev_state(struct mrc_context *mrc_ctx,
  * EV Profile
 *****************************************************************************/
 enum mrc_ctl_profile_state {
-	MRC_CTL_PROFILE_UNKNOWN,        /* State cannot be reliably determined. */
 	MRC_CTL_PROFILE_INIT,           /* Initialized and ready for config. */
 	MRC_CTL_PROFILE_OFFLINE,        /* Configured but not usable. */
 	MRC_CTL_PROFILE_ONLINE,         /* Is usable. */
