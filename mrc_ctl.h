@@ -322,6 +322,8 @@ int mrc_ctl_query_ev_state(struct mrc_context *mrc_ctx,
 /**
  * @brief Modify the state of an explicit or generated EV.
  *
+ * Supported when a profile is in OFFLINE and ONLINE state.
+ *
  * All matching EV instances are updated.
  *
  * @param mrc_ctx[in]       - MRC context
