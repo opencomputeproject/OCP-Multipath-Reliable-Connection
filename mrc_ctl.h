@@ -46,8 +46,8 @@ extern "C" {
 #warning "MRC_CTL_API_VER_USED is equal to MRC_CTL_API_LAST_SUPPORTED version, may become obsolete"
 #endif
 
-/* Invalid EV definition */
-#define MRC_CTL_EV_INVALID (struct mrc_ctl_ev){.val = 0, .port = 0}
+/* Unpopulated (unset) EV entry definition. */
+#define MRC_CTL_EV_UNPOPULATED (struct mrc_ctl_ev){.val = 0, .port = 0}
 
 enum mrc_ctl_version {
 	MRC_CTL_VERSION_0	= 0, /* MRC not supported */
@@ -278,9 +278,9 @@ enum mrc_ctl_ev_mode {
  * If duplicates exist, only one instance of the EV is replaced.
  *
  * When an Explicit EV array profile transitions from INIT to OFFLINE,
- * all EVs are set to MRC_CTL_EV_INVALID. All EVs must be replaced with
- * valid values before moving the profile to ONLINE.  When an EV is replaced
- * its initial state is EV_GOOD.
+ * all EVs are set to MRC_CTL_EV_UNPOPULATED. All EVs must
+ * be populated before moving the profile to ONLINE.  When an EV is
+ * replaced its initial state is EV_GOOD.
  *
  * @param mrc_ctx[in]       - MRC context
  * @param profile_id[in]    - QP Profile ID
