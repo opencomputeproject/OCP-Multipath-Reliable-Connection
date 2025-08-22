@@ -45,20 +45,25 @@ extern "C" {
 #warning "MRC_API_VER_USED is equal to MRC_API_LAST_SUPPORTED version, may become obsolete"
 #endif
 
+#define MRC_MAX_VENDOR_CFG_SIZE 128
+
+
 enum mrc_version {
-	MRC_VERSION_0	= 0, /* MRC not supported */
+	MRC_VERSION_0	= 0, /* MRC version unspecified */
 	MRC_VERSION_1	= (1 << 0),
 };
 
 struct mrc_context;
-struct mrc_qp_group;
 struct mrc_qp_hint;
 struct mrc_qp;
 struct mrc_cq;
 struct mrc_comp_channel;
 
 struct mrc_attr {
-	/* bitmap of all versions supported (see enum mrc_version) */
+	/* Bitmap of all versions supported (see enum mrc_version).
+	 * The value 0 indicates the provider should choose an
+	 * an appropriate version.
+	 */
 	uint32_t mrc_version;
 
 	struct {
@@ -81,8 +86,6 @@ struct mrc_attr {
 	} mpr_attr;
 
 	struct {
-		/* Maximum number of QP groups supported by the device. */
-		uint32_t max_qp_group;
 		/* Maximum number of QP hints supported by the device. */
 		uint32_t max_qp_hint;
 	} qp_attr;
@@ -92,15 +95,19 @@ struct mrc_attr {
  * @brief Query Device
  *
  * Query the device to check MRC support and other attributes.
+ * The value returned in `supported` is 0 when MRC support is not
+ * available.
  *
  * @param context[in] - IB Verbs context
  * @param attrs[out]  - MRC attributes
+ * @param supported[out] - MRC support
  *
  * @return 0 on success.
  * @return Errors like ibv_query_device().
  */
 int mrc_query_device(struct ibv_context *context,
-		     struct mrc_attr *attr);
+		     struct mrc_attr *attr,
+		     int *supported);
 
 /* Context attributes declare the application's usage of MRC */
 struct mrc_context_attr {
@@ -233,131 +240,9 @@ int mrc_poll_cq(struct mrc_cq *cq,
  */
 int mrc_destroy_cq(struct mrc_cq *cq);
 
-/**
- * @brief MRC QP group attribute mask
- */
-enum mrc_qp_group_attr_mask {
-	MRC_QP_GROUP_NUM_QPS	= (1<<0),
-};
-
-/**
- * @brief MRC QP group attributes
- */
-struct mrc_qp_group_attr {
-	/* The number of QPs that will be using the group. */
-	int num_qps;
-};
-
-/**
- * @brief MRC QP group initialization attributes
- */
-struct mrc_qp_group_init_attr {
-	struct mrc_qp_group_attr attr;
-};
-
-/**
- * @brief Create an MRC QP group
- *
- * A QP group consists of a set of QPs that are active simultaneously. The
- * group used by a QP is assigned when the QP is created.
- *
- * The usage of QP groups is optional and serves as a hint to the provider
- * to optimize the allocation of underlying resources given the application's
- * desired usage scenario.
- *
- * The number of QPs in a group is specified when the group is created. QPs
- * are added one at a time to the group via the QP hints handle specified when
- * a QP is created. It is an error to add more QPs to the group than num_qps
- * specified during group creation. The QP group can be modified to change
- * the number of QPs within the group. If the number of QPs is made smaller,
- * it cannot be changed to a value less than the current number of QPs
- * assigned to the group.
- *
- * If a QP from a group was destroyed, such as due to network failure, then
- * another QP replacing it can be added to the group.
- *
- * @param mrc_ctx[in]   - MRC context
- * @param init_attr[in] - MRC_QP group init attributes
- *
- * @return Pointer to the created QP group on success.
- * @return NULL if the request fails.
- */
-struct mrc_qp_group *mrc_create_qp_group(
-	struct mrc_context *mrc_ctx,
-	struct mrc_qp_group_init_attr *init_attr);
-
-/**
- * @brief Destroy an MRC QP group
- *
- * Destroy an MRC QP group.
- *
- * @param qp_group[in] - MRC QP group
- *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval EBUSY Profile is still being used by a QP.
- */
-int mrc_destroy_qp_group(struct mrc_qp_group *qp_group);
-
-/**
- * @brief Query an MRC QP group
- *
- * Query an MRC QP group.
- *
- * @param qp_group[in]           - MRC QP group
- * @param qp_group_attr[out]     - MRC QP group attributes
- * @param qp_group_attr_mask[in] - MRC QP group attributes to query
- *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- */
-int mrc_query_qp_group(struct mrc_qp_group *qp_group,
-		       struct mrc_qp_group_attr *qp_group_attr,
-		       int qp_group_attr_mask);
-
-/**
- * @brief Modify an MRC QP group
- *
- * Modify an MRC QP group.
- *
- * @param qp_group[in]           - MRC QP group
- * @param qp_group_attr[in]      - MRC QP group attributes to modify
- * @param qp_group_attr_mask[in] - MRC QP group attributes to modify
- *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- */
-int mrc_modify_qp_group(struct mrc_qp_group *qp_group,
-			struct mrc_qp_group_attr *qp_group_attr,
-			int qp_group_attr_mask);
-
-/**
- * @brief MRC QP hint attribute mask
- */
-enum mrc_qp_hint_attr_mask {
-	MRC_QP_HINT_QP_GROUP			= (1<<0),
-	MRC_QP_HINT_NUM_QPS_PER_PEER		= (1<<1),
-	MRC_QP_HINT_NUM_SEND_PEERS		= (1<<2),
-	MRC_QP_HINT_NUM_REMOTE_RECV_PEERS	= (1<<3),
-};
-
-/**
- * @brief MRC QP hint attributes
- */
 struct mrc_qp_hint_attr {
 	/*
-	 * The QP group this QP hint belongs to. QP group assignement for a
-	 * QP hint is mandatory.
-	 *
-	 * When the application makes calls to mrc_create_qp() and the QP hint
-	 * attribute is specified, the QP hint and associated QP group are
-	 * used by the provider to better identify and assign internal
-	 * resources for the QP.
-	 */
-	struct mrc_qp_group *qp_group;
-
-	/*
-	 * Number of QPs in this group that are sending data to the same
+	 * Number of QPs using this hint that are sending data to the same
 	 * peer (i.e., same destination IP address) while this QP is sending
 	 * data.
 	 *
@@ -368,11 +253,10 @@ struct mrc_qp_hint_attr {
 
 	/*
 	 * Number of different peers (i.e., different destination IP
-	 * addresses) that QPs in this group are sending data to
+	 * addresses) that QPs using this hint are sending data to
 	 * simultaneously.
 	 */
 	int num_send_peers;
-
 	/*
 	 * Number of remote QPs that will target the same peer (i.e., same
 	 * destination IP address) when this QP is sending data.
@@ -381,6 +265,19 @@ struct mrc_qp_hint_attr {
 	 * experienced by the target of this QP.
 	 */
 	int num_remote_recv_peers;
+
+	/* vendor specific hint */
+	uint8_t vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
+};
+
+/**
+ * @brief MRC QP hint attribute mask
+ */
+enum mrc_qp_hint_attr_mask {
+	MRC_QP_HINT_NUM_QPS_PER_PEER		= (1<<0),
+	MRC_QP_HINT_NUM_SEND_PEERS		= (1<<1),
+	MRC_QP_HINT_NUM_REMOTE_RECV_PEERS	= (1<<2),
+	MRC_QP_HINT_VENDOR_CFG			= (1<<31)
 };
 
 /**
@@ -461,7 +358,6 @@ struct mrc_qp_init_attr {
 	void               *qp_context;
 	struct mrc_cq      *send_cq;
 	struct mrc_cq      *recv_cq;
-	struct mrc_cq      *ev_cq;
 	struct ibv_qp_cap   cap;
 	int                 sq_sig_all;
 	struct ibv_pd      *pd;
@@ -503,12 +399,13 @@ int mrc_destroy_qp(struct mrc_qp *qp);
  *
  * Next State  Required Attributes
  * ----------  -------------------
- * INIT        MRC_QP_EV_PROFILE_ID
- *             MRC_QP_HINT
+ * INIT        MRC_QP_HINT
+ * 	       MRC_QP_EV_PROFILE_ID
  *
  * RTR         MRC_QP_MAX_WIMM_DEST
  *             MRC_QP_MPR_DEST
  *             MRC_QP_DYNAMIC_MPR_DEST
+ * 	       MRC_QP_PROTOCOL_VERSION
  *
  * RTS         MRC_QP_MAX_WIMM
  *             MRC_QP_MPR
@@ -528,19 +425,22 @@ enum mrc_qp_attr_mask {
 	MRC_QP_DYNAMIC_MPR_DEST		= (1<<4),
 	/* QP ACK timeout */
 	MRC_QP_TIMEOUT			= (1<<5),
-	/* EV profile ID */
+	/* EV Profile ID */
 	MRC_QP_EV_PROFILE_ID		= (1<<6),
 	/* QP hint */
 	MRC_QP_HINT			= (1<<7),
+	/* MRC protocol version */
+	MRC_QP_PROTOCOL_VERSION		= (1<<8),
 // TODO: Uncomment after HW spec is updated (1.09)
 //	/* QP (fixed+exponential) retry counter */
 //	MRC_QP_RETRY_CNT		= (1<<8),
 	MRC_QP_VENDOR_CFG		= (1<<31)
 };
 
-#define MRC_MAX_VENDOR_CFG_SIZE 128
-
 struct mrc_qp_attr {
+
+	/* MRC version used for this QP */
+	enum mrc_version version;
 
 	struct {
 		/* Requestor MPR value; unit=128 PSNs */

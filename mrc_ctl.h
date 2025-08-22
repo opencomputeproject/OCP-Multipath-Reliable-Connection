@@ -481,7 +481,7 @@ struct mrc_cq *mrc_ctl_create_ev_event_cq(struct mrc_context *mrc_ctx,
  */
 struct mrc_ctl_ev_event {
 	uint64_t ev_profile_id;
-	mrc_ctl_ev_t ev;
+	struct mrc_ctl_ev_entry ev;
 	/*
 	 * If MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT is set, this field
 	 * contains the number of EV Events dropped between the previous and
