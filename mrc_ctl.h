@@ -385,7 +385,7 @@ struct mrc_ctl_ev_profile_attr {
 
 	/*
 	 * For explicit EVs: the size of the explicit EV array.
-	 * For generated EVs: the number of generated EVs.
+	 * For generated EVs: (Query only) the number of generated EVs.
 	 */
 	uint32_t ev_count;
 
