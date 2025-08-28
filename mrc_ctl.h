@@ -282,8 +282,9 @@ enum mrc_ctl_ev_mode {
  * be populated otherwise moving to ONLINE will fail.
  *
  * When an EV is replaced its initial state is EV_GOOD. EVs are matched
- * on both val and port fields. Implementation-specific constraints may
- * apply; see vendor documentation.
+ * on both val and port fields. If multiple instances of an EV are present
+ * the replaced instance is implementation-defined.  Other vendor specific
+ * constraints may apply; see vendor documentation for details.
  *
  * @param mrc_ctx[in]       - MRC context
  * @param profile_id[in]    - QP Profile ID
