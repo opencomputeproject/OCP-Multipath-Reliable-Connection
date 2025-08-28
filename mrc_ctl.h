@@ -108,7 +108,7 @@ struct mrc_ctl_attr {
 		 */
 		uint32_t ev_max_count_profile;
 
-		/* 
+		/*
 		 * Alignment requirements for the number of EVs that are
 		 * required in an explicit EV array. The alignment value implies the
 		 * minimum count required and it provides the array sizing
@@ -386,11 +386,11 @@ struct mrc_ctl_ev_profile_attr {
  *   To OFFLINE: MODE, COUNT
  *   To ONLINE:  MIN_ACTIVE, EVENT_MASK, REPLACE_EV (Explicit array)
  *
- * Allowed: 
+ * Allowed:
  *   OFFLINE state: Query COUNT, MIN_ACTIVE, EVENT_MASK, EV_OP
  *   ONLINE state: Query COUNT, EVENT_MASK, EV_OP: MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY
  *   If EV_PROFILE_MODIFY_ONLINE supported: EVENT_MASK, REPLACE_EV
- * 
+ *
  * Restrictions:
  *   On INIT->OFFLINE, Explicit array EVs are all EV_UNPOPULATED; MUST be replaced before move to ONLINE
  *   Implementation/device constraints may apply; refer to vendor documentation
