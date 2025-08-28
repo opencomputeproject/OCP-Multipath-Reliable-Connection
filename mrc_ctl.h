@@ -281,15 +281,17 @@ enum mrc_ctl_ev_mode {
  * all EVs are set to MRC_CTL_EV_UNPOPULATED. All EVs MUST
  * be populated otherwise moving to ONLINE will fail.
  *
- * When an EV is replaced its initial state is EV_GOOD. EVs are matched
- * on both val and port fields. If multiple instances of an EV are present
- * the replaced instance is implementation-defined.  Other vendor specific
- * constraints may apply; see vendor documentation for details.
+ * EVs are matched on both val and port fields. When an EV is replaced,
+ * its initial state is EV_GOOD. If multiple EV entries match and replace_all
+ * is false, a single, implementation-selected instance is updated.
+ *
+ * See vendor documentation for device-specific constraints and limitations.
  *
  * @param mrc_ctx[in]       - MRC context
  * @param profile_id[in]    - QP Profile ID
  * @param cur_ev[in]        - Current EV
  * @param new_ev[in]        - New EV
+ * @param replace_all[in]   - Replace all instances
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -300,7 +302,8 @@ enum mrc_ctl_ev_mode {
 int mrc_ctl_replace_ev(struct mrc_context *mrc_ctx,
 		       uint64_t ev_profile_id,
 		       struct mrc_ctl_ev cur_ev,
-		       struct mrc_ctl_ev new_ev);
+		       struct mrc_ctl_ev new_ev,
+		       int replace_all);
 
 /**
  * @brief Query an EV's state
