@@ -26,8 +26,8 @@
 
 /* Version encoding macro */
 #define MRC_API_VER(_major, _minor, _sub_minor) \
-	(((_major) << MRC_API_VER_MAJOR_OFFSET) |   \
-	 ((_minor) << MRC_API_VER_MINOR_OFFSET) |   \
+	(((_major) << MRC_API_VER_MAJOR_OFFSET) | \
+	 ((_minor) << MRC_API_VER_MINOR_OFFSET) | \
 	 ((_sub_minor)) << MRC_API_VER_SUBMINOR_OFFSET)
 
 /* Special version value for applications that want to use the latest API
