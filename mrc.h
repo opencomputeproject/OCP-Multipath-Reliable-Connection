@@ -94,7 +94,7 @@ int mrc_query_device(struct ibv_context *context,
 
 /* Context attributes declare the application's usage of MRC */
 struct mrc_context_attr {
-	/* Wire protocol; value from mrc_version */
+	/* API version used */
 	uint32_t mrc_api_version_used;
 };
 
