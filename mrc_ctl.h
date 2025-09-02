@@ -23,37 +23,21 @@
 #include <infiniband/verbs.h>
 
 #include <mrc.h>
-#include <mrc_ctl_api_ver.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define MRC_CTL_API_CURRENT_VERSION	MRC_CTL_API_VER(1, 0, 0)
+/* Invalid EV definition */
+#define MRC_CTL_EV_INVALID (struct mrc_ctl_ev){.val = 0, .port = 0}
 
-#define MRC_CTL_API_LAST_SUPPORTED_VERSION	MRC_CTL_API_VER(0, 0, 0)
-
-#ifndef MRC_CTL_API_VER_USED
-#define MRC_CTL_API_VER_USED MRC_CTL_API_CURRENT_VERSION
-#elif MRC_CTL_API_VER_USED == MRC_CTL_API_VER_LATEST
-#undef MRC_CTL_API_VER_USED
-#define MRC_CTL_API_VER_USED MRC_CTL_API_CURRENT_VERSION
-#endif
-
-#if MRC_CTL_API_VER_USED < MRC_CTL_API_LAST_SUPPORTED_VERSION
-#error "MRC_CTL_API_VER_USED is less than MRC_CTL_API_LAST_SUPPORTED version"
-#elif MRC_CTL_API_VER_USED == MRC_CTL_API_LAST_SUPPORTED_VERSION
-#warning "MRC_CTL_API_VER_USED is equal to MRC_CTL_API_LAST_SUPPORTED version, may become obsolete"
-#endif
-
-/* Unpopulated (unset) EV entry definition. */
-#define MRC_CTL_EV_UNPOPULATED (struct mrc_ctl_ev){.val = 0, .port = 0}
+/* Maximum size of opaque vendor configuration data */
+#define MRC_MAX_VENDOR_CFG_SIZE 128
 
 enum mrc_ctl_version {
 	MRC_CTL_VERSION_0	= 0, /* MRC not supported */
 	MRC_CTL_VERSION_1	= (1 << 0),
 };
-
 
 /*****************************************************************************
  * Device Query
