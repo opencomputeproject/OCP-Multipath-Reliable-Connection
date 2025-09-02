@@ -320,9 +320,11 @@ struct mrc_ctl_ev_profile_attr {
 
 	/*
 	 * Number of EVs in the profile's EV array.
-	 *  - For explicit and generated mode: caller sets the array size, subject to
-	 *    system configuration and device alignment and maximum limits.
-	 *  - When queried: returns the implementation-adjusted, alignment-compliant EV count.
+	 *  - For explicit and generated mode: caller sets the array size,
+	 *    subject to system configuration and device alignment and maximum
+	 *    limits.
+	 *  - When queried: returns the implementation-adjusted,
+	 *    alignment-compliant EV count.
 	 */
 	uint32_t ev_count;
 
