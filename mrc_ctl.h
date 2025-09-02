@@ -42,9 +42,6 @@ extern "C" {
 /* Invalid EV definition */
 #define MRC_CTL_EV_INVALID (struct mrc_ctl_ev){.val = 0, .port = 0}
 
-/* Maximum size of opaque vendor configuration data */
-#define MRC_MAX_VENDOR_CFG_SIZE 128
-
 /*****************************************************************************
  * Device Query
 *****************************************************************************/
