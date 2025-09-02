@@ -278,6 +278,16 @@ enum mrc_ctl_profile_state {
 };
 
 /**
+ * @brief Supported EV operations
+ */
+enum mrc_ctl_ev_op {
+	MRC_CTL_EV_OP_REPLACE_EV,
+	MRC_CTL_EV_OP_MODIFY_EV_STATE,
+	MRC_CTL_EV_OP_QUERY_EV_STATE,
+	MRC_CTL_EV_OP_QUERY_EV_ARRAY,
+};
+
+/**
  * @brief EV profile attribute mask
  */
 enum mrc_ctl_ev_profile_attr_mask {
@@ -308,8 +318,10 @@ struct mrc_ctl_ev_profile_attr {
 	enum mrc_ctl_ev_mode ev_mode;
 
 	/*
-	 * For explicit EVs: the size of the explicit EV array.
-	 * For generated EVs: (Query only) the number of generated EVs.
+	 * Number of EVs in the profile's EV array.
+	 *  - For explicit and generated mode: caller sets the array size, subject to
+	 *    system configuration and device alignment and maximum limits.
+	 *  - When queried: returns the implementation-adjusted, alignment-compliant EV count.
 	 */
 	uint32_t ev_count;
 
@@ -330,14 +342,7 @@ struct mrc_ctl_ev_profile_attr {
 
 
 	struct {
-		enum
-		{
-			MRC_CTL_EV_OP_REPLACE_EV,
-			MRC_CTL_EV_OP_MODIFY_EV_STATE,
-			MRC_CTL_EV_OP_QUERY_EV_STATE,
-			MRC_CTL_EV_OP_QUERY_EV_ARRAY,
-
-		} op;
+		enum mrc_ctl_ev_op op;
 
 		union {
 			struct {
@@ -346,7 +351,7 @@ struct mrc_ctl_ev_profile_attr {
 				/* New EV (formatted according to EV fields) */
 				struct mrc_ctl_ev new_ev;
 				/* If zero only one (impl. selected) instance is replaced */
-				int replace_all;
+				int all_copies;
 			} replace_ev;
 
 			struct {
