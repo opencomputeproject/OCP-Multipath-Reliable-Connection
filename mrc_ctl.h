@@ -39,8 +39,14 @@
 extern "C" {
 #endif
 
-/* Invalid EV definition */
-#define MRC_CTL_EV_INVALID (struct mrc_ctl_ev){.val = 0, .port = 0}
+/* Unpopulated (unset) EV entry definition. */
+#define MRC_CTL_EV_UNPOPULATED (struct mrc_ctl_ev){.val = 0, .port = 0}
+
+enum mrc_ctl_version {
+	MRC_CTL_VERSION_0	= 0, /* MRC not supported */
+	MRC_CTL_VERSION_1	= (1 << 0),
+};
+
 
 /*****************************************************************************
  * Device Query
