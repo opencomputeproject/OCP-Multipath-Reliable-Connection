@@ -47,7 +47,6 @@ extern "C" {
 
 #define MRC_MAX_VENDOR_CFG_SIZE 128
 
-
 enum mrc_version {
 	MRC_VERSION_0	= 0, /* MRC version unspecified */
 	MRC_VERSION_1	= (1 << 0),
@@ -400,7 +399,7 @@ int mrc_destroy_qp(struct mrc_qp *qp);
  * Next State  Required Attributes
  * ----------  -------------------
  * INIT        MRC_QP_HINT
- * 	       MRC_QP_EV_PROFILE_ID
+ * 	       MRC_QP_EV_PROFILE_ID, MRC_QP_CC_PROFILE_ID
  *
  * RTR         MRC_QP_MAX_WIMM_DEST
  *             MRC_QP_MPR_DEST
@@ -425,15 +424,17 @@ enum mrc_qp_attr_mask {
 	MRC_QP_DYNAMIC_MPR_DEST		= (1<<4),
 	/* QP ACK timeout */
 	MRC_QP_TIMEOUT			= (1<<5),
-	/* EV Profile ID */
-	MRC_QP_EV_PROFILE_ID		= (1<<6),
+	/* EV Profile */
+	MRC_EV_PROFILE_ID	= (1<<6),
+	/* CC Profile */
+	MRC_CC_PROFILE_ID	= (1<<7),
 	/* QP hint */
-	MRC_QP_HINT			= (1<<7),
+	MRC_QP_HINT			= (1<<8),
 	/* MRC protocol version */
-	MRC_QP_PROTOCOL_VERSION		= (1<<8),
-// TODO: Uncomment after HW spec is updated (1.09)
-//	/* QP (fixed+exponential) retry counter */
-//	MRC_QP_RETRY_CNT		= (1<<8),
+	MRC_QP_PROTOCOL_VERSION		= (1<<9),
+#if 0
+	MRC_QP_RETRY_CNT		= (1<<10), /* QP (fixed + exponential) retry counter */
+#endif
 	MRC_QP_VENDOR_CFG		= (1<<31)
 };
 
@@ -462,24 +463,25 @@ struct mrc_qp_attr {
 	uint8_t timeout;
 
 	/*
-	 * Application specified EV profile ID. The EV profile ID is learned
+	 * Application specified profile. The profile is learned
 	 * OOB by the application and is used by the provider to associate
-	 * the QP with an EV profile that was previously programmed by a
+	 * the QP with an EV and CC profile that was previously programmed by a
 	 * system controller.
 	 */
-	uint64_t ev_profile_id;
+	struct {
+		uint64_t ev_profile_id;
+		uint64_t cc_profile_id;
+	} profile;
 
-// TODO: Uncomment after HW spec is updated (1.09)
-//	struct {
-//		/* Fixed interval retry count; Max value = 8 */
-//		uint8_t retry_cnt_fixed;
-//		/* Exponential retry count; Max val = 32 (infinite retry) */
-//		uint8_t retry_cnt_exp;
-//	} retry_cnt;
-
-	/* QP hint, if NULL then no hint is assigned */
-	struct mrc_qp_hint *qp_hint;
-
+#if 0
+	// TODO: Uncomment after HW spec is updated (1.09)
+	struct {
+		/* Fixed interval retry count; Max value = 8 */
+		uint8_t retry_cnt_fixed;
+		/* Exponential retry count; Max val = 32 (infinite retry) */
+		uint8_t retry_cnt_exp;
+	} retry_cnt;
+#endif
 	uint8_t vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
 
@@ -521,6 +523,10 @@ int mrc_query_qp(struct mrc_qp *qp,
  *     IBV_QP_MAX_DEST_RD_ATOMIC
  *     IBV_QP_ALT_PATH
  *     IBV_QP_PATH_MIG_STATE
+ *
+ * The following IBV fields are modified:
+ *     IBV_QP_AV: SGID is retrieved using ibv_query_gid() on the ibv_context
+ *                associated with mrc_context
  *
  * @param qp[in]            - MRC QP
  * @param vattr[in]         - Libibverbs attributes to modify
