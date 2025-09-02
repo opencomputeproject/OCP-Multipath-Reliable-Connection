@@ -81,6 +81,12 @@ enum mrc_ctl_attr_opt {
 	MRC_CTL_OPT_CAP_EV_PROBE			= (1<<6),
 	/* The implementation supports precise EV Event drop counts. */
 	MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= (1<<7),
+	/* The implementation supports explicit SRv6 arrays */
+	MRC_CTL_OPT_CAP_SRV6_EXPLICIT			= (1<<8),
+	/* The implementation supports compressed explicit SRv6 arrays */
+	MRC_CTL_OPT_CAP_SRV6_COMP_EXPLICIT		= (1<<9),
+	/* The implementation supports compressed generated SRv6 arrays */
+	MRC_CTL_OPT_CAP_SRV6_COMP_GENERATED		= (1<<10),
 };
 
 /**
@@ -235,10 +241,27 @@ int mrc_ctl_query_ev_field_widths(struct mrc_context *mrc_ctx,
 /*****************************************************************************
  * EV Structures
 *****************************************************************************/
+
+#define MRC_CTL_SRV6_MAX_USID_BYTES 12
+
 /**
  * @brief EV types and structures
  */
-typedef uint32_t mrc_ctl_ev_t;
+typedef union {
+	uint32_t val;
+	union {
+		struct {
+			/* uSID full stacks */
+			uint8_t srv6_usid[MRC_CTL_SRV6_MAX_USID_BYTES];
+			uint8_t srv6_usid_srh[MRC_CTL_SRV6_MAX_USID_BYTES];
+		};
+		struct {
+			/* uSID compressed values */
+			uint32_t srv6_usid_comp_val;
+			uint32_t srv6_usid_srh_comp_val;
+		};
+	};
+} mrc_ctl_ev_t;
 
 struct mrc_ctl_ev {
 	mrc_ctl_ev_t val;
@@ -265,6 +288,12 @@ enum mrc_ctl_ev_mode {
 	MRC_CTL_EV_MODE_EXPLICIT	= 1,
 	/* Generated EVs (MRC_CTL_OPT_CAP_EV_GENERATED) */
 	MRC_CTL_EV_MODE_GENERATED	= 2,
+	/* Explicit SRv6 (MRC_CTL_OPT_CAP_SRV6_EXPLICIT) */
+	MRC_CTL_EV_MODE_SRV6_EXPLICIT		= 3,
+	/* Compressed explicit SRv6 (MRC_CTL_OPT_CAP_SRV6_COMP_EXPLICIT) */
+	MRC_CTL_EV_MODE_SRV6_COMP_EXPLICIT	= 4,
+	/* Compressed generated SRv6 (MRC_CTL_OPT_CAP_SRV6_COMP_GENERATED) */
+	MRC_CTL_EV_MODE_SRV6_COMP_GENERATED	= 5,
 };
 
 
@@ -298,6 +327,10 @@ enum mrc_ctl_ev_profile_attr_mask {
 	MRC_CTL_EV_PROFILE_MIN_ACTIVE  = 1 << 4,
 	MRC_CTL_EV_PROFILE_EVENT_MASK  = 1 << 5,
 	MRC_CTL_EV_PROFILE_EV_OP       = 1 << 6,
+	MRC_CTL_EV_PROFILE_SRV6_LOCATOR		= 1 << 7,
+	MRC_CTL_EV_PROFILE_SRV6_SRH		= 1 << 8,
+	MRC_CTL_EV_PROFILE_SRV6_COMP_FIXED	= 1 << 9,
+	MRC_CTL_EV_PROFILE_SRV6_COMP_MASK	= 1 << 10,
 };
 
 /**
@@ -340,6 +373,33 @@ struct mrc_ctl_ev_profile_attr {
 	 */
 	int ev_event_mask;
 
+	/* The SRv6 locator defines the upper 32b bits shared by all paths. */
+	uint32_t srv6_locator;
+
+	/* If non-zero, an SRH is also generated for each SRv6 uSID stack. */
+	uint8_t srv6_use_srh;
+
+	/*
+	 * For compressed SRv6 profiles, the fixed template and mask defines
+	 * how a uSID stack is constructed. The fixed template defines the
+	 * bits of the uSID stack used for all uSID stacks before the mask
+	 * is applied. The mask determines which bits in the fixed templated
+	 * can be modified. At most 32 bits can be set in the mask.
+	 *
+	 * For MRC_CTL_EV_MODE_SRV6_COMP_EXPLICIT, the values applied to the
+	 * mask are specified in the mrc_ctl_ev_t (srv6_usid_comp_val and
+	 * srv6_usid_srh_comp_val, 32b values). A uSID stack is expanded
+	 * from the 32b value by finding each bit set in the mask (least
+	 * significant bit first) and setting it to the bit value of the
+	 * least significant bit in the 32b value. Everytime a bit is set
+	 * from the mask, the 32b value is shifted right by 1. The uSID stack
+	 * is initially set to srv6_comp_fixed before the mask is applied.
+	 *
+	 * For MRC_CTL_EV_MODE_SRV6_COMP_GENERATED, the NIC generates the
+	 * 32b values that will be applied to the mask.
+	 */
+	uint8_t srv6_comp_fixed[MRC_CTL_SRV6_MAX_USID_BYTES];
+	uint8_t srv6_comp_mask[MRC_CTL_SRV6_MAX_USID_BYTES];
 
 	struct {
 		enum mrc_ctl_ev_op op;
@@ -610,6 +670,19 @@ int mrc_ctl_poll_ev_event(struct mrc_cq *ev_cq,
 /****************************************************************************
  * EV Probes
 *****************************************************************************/
+
+/*
+ * For out-of-band probes using SRv6, additional configuration is required.
+ * If SRv6 is enabled, both the req_ev and rsp_ev fields must contain the
+ * full uSID stack to use. Same for SRH if it's enabled. No compression is
+ * supported for probes.
+ */
+struct mrc_ctl_srv6_probe {
+	uint8_t use_srv6;
+	uint8_t use_srv6_srh;
+	uint32_t srv6_locator;
+};
+
 /**
  * @brief EV Probe Request
  */
@@ -620,6 +693,8 @@ struct mrc_ctl_ev_probe_req {
 	union ibv_gid sgid;
 	/* Destination GID; only ROCE_V2 GID type supported. */
 	union ibv_gid dgid;
+	/* SRv6 probe parameters. */
+	struct mrc_ctl_srv6_probe srv6;
 	/* Probe request EV value and port. */
 	struct mrc_ctl_ev req_ev;
 	/* Probe response EV value. */
