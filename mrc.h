@@ -481,6 +481,7 @@ struct mrc_qp_attr {
 	       /* Exponential backoff retry limit. Max: 25 (25 = infinite) */
 	       uint8_t exp_cnt;
        } retry;
+
 	uint8_t vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
 
