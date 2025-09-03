@@ -432,8 +432,9 @@ enum mrc_qp_attr_mask {
 	MRC_QP_HINT			= (1<<8),
 	/* MRC protocol version */
 	MRC_QP_PROTOCOL_VERSION		= (1<<9),
-	/* Fixed + exponential retry counter */
+	/* Linear + exponential retry counter */
 	MRC_QP_RETRY_CNT		= (1<<10),
+	/* Vendor specific configuration data */
 	MRC_QP_VENDOR_CFG		= (1<<31)
 };
 
@@ -472,12 +473,12 @@ struct mrc_qp_attr {
 		uint64_t cc_profile_id;
 	} profile;
 
-	struct {
-		/* Fixed interval retry count; Max value = 8 */
-		uint8_t retry_cnt_fixed;
-		/* Exponential retry count; Max val = 32 (infinite retry) */
-		uint8_t retry_cnt_exp;
-	} retry_cnt;
+       struct {
+	       /* Linear (fixed interval) retry limit. Max: 7 */
+	       uint8_t linear_cnt;
+	       /* Exponential backoff retry limit. Max: 25 (25 = infinite) */
+	       uint8_t exp_cnt;
+       } retry;
 	uint8_t vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
 
