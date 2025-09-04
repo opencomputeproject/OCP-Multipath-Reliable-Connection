@@ -47,36 +47,36 @@ extern "C" {
 #endif
 
 /* Unpopulated (unset) EV entry definition. */
-#define MRC_CTL_EV_UNPOPULATED (struct mrc_ctl_ev){.val = 0, .port = 0}
+#define MRC_CTL_EV_UNPOPULATED (struct mrc_ctl_ev){ .val = 0, .port = 0 }
 
 enum mrc_ctl_version {
 	MRC_CTL_VERSION_0	= 0, /* MRC not supported */
 	MRC_CTL_VERSION_1	= (1 << 0),
 };
 
-
 /*****************************************************************************
  * Device Query
-*****************************************************************************/
+ *****************************************************************************/
+
 /**
  * @brief Optional control features supported by the implementation
  */
 enum mrc_ctl_attr_opt {
 	/* Device supports modifying ONLINE EV profiles */
-	MRC_CTL_OPT_CAP_EV_PROFILE_MODIFY_ONLINE = (1<<0),
+	MRC_CTL_OPT_CAP_EV_PROFILE_MODIFY_ONLINE	= (1<<0),
 	/* Device supports modifying ONLINE CC profiles */
-	MRC_CTL_OPT_CAP_CC_PROFILE_MODIFY_ONLINE = (1<<1),
+	MRC_CTL_OPT_CAP_CC_PROFILE_MODIFY_ONLINE	= (1<<1),
 	/* The implementation supports EV Events */
 	MRC_CTL_OPT_CAP_EV_EVENT			= (1<<2),
 	/* The implementation supports explicit EV arrays */
 	MRC_CTL_OPT_CAP_EV_EXPLICIT			= (1<<3),
 	/* The implementation supports generated EV arrays */
-	MRC_CTL_OPT_CAP_EV_GENERATED		= (1<<4),
+	MRC_CTL_OPT_CAP_EV_GENERATED			= (1<<4),
 	/*
 	* Only contiguous ranges supported in explicit mode. First EV value is
 	* base; last is 'base_ev_val + (ev_count - 1)'
 	 */
-	MRC_CTL_OPT_CAP_EV_EXPLICIT_RANGE	= (1<<5),
+	MRC_CTL_OPT_CAP_EV_EXPLICIT_RANGE		= (1<<5),
 	/* The implementation supports EV Probes. */
 	MRC_CTL_OPT_CAP_EV_PROBE			= (1<<6),
 	/* The implementation supports precise EV Event drop counts. */
@@ -103,22 +103,22 @@ struct mrc_ctl_attr {
 
 		/*
 		 * Maximum number of EVs supported per profile. If the
-		 * controller is supplying an explicit EV array, then that array can
-		 * contain at most this many EVs.
+		 * controller is supplying an explicit EV array, then that
+		 * array can contain at most this many EVs.
 		 */
 		uint32_t ev_max_count_profile;
 
 		/*
 		 * Alignment requirements for the number of EVs that are
-		 * required in an explicit EV array. The alignment value implies the
-		 * minimum count required and it provides the array sizing
-		 * requirements. The array size should be:
+		 * required in an explicit EV array. The alignment value
+		 * implies the minimum count required and it provides the
+		 * array sizing requirements. The array size should be:
 		 *   (ev_count_align + (k * ev_count_align))
 		 * where 'k' is a multiple chosen by the application. For
 		 * example, if a provider supports EVs in multiples of 8, it
 		 * would set the values 'ev_count_align = 8'. The total number
-		 * of EVs is subject to a maximum of ev_max_count_profile. Value of 0
-		 * means any EV count increment is supported.
+		 * of EVs is subject to a maximum of ev_max_count_profile.
+		 * Value of 0 means any EV count increment is supported.
 		 */
 		uint32_t ev_count_align;
 
@@ -138,9 +138,10 @@ struct mrc_ctl_attr {
 		/* Maximum number of CC profiles supported by the device. */
 		uint32_t cc_max_profiles;
 
-		/* Array of CC algorithm strings.
-		* Last element is NULL; stop iterating at NULL.
-		* Consumers must NOT free these pointers.
+		/*
+		 * Array of CC algorithm strings.
+		 * Last element is NULL; stop iterating at NULL.
+		 * Consumers must NOT free these pointers.
 		 *
 		 * The following common strings are defined:
 		 *   "uet-1.0-nscc" - UET 1.0 NSCC
@@ -173,10 +174,10 @@ struct mrc_ctl_attr {
 int mrc_ctl_query_device(struct ibv_context *context,
 			 struct mrc_ctl_attr *ctl_attr);
 
-
 /*****************************************************************************
  * EV Field Widths
-*****************************************************************************/
+ *****************************************************************************/
+
 /**
  * @brief EV field width structures
  */
@@ -192,9 +193,9 @@ struct mrc_ctl_ev_field {
  * Sets hardware EV field widths. Not allowed if any EV or CC profile is
  * not in INIT state.
  *
- * @param mrc_ctx[in]         - MRC context
- * @param ev_fields[in]       - Array containing EV field widths and bounds
- * @param ev_field_count[in]  - Length of ev_fields argument
+ * @param mrc_ctx[in]        - MRC context
+ * @param ev_fields[in]      - Array containing EV field widths and bounds
+ * @param ev_field_count[in] - Length of ev_fields argument
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -204,8 +205,8 @@ struct mrc_ctl_ev_field {
  * @retval EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_modify_ev_field_widths(struct mrc_context *mrc_ctx,
-			      struct mrc_ctl_ev_field *ev_fields,
-			      int ev_field_count);
+				   struct mrc_ctl_ev_field *ev_fields,
+				   int ev_field_count);
 
 /**
  * @brief Query the EV field widths.
@@ -228,13 +229,13 @@ int mrc_ctl_modify_ev_field_widths(struct mrc_context *mrc_ctx,
  */
 int mrc_ctl_query_ev_field_widths(struct mrc_context *mrc_ctx,
 				  struct mrc_ctl_ev_field *ev_fields,
-                  int ev_field_count,
-                  int *cur_ev_field_count);
-
+				  int ev_field_count,
+				  int *cur_ev_field_count);
 
 /*****************************************************************************
  * EV Structures
-*****************************************************************************/
+ *****************************************************************************/
+
 /**
  * @brief EV types and structures
  */
@@ -267,14 +268,14 @@ enum mrc_ctl_ev_mode {
 	MRC_CTL_EV_MODE_GENERATED	= 2,
 };
 
-
 /*****************************************************************************
  * EV Profile
-*****************************************************************************/
+ *****************************************************************************/
+
 enum mrc_ctl_profile_state {
-	MRC_CTL_PROFILE_INIT,           /* Initialized and ready for config. */
-	MRC_CTL_PROFILE_OFFLINE,        /* Configured but not usable. */
-	MRC_CTL_PROFILE_ONLINE,         /* Is usable. */
+	MRC_CTL_PROFILE_INIT,    /* Initialized and ready for config. */
+	MRC_CTL_PROFILE_OFFLINE, /* Configured but not usable. */
+	MRC_CTL_PROFILE_ONLINE,  /* Is usable. */
 };
 
 /**
@@ -291,13 +292,13 @@ enum mrc_ctl_ev_op {
  * @brief EV profile attribute mask
  */
 enum mrc_ctl_ev_profile_attr_mask {
-	MRC_CTL_EV_PROFILE_STATE       = 1 << 0,
-	MRC_CTL_EV_PROFILE_CUR_STATE   = 1 << 1,
-	MRC_CTL_EV_PROFILE_MODE        = 1 << 2,
-	MRC_CTL_EV_PROFILE_COUNT       = 1 << 3,
-	MRC_CTL_EV_PROFILE_MIN_ACTIVE  = 1 << 4,
-	MRC_CTL_EV_PROFILE_EVENT_MASK  = 1 << 5,
-	MRC_CTL_EV_PROFILE_EV_OP       = 1 << 6,
+	MRC_CTL_EV_PROFILE_STATE	= 1 << 0,
+	MRC_CTL_EV_PROFILE_CUR_STATE	= 1 << 1,
+	MRC_CTL_EV_PROFILE_MODE		= 1 << 2,
+	MRC_CTL_EV_PROFILE_COUNT	= 1 << 3,
+	MRC_CTL_EV_PROFILE_MIN_ACTIVE	= 1 << 4,
+	MRC_CTL_EV_PROFILE_EVENT_MASK	= 1 << 5,
+	MRC_CTL_EV_PROFILE_EV_OP	= 1 << 6,
 };
 
 /**
@@ -319,9 +320,11 @@ struct mrc_ctl_ev_profile_attr {
 
 	/*
 	 * Number of EVs in the profile's EV array.
-	 *  - For explicit and generated mode: caller sets the array size, subject to
-	 *    system configuration and device alignment and maximum limits.
-	 *  - When queried: returns the implementation-adjusted, alignment-compliant EV count.
+	 *  - For explicit and generated mode: caller sets the array size,
+	 *    subject to system configuration and device alignment and maximum
+	 *    limits.
+	 *  - When queried: returns the implementation-adjusted,
+	 *    alignment-compliant EV count.
 	 */
 	uint32_t ev_count;
 
@@ -340,7 +343,6 @@ struct mrc_ctl_ev_profile_attr {
 	 */
 	int ev_event_mask;
 
-
 	struct {
 		enum mrc_ctl_ev_op op;
 
@@ -350,7 +352,11 @@ struct mrc_ctl_ev_profile_attr {
 				struct mrc_ctl_ev cur_ev;
 				/* New EV (formatted according to EV fields) */
 				struct mrc_ctl_ev new_ev;
-				/* If zero only one (impl. selected) instance is replaced */
+				/*
+				 * If zero only one instance is replaced, else
+				 * allow matches are replaced. Entry selected
+				 * is implemenation specific.
+				 */
 				int all_copies;
 			} replace_ev;
 
@@ -383,27 +389,34 @@ struct mrc_ctl_ev_profile_attr {
  *   INIT -> OFFLINE -> ONLINE -> OFFLINE -> INIT
  *
  * States:
- *   INIT:    Profile created, not yet configured.
+ *   INIT:    Profile created; not yet configured.
  *   OFFLINE: Configured but inactive; can be modified.
  *   ONLINE:  Active and usable; only limited modifications allowed.
  *
  * State transition requirements:
- *   To OFFLINE: MODE, COUNT
- *   To ONLINE:  MIN_ACTIVE, EVENT_MASK, REPLACE_EV (Explicit array)
+ *   To OFFLINE:
+ *     - MODE, COUNT
+ *   To ONLINE:
+ *     - MIN_ACTIVE, EVENT_MASK, REPLACE_EV (for MODE_EXPLICIT)
  *
  * Allowed:
- *   OFFLINE state: Query COUNT, MIN_ACTIVE, EVENT_MASK, EV_OP
- *   ONLINE state: Query COUNT, EVENT_MASK, EV_OP: MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY
- *   If EV_PROFILE_MODIFY_ONLINE supported: EVENT_MASK, REPLACE_EV
+ *   OFFLINE state:
+ *     - Query: STATE(to ONLINE or INIT), MODE, COUNT, MIN_ACTIVE, EVENT_MASK
+ *     - EV_OP: REPLACE_EV, MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY
+ *   ONLINE state:
+ *     - Query: STATE(to OFFLINE), MODE, COUNT, MIN_ACTIVE, EVENT_MASK
+ *     - EV_OP: MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY
+ *       If EV_PROFILE_MODIFY_ONLINE supported: EVENT_MASK, REPLACE_EV
  *
  * Restrictions:
- *   On INIT->OFFLINE, Explicit array EVs are all EV_UNPOPULATED; MUST be replaced before move to ONLINE
- *   Implementation/device constraints may apply; refer to vendor documentation
+ *   On INIT -> OFFLINE, Explicit array EVs are all EV_UNPOPULATED; MUST be
+ *   replaced before moving to ONLINE, implementation/device constraints may
+ *   apply; refer to vendor documentation.
  *
- * @param mrc_ctx[in]     - MRC context
+ * @param mrc_ctx[in]       - MRC context
  * @param ev_profile_id[in] - EV Profile ID
- * @param attr[in]        - EV Profile attribute structure
- * @param attr_mask[in]   - Bitmask of EV Profile attribute mask
+ * @param attr[in]          - EV Profile attribute structure
+ * @param attr_mask[in]     - Bitmask of EV Profile attribute mask
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -413,19 +426,19 @@ struct mrc_ctl_ev_profile_attr {
  * @retval EBUSY One or more active QPs are associated with this profile.
  */
 int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
-				uint64_t ev_profile_id,
-				struct mrc_ctl_ev_profile_attr *attr,
-				int attr_mask);
+			      uint64_t ev_profile_id,
+			      struct mrc_ctl_ev_profile_attr *attr,
+			      int attr_mask);
 
 /**
  * @brief Query an EV profile
  *
  * Query an EV profile configuration.
  *
- * @param mrc_ctx[in]     - MRC context
+ * @param mrc_ctx[in]       - MRC context
  * @param ev_profile_id[in] - EV Profile ID
- * @param attr[out]       - EV Profile attribute structure
- * @param attr_mask[in]   - Bitmask of EV Profile attribute mask
+ * @param attr[out]         - EV Profile attribute structure
+ * @param attr_mask[in]     - Bitmask of EV Profile attribute mask
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -434,22 +447,22 @@ int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
  * @retval EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_query_ev_profile(struct mrc_context *mrc_ctx,
-				uint64_t ev_profile_id,
-				struct mrc_ctl_ev_profile_attr *attr,
-				int attr_mask);
-
+			     uint64_t ev_profile_id,
+			     struct mrc_ctl_ev_profile_attr *attr,
+			     int attr_mask);
 
 /*****************************************************************************
  * CC Profile
-*****************************************************************************/
+ *****************************************************************************/
+
 /**
  * @brief CC profile attribute mask
  */
 enum mrc_ctl_cc_profile_attr_mask {
-	MRC_CTL_CC_PROFILE_STATE     = 1 << 0,
-	MRC_CTL_CC_PROFILE_CUR_STATE = 1 << 1,
-	MRC_CTL_CC_PROFILE_ALGORITHM = 1 << 2,
-	MRC_CTL_CC_PROFILE_CONFIG    = 1 << 3,
+	MRC_CTL_CC_PROFILE_STATE	= 1 << 0,
+	MRC_CTL_CC_PROFILE_CUR_STATE	= 1 << 1,
+	MRC_CTL_CC_PROFILE_ALGORITHM	= 1 << 2,
+	MRC_CTL_CC_PROFILE_CONFIG	= 1 << 3,
 };
 
 /**
@@ -494,7 +507,7 @@ struct mrc_ctl_cc_nscc_cfg {
  *   INIT -> OFFLINE -> ONLINE -> OFFLINE -> INIT
  *
  * States:
- *   INIT:    Profile created, not yet configured.
+ *   INIT:    Profile created; not yet configured.
  *   OFFLINE: Configured but inactive; can be modified.
  *   ONLINE:  Active and usable; only limited modifications allowed.
  *
@@ -505,10 +518,10 @@ struct mrc_ctl_cc_nscc_cfg {
  * Allowed in ONLINE state (if CC_PROFILE_MODIFY_ONLINE advertised):
  *   CC_CONFIG
  *
- * @param mrc_ctx[in]     - MRC context
+ * @param mrc_ctx[in]       - MRC context
  * @param cc_profile_id[in] - CC Profile ID
- * @param attr[in]        - CC Profile attribute structure
- * @param attr_mask[in]   - Bitmask of CC Profile attribute mask
+ * @param attr[in]          - CC Profile attribute structure
+ * @param attr_mask[in]     - Bitmask of CC Profile attribute mask
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -517,19 +530,19 @@ struct mrc_ctl_cc_nscc_cfg {
  * @retval EBUSY One or more active QPs are associated with this profile.
  */
 int mrc_ctl_modify_cc_profile(struct mrc_context *mrc_ctx,
-                  uint64_t cc_profile_id,
-                  struct mrc_ctl_cc_profile_attr *attr,
-                  int attr_mask);
+			      uint64_t cc_profile_id,
+			      struct mrc_ctl_cc_profile_attr *attr,
+			      int attr_mask);
 
 /**
  * @brief Query a CC profile
  *
  * Query a CC profile configuration.
  *
- * @param mrc_ctx[in]     - MRC context
+ * @param mrc_ctx[in]       - MRC context
  * @param cc_profile_id[in] - CC Profile ID
- * @param attr[out]       - CC Profile attribute structure
- * @param attr_mask[in]   - Bitmask of CC Profile attribute mask
+ * @param attr[out]         - CC Profile attribute structure
+ * @param attr_mask[in]     - Bitmask of CC Profile attribute mask
  *
  * @return 0 on success.
  * @retval EINVAL One or more supplied arguments are invalid.
@@ -537,13 +550,14 @@ int mrc_ctl_modify_cc_profile(struct mrc_context *mrc_ctx,
  * @retval EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_query_cc_profile(struct mrc_context *mrc_ctx,
-                uint64_t cc_profile_id,
-                struct mrc_ctl_cc_profile_attr *attr,
-                int attr_mask);
+			     uint64_t cc_profile_id,
+			     struct mrc_ctl_cc_profile_attr *attr,
+			     int attr_mask);
 
 /****************************************************************************
  * EV Events
-*****************************************************************************/
+ *****************************************************************************/
+
 /**
  * @brief EV Event structure
  *
@@ -606,10 +620,10 @@ int mrc_ctl_poll_ev_event(struct mrc_cq *ev_cq,
 			  int num_entries,
 			  struct mrc_ctl_ev_event *ev_event);
 
-
 /****************************************************************************
  * EV Probes
-*****************************************************************************/
+ *****************************************************************************/
+
 /**
  * @brief EV Probe Request
  */

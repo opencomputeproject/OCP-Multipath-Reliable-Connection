@@ -59,7 +59,8 @@ struct mrc_cq;
 struct mrc_comp_channel;
 
 struct mrc_attr {
-	/* Bitmap of all versions supported (see enum mrc_version).
+	/*
+	 * Bitmap of all versions supported (see enum mrc_version).
 	 * The value 0 indicates the provider should choose an
 	 * an appropriate version.
 	 */
@@ -97,8 +98,8 @@ struct mrc_attr {
  * The value returned in `supported` is 0 when MRC support is not
  * available.
  *
- * @param context[in] - IB Verbs context
- * @param attrs[out]  - MRC attributes
+ * @param context[in]    - IB Verbs context
+ * @param attrs[out]     - MRC attributes
  * @param supported[out] - MRC support
  *
  * @return 0 on success.
@@ -131,7 +132,7 @@ struct mrc_context_attr {
  * An application can choose to provide NULL as context_attr allowing the
  * provider to choose the defaults.
  *
- * @param vcontext[in]  - IB Verbs context
+ * @param vcontext[in]     - IB Verbs context
  * @param context_attr[in] - MRC version used by the application
  *
  * @return Pointer to the allocated context on success.
@@ -157,7 +158,7 @@ int mrc_destroy_context(struct mrc_context *mrc_ctx);
  *
  * Create a completion channel
  *
- * @param mrc_ctx[in] - MRC context
+ * @param mrc_ctx[in]  - MRC context
  * @param channel[out] - Created MRC channel
  *
  * @return 0 on success.
@@ -399,12 +400,13 @@ int mrc_destroy_qp(struct mrc_qp *qp);
  * Next State  Required Attributes
  * ----------  -------------------
  * INIT        MRC_QP_HINT
- * 	       MRC_QP_EV_PROFILE_ID, MRC_QP_CC_PROFILE_ID
+ *             MRC_QP_EV_PROFILE_ID
+ *             MRC_QP_CC_PROFILE_ID
  *
  * RTR         MRC_QP_MAX_WIMM_DEST
  *             MRC_QP_MPR_DEST
  *             MRC_QP_DYNAMIC_MPR_DEST
- * 	       MRC_QP_PROTOCOL_VERSION
+ *             MRC_QP_PROTOCOL_VERSION
  *
  * RTS         MRC_QP_MAX_WIMM
  *             MRC_QP_MPR
@@ -425,9 +427,9 @@ enum mrc_qp_attr_mask {
 	/* QP ACK timeout */
 	MRC_QP_TIMEOUT			= (1<<5),
 	/* EV Profile */
-	MRC_EV_PROFILE_ID	= (1<<6),
+	MRC_EV_PROFILE_ID		= (1<<6),
 	/* CC Profile */
-	MRC_CC_PROFILE_ID	= (1<<7),
+	MRC_CC_PROFILE_ID		= (1<<7),
 	/* QP hint */
 	MRC_QP_HINT			= (1<<8),
 	/* MRC protocol version */
@@ -463,10 +465,10 @@ struct mrc_qp_attr {
 	uint8_t timeout;
 
 	/*
-	 * Application specified profile. The profile is learned
-	 * OOB by the application and is used by the provider to associate
-	 * the QP with an EV and CC profile that was previously programmed by a
-	 * system controller.
+	 * Application specified profile. The profile is learned OOB by the
+	 * application and is used by the provider to associate the QP with
+	 * an EV and CC profile that was previously programmed by a system
+	 * controller.
 	 */
 	struct {
 		uint64_t ev_profile_id;
@@ -479,6 +481,7 @@ struct mrc_qp_attr {
 	       /* Exponential backoff retry limit. Max: 25 (25 = infinite) */
 	       uint8_t exp_cnt;
        } retry;
+
 	uint8_t vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
 
