@@ -87,6 +87,8 @@ enum mrc_ctl_attr_opt {
 	MRC_CTL_OPT_CAP_SRV6_COMP_EXPLICIT		= (1<<9),
 	/* The implementation supports compressed generated SRv6 arrays */
 	MRC_CTL_OPT_CAP_SRV6_COMP_GENERATED		= (1<<10),
+	/* A single segment SRH is supported with SRv6 */
+	MRC_CTL_OPT_CAP_SRV6_SRH			= (1<<11),
 };
 
 /**
