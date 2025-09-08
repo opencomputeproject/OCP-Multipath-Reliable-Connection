@@ -16,6 +16,17 @@
  * reserved.
  */
 
+/* MRC Controller API.
+ * -------------------
+ * This API is used by the network controller for configuration, management
+ * and monitoring of MRC QPs.
+ *
+ * Controller processes obtain an mrc_context via the mrc_open_context()
+ * function.
+ *
+ * Controller processes MUST possess CAP_NET_ADMIN capability privileges.
+ */
+
 #ifndef _MRC_CTL_API_H_
 #define _MRC_CTL_API_H_
 
@@ -23,27 +34,9 @@
 #include <infiniband/verbs.h>
 
 #include <mrc.h>
-#include <mrc_ctl_api_ver.h>
 
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-#define MRC_CTL_API_CURRENT_VERSION	MRC_CTL_API_VER(1, 0, 0)
-
-#define MRC_CTL_API_LAST_SUPPORTED_VERSION	MRC_CTL_API_VER(0, 0, 0)
-
-#ifndef MRC_CTL_API_VER_USED
-#define MRC_CTL_API_VER_USED MRC_CTL_API_CURRENT_VERSION
-#elif MRC_CTL_API_VER_USED == MRC_CTL_API_VER_LATEST
-#undef MRC_CTL_API_VER_USED
-#define MRC_CTL_API_VER_USED MRC_CTL_API_CURRENT_VERSION
-#endif
-
-#if MRC_CTL_API_VER_USED < MRC_CTL_API_LAST_SUPPORTED_VERSION
-#error "MRC_CTL_API_VER_USED is less than MRC_CTL_API_LAST_SUPPORTED version"
-#elif MRC_CTL_API_VER_USED == MRC_CTL_API_LAST_SUPPORTED_VERSION
-#warning "MRC_CTL_API_VER_USED is equal to MRC_CTL_API_LAST_SUPPORTED version, may become obsolete"
 #endif
 
 /* Unpopulated (unset) EV entry definition. */
