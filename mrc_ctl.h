@@ -39,8 +39,15 @@
 extern "C" {
 #endif
 
-/* Unpopulated (unset) EV entry definition. */
+/**
+ * @brief Unpopulated (unset) EV entry definition.
+ */
 #define MRC_CTL_EV_UNPOPULATED (struct mrc_ctl_ev){ .val = 0, .port = 0 }
+
+/**
+ * @brief Maximum number of bytes in an EV value
+ */
+#define MRC_CTL_EV_MAX_BYTES 32
 
 /**
  * @brief Version for the MRC control APIs
@@ -73,29 +80,33 @@ enum mrc_ctl_attr_opt {
 	MRC_CTL_OPT_CAP_CC_PROFILE_MODIFY_ONLINE	= (1<<1),
 	/* The implementation supports EV Events */
 	MRC_CTL_OPT_CAP_EV_EVENT			= (1<<2),
-	/* The implementation supports explicit EV arrays */
-	MRC_CTL_OPT_CAP_EV_EXPLICIT			= (1<<3),
-	/* The implementation supports generated EV arrays */
-	MRC_CTL_OPT_CAP_EV_GENERATED			= (1<<4),
 	/*
 	 * Only contiguous ranges supported in explicit mode. First EV value
 	 * is the base; last is 'base_ev_val + (ev_count - 1)'
 	 */
-	MRC_CTL_OPT_CAP_EV_EXPLICIT_RANGE		= (1<<5),
+	MRC_CTL_OPT_CAP_EV_EXPLICIT_RANGE		= (1<<3),
 	/* The implementation supports EV Probes. */
-	MRC_CTL_OPT_CAP_EV_PROBE			= (1<<6),
+	MRC_CTL_OPT_CAP_EV_PROBE			= (1<<4),
 	/* The implementation supports precise EV Event drop counts. */
-	MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= (1<<7),
+	MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= (1<<5),
+	/* The implementation supports explicit EV arrays */
+	MRC_CTL_OPT_CAP_EV_EXPLICIT			= (1<<6),
+	/* The implementation supports generated EV arrays */
+	MRC_CTL_OPT_CAP_EV_GENERATED			= (1<<7),
+	/* The implementation supports compressed explicit EV arrays */
+	MRC_CTL_OPT_CAP_EV_COMP_EXPLICIT		= (1<<8),
+	/* The implementation supports compressed generated EV arrays */
+	MRC_CTL_OPT_CAP_EV_COMP_GENERATED		= (1<<9),
 	/* The implementation supports explicit SRv6 arrays */
-	MRC_CTL_OPT_CAP_SRV6_EXPLICIT			= (1<<8),
+	MRC_CTL_OPT_CAP_SRV6_EXPLICIT			= (1<<10),
 	/* The implementation supports generated SRv6 arrays */
-	MRC_CTL_OPT_CAP_SRV6_GENERATED			= (1<<9),
+	MRC_CTL_OPT_CAP_SRV6_GENERATED			= (1<<11),
 	/* The implementation supports compressed explicit SRv6 arrays */
-	MRC_CTL_OPT_CAP_SRV6_COMP_EXPLICIT		= (1<<10),
+	MRC_CTL_OPT_CAP_SRV6_COMP_EXPLICIT		= (1<<12),
 	/* The implementation supports compressed generated SRv6 arrays */
-	MRC_CTL_OPT_CAP_SRV6_COMP_GENERATED		= (1<<11),
+	MRC_CTL_OPT_CAP_SRV6_COMP_GENERATED		= (1<<13),
 	/* A single segment SRH is supported with SRv6 */
-	MRC_CTL_OPT_CAP_SRV6_SRH			= (1<<12),
+	MRC_CTL_OPT_CAP_SRV6_SRH			= (1<<14),
 };
 
 /**
@@ -202,14 +213,25 @@ int mrc_ctl_query_device(struct ibv_context *context,
 /**
  * @brief Supported EV format modes
  */
-enum mrc_ctl_ev_fmt_mode {
+enum mrc_ctl_ev_mode {
+	/* Controller will not provide any EVs (vendor managed e.g., ECMP) */
+	MRC_CTL_EV_MODE_AUTO			= 0,
+	/* Explicit EVs (MRC_CTL_OPT_CAP_EV_EXPLICIT) */
+	MRC_CTL_EV_MODE_EXPLICIT		= 1,
 	/* Generated EVs (MRC_CTL_OPT_CAP_EV_GENERATED) */
-	MRC_CTL_EV_FMT_MODE_GENERATED		= 1,
-	/*
-	 * Generated SRv6 (MRC_CTL_OPT_CAP_SRV6_GENERATED or
-	 * MRC_CTL_OPT_CAP_SRV6_COMP_GENERATED)
-	 */
-	MRC_CTL_EV_FMT_MODE_SRV6_GENERATED	= 2,
+	MRC_CTL_EV_MODE_GENERATED		= 2,
+	/* Compressed Explicit EVs (MRC_CTL_OPT_CAP_EV_EXPLICIT) */
+	MRC_CTL_EV_MODE_COMP_EXPLICIT		= 3,
+	/* Compressed Generated EVs (MRC_CTL_OPT_CAP_EV_GENERATED) */
+	MRC_CTL_EV_MODE_COMP_GENERATED		= 4,
+	/* Explicit SRv6 (MRC_CTL_OPT_CAP_SRV6_EXPLICIT) */
+	MRC_CTL_EV_MODE_SRV6_EXPLICIT		= 5,
+	/* Geneerated SRv6 (MRC_CTL_OPT_CAP_SRV6_GENERATED) */
+	MRC_CTL_EV_MODE_SRV6_GENERATED		= 6,
+	/* Compressed explicit SRv6 (MRC_CTL_OPT_CAP_SRV6_COMP_EXPLICIT) */
+	MRC_CTL_EV_MODE_SRV6_COMP_EXPLICIT	= 7,
+	/* Compressed generated SRv6 (MRC_CTL_OPT_CAP_SRV6_COMP_GENERATED) */
+	MRC_CTL_EV_MODE_SRV6_COMP_GENERATED	= 8,
 };
 
 /**
@@ -227,7 +249,9 @@ enum mrc_ctl_ev_fmt_profile_attr_mask {
 	MRC_CTL_EV_FMT_PROFILE_STATE		= 1 << 0,
 	MRC_CTL_EV_FMT_PROFILE_CUR_STATE	= 1 << 1,
 	MRC_CTL_EV_FMT_PROFILE_MODE		= 1 << 2,
-	MRC_CTL_EV_FMT_PROFILE_OP		= 1 << 3,
+	MRC_CTL_EV_FMT_PROFILE_SRV6_SRH		= 1 << 3,
+	MRC_CTL_EV_FMT_PROFILE_VENDOR_COMP	= 1 << 4,
+	MRC_CTL_EV_FMT_PROFILE_OP		= 1 << 5,
 };
 
 /**
@@ -242,9 +266,10 @@ struct mrc_ctl_ev_fmt_field {
 /**
  * @brief EV format profile attributes
  *
- * This profile defines the EV generation paramaters used by the hardware
- * when generating EVs. This profile is referenced by individual EV profiles
- * and is only required for the generated EV modes.
+ * This profile defines the EV format paramaters used for explicit or
+ * generated EVs. This profile is referenced by individual EV profiles and
+ * every EV profile assigned to the same EV format profile will be using the
+ * same EV formats.
  */
 struct mrc_ctl_ev_fmt_profile_attr {
 	/* Move the profile to this state. */
@@ -252,14 +277,21 @@ struct mrc_ctl_ev_fmt_profile_attr {
 	/* Current profile state. */
 	enum mrc_ctl_profile_state cur_profile_state;
 
+	/* The EV mode for this format profile. */
+	enum mrc_ctl_ev_mode ev_mode;
+
 	/*
-	 * The EV format mode for this profile:
-	 * - MRC_CTL_EV_FMT_MODE_GENERATED:
-	 *       Hardware generated within EV field bounds.
-	 * - MRC_CTL_EV_FMT_MODE_SRV6_GENERATED:
-	 *       Hardware generated within SRv6 field bounds.
+	 * If non-zero, a single segment SRH is also included with each SRv6
+	 * EV. This field only applies to SRv6 based EV modes.
 	 */
-	enum mrc_ctl_ev_fmt_mode ev_fmt_mode;
+	uint8_t srv6_use_srh;
+
+	/*
+	 * For compressed EV profiles, this field is vendor defined and
+	 * contains information relevant to the vendor's compreession scheme.
+	 * This field only applies to compressed EV modes.
+	 */
+	uint8_t vendor_comp[MRC_CTL_EV_MAX_BYTES];
 
 	struct {
 		enum mrc_ctl_ev_fmt_op op;
@@ -301,17 +333,18 @@ struct mrc_ctl_ev_fmt_profile_attr {
  *
  * State transition requirements:
  *   To OFFLINE: MODE
- *   To ONLINE: MODIFY_FIELDS
+ *   To ONLINE: MODIFY_FIELDS (for generated modes)
  *
  * Allowed:
  *   OFFLINE state:
- *     - Modify: STATE(ONLINE/INIT), MODE, OP_MODIFY_FIELDS, OP_QUERY_FIELDS
- *     - Query: STATE, MODE, OP_QUERY_FIELDS
+ *     - Modify: STATE(ONLINE/INIT), MODE, SRV6_SRH, VENDOR_COMP,
+ *               OP_MODIFY_FIELDS, OP_QUERY_FIELDS
+ *     - Query: STATE, MODE, SRV6_SRH, VENDOR_COMP, OP_QUERY_FIELDS
  *   ONLINE state:
  *     - Modify: STATE(OFFLINE), OP_QUERY_FIELDS
- *     - Query: STATE, MODE, OP_QUERY_FIELDS
+ *     - Query: STATE, MODE, SRV6_SRH, VENDOR_COMP, OP_QUERY_FIELDS
  *
- * The following restrictions apply for the different EV modes:
+ * The following restrictions apply for the generated EV modes:
  *   MRC_CTL_EV_MODE_GENERATED
  *     - The sum of the fixed_field_width and the widths for each of the
  *       format fields must NOT exceeed 32b.
@@ -373,11 +406,6 @@ int mrc_ctl_query_ev_fmt_profile(struct mrc_context *mrc_ctx,
  *****************************************************************************/
 
 /**
- * @brief Maximum number of bytes in an EV value
- */
-#define MRC_CTL_EV_MAX_BYTES 32
-
-/**
  * @brief EV value
  *
  * For SRv6 EV types, the first 128b/16B holds the SRv6 address and the second
@@ -410,26 +438,6 @@ enum mrc_ctl_ev_state {
  *****************************************************************************/
 
 /**
- * @brief Supported EV modes
- */
-enum mrc_ctl_ev_mode {
-	/* Controller will not provide any EVs (vendor managed e.g., ECMP) */
-	MRC_CTL_EV_MODE_AUTO			= 0,
-	/* Explicit EVs (MRC_CTL_OPT_CAP_EV_EXPLICIT) */
-	MRC_CTL_EV_MODE_EXPLICIT		= 1,
-	/* Generated EVs (MRC_CTL_OPT_CAP_EV_GENERATED) */
-	MRC_CTL_EV_MODE_GENERATED		= 2,
-	/* Explicit SRv6 (MRC_CTL_OPT_CAP_SRV6_EXPLICIT) */
-	MRC_CTL_EV_MODE_SRV6_EXPLICIT		= 3,
-	/* Geneerated SRv6 (MRC_CTL_OPT_CAP_SRV6_GENERATED) */
-	MRC_CTL_EV_MODE_SRV6_GENERATED		= 4,
-	/* Compressed explicit SRv6 (MRC_CTL_OPT_CAP_SRV6_COMP_EXPLICIT) */
-	MRC_CTL_EV_MODE_SRV6_COMP_EXPLICIT	= 5,
-	/* Compressed generated SRv6 (MRC_CTL_OPT_CAP_SRV6_COMP_GENERATED) */
-	MRC_CTL_EV_MODE_SRV6_COMP_GENERATED	= 6,
-};
-
-/**
  * @brief Supported EV operations
  */
 enum mrc_ctl_ev_op {
@@ -445,14 +453,11 @@ enum mrc_ctl_ev_op {
 enum mrc_ctl_ev_profile_attr_mask {
 	MRC_CTL_EV_PROFILE_STATE	= 1 << 0,
 	MRC_CTL_EV_PROFILE_CUR_STATE	= 1 << 1,
-	MRC_CTL_EV_PROFILE_MODE		= 1 << 2,
+	MRC_CTL_EV_PROFILE_FMT_ID	= 1 << 2,
 	MRC_CTL_EV_PROFILE_COUNT	= 1 << 3,
 	MRC_CTL_EV_PROFILE_MIN_ACTIVE	= 1 << 4,
 	MRC_CTL_EV_PROFILE_EVENT_MASK	= 1 << 5,
 	MRC_CTL_EV_PROFILE_EV_OP	= 1 << 6,
-	MRC_CTL_EV_PROFILE_FMT_ID	= 1 << 7,
-	MRC_CTL_EV_PROFILE_SRV6_SRH	= 1 << 8,
-	MRC_CTL_EV_PROFILE_SRV6_COMP	= 1 << 9,
 };
 
 /**
@@ -465,12 +470,14 @@ struct mrc_ctl_ev_profile_attr {
 	enum mrc_ctl_profile_state cur_profile_state;
 
 	/*
-	 * The EV mode for this profile:
-	 * - MRC_CTL_EV_MODE_AUTO: Vendor-defined mode.
-	 * - MRC_CTL_EV_MODE_EXPLICIT: Caller provides explicit EV values.
-	 * - MRC_CTL_EV_MODE_GENERATED: HW generated within EV field bounds.
+	 * The EV format profile to use that specifies EV paramaters.
+	 * - AUTO: Vendor-defined mode
+	 * - EXPLICIT: Caller provides explicit EV values
+	 * - GENERATED: Hardware generated within EV bounds
+	 * - COMP_EXPLICIT: Caller provides compressed explicit EV values
+	 * - COMP_GENERATED: Hardware generated compressed within EV bounds
 	 */
-	enum mrc_ctl_ev_mode ev_mode;
+	uint64_t ev_fmt_profile_id;
 
 	/*
 	 * Number of EVs in the profile's EV array.
@@ -496,25 +503,6 @@ struct mrc_ctl_ev_profile_attr {
 	 * EV_PROFILE_MODIFY_ONLINE capability.
 	 */
 	int ev_event_mask;
-
-	/*
-	 * For generated EV modes, the EV format profile to use that provides
-	 * EV generation paramaters.
-	 */
-	uint64_t ev_fmt_profile_id;
-
-	/*
-	 * If non-zero, a single segment SRH is also included with each SRv6
-	 * EV. This field only applies to SRv6 based EV modes.
-	 */
-	uint8_t srv6_use_srh;
-
-	/*
-	 * For compressed SRv6 EV profiles, this field is vendor defined and
-	 * contains information relevant to the vendor's compreession scheme.
-	 * This field only applies to compressed SRv6 based EV modes.
-	 */
-	uint8_t srv6_comp[MRC_CTL_EV_MAX_BYTES];
 
 	struct {
 		enum mrc_ctl_ev_op op;
@@ -568,18 +556,18 @@ struct mrc_ctl_ev_profile_attr {
  *
  * State transition requirements:
  *   To OFFLINE:
- *     - MODE, COUNT, FMT_ID (for generated modes)
+ *     - FMT_ID, COUNT
  *   To ONLINE:
  *     - MIN_ACTIVE, EVENT_MASK, REPLACE_EV (for explicit modes)
  *
  * Allowed:
  *   OFFLINE state:
- *     - Modify: STATE(ONLINE/INIT), MODE, COUNT, MIN_ACTIVE, EVENT_MASK, FMT_ID
- *     - Query: STATE, MODE, COUNT, MIN_ACTIVE, EVENT_MASK, FMT_ID
+ *     - Modify: STATE(ONLINE/INIT), FMT_ID, COUNT, MIN_ACTIVE, EVENT_MASK
+ *     - Query: STATE, FMT_ID, COUNT, MIN_ACTIVE, EVENT_MASK
  *     - EV_OP: REPLACE_EV, MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY
  *   ONLINE state:
  *     - Modify: STATE(OFFLINE)
- *     - Query: STATE, MODE, COUNT, MIN_ACTIVE, EVENT_MASK, FMT_ID
+ *     - Query: STATE, FMT_ID, COUNT, MIN_ACTIVE, EVENT_MASK
  *     - EV_OP: MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY
  *       If EV_PROFILE_MODIFY_ONLINE supported: EVENT_MASK, REPLACE_EV
  *
