@@ -204,8 +204,8 @@ int mrc_ctl_query_device(struct ibv_context *context,
 /**
  * @brief Supported EV Format modes
  *
- * The FLOW based EV modes place the EV value in the IPv6 flow label and UDP
- * source port.
+ * The STEV based EV modes place the structured EV value in the IPv6 flow
+ * label and UDP source port.
  *
  * The SRv6 based EV modes use an IPv6 header encap with an optional single
  * segment SRH header. The lower 8b of the UDP source port is used to hold
@@ -217,13 +217,13 @@ enum mrc_ctl_ev_mode {
 	/* Controller will not provide any EVs (vendor managed e.g., ECMP) */
 	MRC_CTL_EV_MODE_AUTO			= 1 << 0,
 	/* Explicit EVs */
-	MRC_CTL_EV_MODE_FLOW_EXPLICIT		= 1 << 1,
+	MRC_CTL_EV_MODE_STEV_EXPLICIT		= 1 << 1,
 	/* Generated EVs */
-	MRC_CTL_EV_MODE_FLOW_GENERATED		= 1 << 2,
+	MRC_CTL_EV_MODE_STEV_GENERATED		= 1 << 2,
 	/* Compressed Explicit EVs */
-	MRC_CTL_EV_MODE_FLOW_COMP_EXPLICIT	= 1 << 3,
+	MRC_CTL_EV_MODE_STEV_COMP_EXPLICIT	= 1 << 3,
 	/* Compressed Generated EVs */
-	MRC_CTL_EV_MODE_FLOW_COMP_GENERATED	= 1 << 4,
+	MRC_CTL_EV_MODE_STEV_COMP_GENERATED	= 1 << 4,
 	/* Explicit SRv6 */
 	MRC_CTL_EV_MODE_SRV6_EXPLICIT		= 1 << 5,
 	/* Geneerated SRv6 */
