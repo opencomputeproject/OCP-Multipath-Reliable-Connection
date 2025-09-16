@@ -208,7 +208,10 @@ int mrc_ctl_query_device(struct ibv_context *context,
  * source port.
  *
  * The SRv6 based EV modes use an IPv6 header encap with an optional single
- * segment SRH header.
+ * segment SRH header. The lower 8b of the UDP source port is used to holds
+ * the EV index of the SRv6 EV entry that was used in the packet. EV index
+ * values are equivalent to the EV array indices of the array returned by a
+ * MRC_CTL_EV_OP_QUERY_EV_ARRAY operation on an EV profile.
  */
 enum mrc_ctl_ev_mode {
 	/* Controller will not provide any EVs (vendor managed e.g., ECMP) */
