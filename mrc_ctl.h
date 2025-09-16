@@ -89,24 +89,8 @@ enum mrc_ctl_attr_opt {
 	MRC_CTL_OPT_CAP_EV_PROBE			= (1<<4),
 	/* The implementation supports precise EV Event drop counts. */
 	MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= (1<<5),
-	/* The implementation supports explicit EV arrays */
-	MRC_CTL_OPT_CAP_EV_EXPLICIT			= (1<<6),
-	/* The implementation supports generated EV arrays */
-	MRC_CTL_OPT_CAP_EV_GENERATED			= (1<<7),
-	/* The implementation supports compressed explicit EV arrays */
-	MRC_CTL_OPT_CAP_EV_COMP_EXPLICIT		= (1<<8),
-	/* The implementation supports compressed generated EV arrays */
-	MRC_CTL_OPT_CAP_EV_COMP_GENERATED		= (1<<9),
-	/* The implementation supports explicit SRv6 arrays */
-	MRC_CTL_OPT_CAP_SRV6_EXPLICIT			= (1<<10),
-	/* The implementation supports generated SRv6 arrays */
-	MRC_CTL_OPT_CAP_SRV6_GENERATED			= (1<<11),
-	/* The implementation supports compressed explicit SRv6 arrays */
-	MRC_CTL_OPT_CAP_SRV6_COMP_EXPLICIT		= (1<<12),
-	/* The implementation supports compressed generated SRv6 arrays */
-	MRC_CTL_OPT_CAP_SRV6_COMP_GENERATED		= (1<<13),
 	/* A single segment SRH is supported with SRv6 */
-	MRC_CTL_OPT_CAP_SRV6_SRH			= (1<<14),
+	MRC_CTL_OPT_CAP_SRV6_SRH			= (1<<6),
 };
 
 /**
@@ -119,7 +103,7 @@ struct mrc_ctl_attr {
 	/* EV attributes */
 	struct {
 		/*
-		 * Maximum number of EV format profiles supported by the
+		 * Maximum number of EV Format profiles supported by the
 		 * device.
 		 */
 		uint32_t ev_max_fmt_profiles;
@@ -163,6 +147,13 @@ struct mrc_ctl_attr {
 		 * ev_max_bits.
 		 */
 		uint32_t ev_max_bits;
+
+		/*
+		 * Bitmask indicating which EV modes are supported by the
+		 * device. Each bit corresponds to mode defined in the
+		 * mrc_ctl_ev_mode enum.
+		 */
+		uint32_t ev_mode_mask;
 	} ev;
 
 	/* CC attributes */
@@ -211,31 +202,37 @@ int mrc_ctl_query_device(struct ibv_context *context,
  *****************************************************************************/
 
 /**
- * @brief Supported EV format modes
+ * @brief Supported EV Format modes
+ *
+ * The FLOW based EV modes place the EV value in the IPv6 flow label and UDP
+ * source port.
+ *
+ * The SRv6 based EV modes use an IPv6 header encap with an optional single
+ * segment SRH header.
  */
 enum mrc_ctl_ev_mode {
 	/* Controller will not provide any EVs (vendor managed e.g., ECMP) */
-	MRC_CTL_EV_MODE_AUTO			= 0,
-	/* Explicit EVs (MRC_CTL_OPT_CAP_EV_EXPLICIT) */
-	MRC_CTL_EV_MODE_EXPLICIT		= 1,
-	/* Generated EVs (MRC_CTL_OPT_CAP_EV_GENERATED) */
-	MRC_CTL_EV_MODE_GENERATED		= 2,
-	/* Compressed Explicit EVs (MRC_CTL_OPT_CAP_EV_EXPLICIT) */
-	MRC_CTL_EV_MODE_COMP_EXPLICIT		= 3,
-	/* Compressed Generated EVs (MRC_CTL_OPT_CAP_EV_GENERATED) */
-	MRC_CTL_EV_MODE_COMP_GENERATED		= 4,
-	/* Explicit SRv6 (MRC_CTL_OPT_CAP_SRV6_EXPLICIT) */
-	MRC_CTL_EV_MODE_SRV6_EXPLICIT		= 5,
-	/* Geneerated SRv6 (MRC_CTL_OPT_CAP_SRV6_GENERATED) */
-	MRC_CTL_EV_MODE_SRV6_GENERATED		= 6,
-	/* Compressed explicit SRv6 (MRC_CTL_OPT_CAP_SRV6_COMP_EXPLICIT) */
-	MRC_CTL_EV_MODE_SRV6_COMP_EXPLICIT	= 7,
-	/* Compressed generated SRv6 (MRC_CTL_OPT_CAP_SRV6_COMP_GENERATED) */
-	MRC_CTL_EV_MODE_SRV6_COMP_GENERATED	= 8,
+	MRC_CTL_EV_MODE_AUTO			= 1 << 0,
+	/* Explicit EVs */
+	MRC_CTL_EV_MODE_FLOW_EXPLICIT		= 1 << 1,
+	/* Generated EVs */
+	MRC_CTL_EV_MODE_FLOW_GENERATED		= 1 << 2,
+	/* Compressed Explicit EVs */
+	MRC_CTL_EV_MODE_FLOW_COMP_EXPLICIT	= 1 << 3,
+	/* Compressed Generated EVs */
+	MRC_CTL_EV_MODE_FLOW_COMP_GENERATED	= 1 << 4,
+	/* Explicit SRv6 */
+	MRC_CTL_EV_MODE_SRV6_EXPLICIT		= 1 << 5,
+	/* Geneerated SRv6 */
+	MRC_CTL_EV_MODE_SRV6_GENERATED		= 1 << 6,
+	/* Compressed explicit SRv6 */
+	MRC_CTL_EV_MODE_SRV6_COMP_EXPLICIT	= 1 << 7,
+	/* Compressed generated SRv6 */
+	MRC_CTL_EV_MODE_SRV6_COMP_GENERATED	= 1 << 8,
 };
 
 /**
- * @brief Supported EV format operations
+ * @brief Supported EV Format operations
  */
 enum mrc_ctl_ev_fmt_op {
 	MRC_CTL_EV_FMT_OP_MODIFY_FIELDS,
@@ -243,19 +240,19 @@ enum mrc_ctl_ev_fmt_op {
 };
 
 /**
- * @brief EV format profile attribute mask
+ * @brief EV Format profile attribute mask
  */
 enum mrc_ctl_ev_fmt_profile_attr_mask {
 	MRC_CTL_EV_FMT_PROFILE_STATE		= 1 << 0,
 	MRC_CTL_EV_FMT_PROFILE_CUR_STATE	= 1 << 1,
 	MRC_CTL_EV_FMT_PROFILE_MODE		= 1 << 2,
 	MRC_CTL_EV_FMT_PROFILE_SRV6_SRH		= 1 << 3,
-	MRC_CTL_EV_FMT_PROFILE_VENDOR_COMP	= 1 << 4,
+	MRC_CTL_EV_FMT_PROFILE_VENDOR_MD	= 1 << 4,
 	MRC_CTL_EV_FMT_PROFILE_OP		= 1 << 5,
 };
 
 /**
- * @brief EV format field width structures
+ * @brief EV Format field width structures
  */
 struct mrc_ctl_ev_fmt_field {
 	uint8_t width;		/* Field width in bits */
@@ -264,12 +261,20 @@ struct mrc_ctl_ev_fmt_field {
 };
 
 /**
- * @brief EV format profile attributes
+ * @brief EV Format profile attributes
  *
- * This profile defines the EV format paramaters used for explicit or
- * generated EVs. This profile is referenced by individual EV profiles and
- * every EV profile assigned to the same EV format profile will be using the
- * same EV formats.
+ * EVs are abstract representations of network paths. The EV Format profile
+ * defines the EV format paramaters used for explicit or generated EVs. It
+ * provides guidance on the structure of the EV and how it's interpreted. This
+ * profile is referenced by individual EV profiles and every EV profile
+ * assigned to the same EV Format profile will be using the same EV formats.
+ *
+ * The fixed_field_width is used to reserve an initial fixed number of bits
+ * in the EV value. The value placed in these fixed bits will likely be the
+ * same across all EVs in a profile referencing this EV Format profile. For
+ * example, with SRv6 the fixed_field_width can be set to 32b to hold the
+ * locator value. Vendor implemenations may or may not impose restrictions on
+ * the fixed value having to be the same across all EVs in a profile.
  */
 struct mrc_ctl_ev_fmt_profile_attr {
 	/* Move the profile to this state. */
@@ -291,7 +296,7 @@ struct mrc_ctl_ev_fmt_profile_attr {
 	 * contains information relevant to the vendor's compreession scheme.
 	 * This field only applies to compressed EV modes.
 	 */
-	uint8_t vendor_comp[MRC_CTL_EV_MAX_BYTES];
+	uint8_t vendor_metadata[MRC_CTL_EV_MAX_BYTES];
 
 	struct {
 		enum mrc_ctl_ev_fmt_op op;
@@ -321,9 +326,9 @@ struct mrc_ctl_ev_fmt_profile_attr {
 };
 
 /**
- * @brief Modify an EV format profile
+ * @brief Modify an EV Format profile
  *
- * EV format profile state machine:
+ * EV Format profile state machine:
  *   INIT -> OFFLINE -> ONLINE -> OFFLINE -> INIT
  *
  * States:
@@ -337,12 +342,12 @@ struct mrc_ctl_ev_fmt_profile_attr {
  *
  * Allowed:
  *   OFFLINE state:
- *     - Modify: STATE(ONLINE/INIT), MODE, SRV6_SRH, VENDOR_COMP,
+ *     - Modify: STATE(ONLINE/INIT), MODE, SRV6_SRH, VENDOR_MD,
  *               OP_MODIFY_FIELDS, OP_QUERY_FIELDS
- *     - Query: STATE, MODE, SRV6_SRH, VENDOR_COMP, OP_QUERY_FIELDS
+ *     - Query: STATE, MODE, SRV6_SRH, VENDOR_MD, OP_QUERY_FIELDS
  *   ONLINE state:
  *     - Modify: STATE(OFFLINE), OP_QUERY_FIELDS
- *     - Query: STATE, MODE, SRV6_SRH, VENDOR_COMP, OP_QUERY_FIELDS
+ *     - Query: STATE, MODE, SRV6_SRH, VENDOR_MD, OP_QUERY_FIELDS
  *
  * The following restrictions apply for the generated EV modes:
  *   MRC_CTL_EV_MODE_GENERATED
@@ -375,7 +380,7 @@ int mrc_ctl_modify_ev_fmt_profile(struct mrc_context *mrc_ctx,
 				  int attr_mask);
 
 /**
- * @brief Query an EV format profile
+ * @brief Query an EV Format profile
  *
  * If MRC_CTL_EV_FMT_OP_QUERY_FIELDS is specified, an array of empty format
  * fields (fmt_fieds) must be supplied to be filled in upon return. If the
@@ -470,7 +475,7 @@ struct mrc_ctl_ev_profile_attr {
 	enum mrc_ctl_profile_state cur_profile_state;
 
 	/*
-	 * The EV format profile to use that specifies EV paramaters.
+	 * The EV Format profile to use that specifies EV paramaters.
 	 * - AUTO: Vendor-defined mode
 	 * - EXPLICIT: Caller provides explicit EV values
 	 * - GENERATED: Hardware generated within EV bounds
