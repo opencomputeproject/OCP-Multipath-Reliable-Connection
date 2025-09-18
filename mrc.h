@@ -431,6 +431,10 @@ enum mrc_qp_attr_mask {
 };
 
 struct mrc_qp_attr {
+	/* Move the QP to this state */
+	 enum ibv_qp_state qp_state;
+	 /* Assume this is the current QP state */
+	enum ibv_qp_state cur_qp_state;
 
 	/* MRC version used for this QP.
 	 * This is valid only for QUERY operations  */
