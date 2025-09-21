@@ -82,12 +82,10 @@ struct mrc_device_attr {
  * The value returned in `supported` is 0 when MRC support is not
  * available.
  *
- * @param context[in]    - IB Verbs context
+ * @param context[in]    verbs context
  * @param attrs[out]     - MRC attributes
- * @param supported[out] - MRC support
- *
- * @return 0 on success.
- * @return Errors like ibv_query_device().
+ * @param supported[out] non-zero if MRC supported
+ * @return 0 on success, -1 on failure (errno set)
  */
 int mrc_query_device(struct ibv_context *context,
 		     struct mrc_device_attr *attr,
@@ -132,8 +130,7 @@ struct mrc_context *mrc_create_context(struct ibv_context *vcontext,
  *
  * @param[in] mrc_ctx - MRC context
  *
- * @return 0 on success.
- * @return -1 on failure.
+ * @return 0 on success, -1 on failure (errno set).
  */
 int mrc_destroy_context(struct mrc_context *mrc_ctx);
 
@@ -157,8 +154,7 @@ int mrc_create_comp_channel(struct mrc_context *mrc_ctx,
  * @param channel[in] - MRC completion channel
  * @param fd[out]     - Returned file descriptor
  *
- * @return 0 on success.
- * @return -1 on failure.
+ * @return 0 on success, -1 on failure (errno set).
  */
 int mrc_get_comp_channel_fd(struct mrc_comp_channel *channel,
 			    int *fd);
@@ -297,9 +293,8 @@ struct mrc_qp_hint *mrc_create_qp_hint(
  *
  * @param qp_hint[in] - MRC QP hint
  *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval EBUSY Profile is still being used by a QP.
+ * @return 0 on success, -1 on failure (errno set: EINVAL invalid,
+ *         EBUSY in use).
  */
 int mrc_destroy_qp_hint(struct mrc_qp_hint *qp_hint);
 
@@ -312,8 +307,7 @@ int mrc_destroy_qp_hint(struct mrc_qp_hint *qp_hint);
  * @param qp_hint_attr[out]     - MRC QP hint attributes
  * @param qp_hint_attr_mask[in] - MRC QP hint attributes to query
  *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
+ * @return 0 on success, -1 on failure (errno=EINVAL).
  */
 int mrc_query_qp_hint(struct mrc_qp_hint *qp_hint,
 		      struct mrc_qp_hint_attr *qp_hint_attr,
@@ -328,8 +322,7 @@ int mrc_query_qp_hint(struct mrc_qp_hint *qp_hint,
  * @param qp_hint_attr[in]      - MRC QP hint attributes
  * @param qp_hint_attr_mask[in] - MRC QP hint attributes to modify
  *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
+ * @return 0 on success, -1 on failure (errno=EINVAL).
  */
 int mrc_modify_qp_hint(struct mrc_qp_hint *qp_hint,
 		       struct mrc_qp_hint_attr *qp_hint_attr,
@@ -543,8 +536,7 @@ int mrc_modify_qp(struct mrc_qp *qp,
  * @param qp[in]   - MRC QP
  * @param qpn[out] - Returned QP number
  *
- * @return 0 on success.
- * @return -1 on error.
+ * @return 0 on success, -1 on failure (errno set).
  */
 int mrc_get_qpn(struct mrc_qp *qp,
 		uint32_t *qpn);
