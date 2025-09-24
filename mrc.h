@@ -347,6 +347,10 @@ struct mrc_qp_init_attr {
 	struct ibv_pd      *pd;
 	/* see enum ibv_qp_create_send_ops_flags */
 	uint64_t            send_ops_flags;
+	/* The version of MRC wire protocol to use.
+	 * The value `0` here refers to the provider's default version.
+	 */
+	enum mrc_version    mrc_version;
 };
 
 /**
@@ -420,13 +424,16 @@ enum mrc_qp_attr_mask {
 	MRC_QP_PROTOCOL_VERSION		= (1<<9),
 	/* Linear + exponential retry counter */
 	MRC_QP_RETRY_CNT		= (1<<10),
+	/* MRC wire protocol version */
+	MRC_QP_VERSION			= (1<<11),
 	/* Vendor specific configuration data */
 	MRC_QP_VENDOR_CFG		= (1<<31)
 };
 
 struct mrc_qp_attr {
 
-	/* MRC version used for this QP */
+	/* MRC version used for this QP.
+	 * This is valid only for QUERY operations  */
 	enum mrc_version version;
 
 	struct {
