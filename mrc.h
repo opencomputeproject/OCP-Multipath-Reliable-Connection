@@ -28,11 +28,26 @@
 extern "C" {
 #endif
 
-/* Maximum size of opaque vendor configuration data */
+/**
+ * @brief Max bytes for opaque vendor configuration data.
+ *
+ * Used as the fixed size of the `vendor_cfg` blobs in `struct mrc_qp_hint_attr`
+ * and `struct mrc_qp_attr`. The contents are provider-defined; consult vendor
+ * documentation for use cases. Unused trailing bytes MUST be zero-initialized
+ * by callers.
+ */
 #define MRC_MAX_VENDOR_CFG_SIZE 128
 
+/**
+ * @brief MRC wire (transport) protocol version bit values.
+ *
+ * Each non-zero constant denotes a distinct on-the-wire protocol version.
+ * Devices advertise a bitmap (OR of these bits) via `mrc_attr.mrc_version`.
+ * Applications request exactly one bit (or 0 for provider default) in
+ * `mrc_context_attr.mrc_api_version_used`.
+ */
 enum mrc_version {
-	MRC_VERSION_0	= 0, /* MRC version unspecified */
+	MRC_VERSION_0	= 0, /* unspecified / request provider default */
 	MRC_VERSION_1	= (1 << 0),
 };
 
@@ -46,31 +61,28 @@ struct mrc_device_attr {
 	/*
 	 * Bitmap of all versions supported (see enum mrc_version).
 	 * The value 0 indicates the provider should choose an
-	 * an appropriate version.
+	 * appropriate version.
 	 */
 	uint32_t mrc_version;
 
 	struct {
-		/* Max configurable wimm value as requestor. */
+		/* Max configurable WIMM value as requestor */
 		uint16_t max_wimm;
-		/* Max configurable wimm value as responder. */
+		/* Max configurable WIMM value as responder */
 		uint16_t max_wimm_dest;
 	} wimm_attr;
 
 	struct {
-		/*
-		 * Maximum supported MPR value as requestor or responder.
-		 * units = 128 PSNs
-		 */
+		/* Max supported MPR (units = 128 PSNs) */
 		uint8_t max_mpr;
-		/* MPR resource allocation resolution; unit = 128 PSNs. */
+		/* Allocation granularity (units = 128 PSNs) */
 		uint8_t mpr_resolution;
-		/* if 1/true, implementation supports dynamic MPR */
+		/* Non-zero if dynamic MPR supported */
 		uint8_t dynamic_mpr;
 	} mpr_attr;
 
 	struct {
-		/* Maximum number of QP hints supported by the device. */
+		/* Max number of QP hints supported */
 		uint32_t max_qp_hint;
 	} qp_attr;
 };
@@ -93,14 +105,18 @@ int mrc_query_device(struct ibv_context *context,
 		     struct mrc_device_attr *attr,
 		     int *supported);
 
-/* Context attributes declare the application's usage of MRC */
+/**
+ * @brief Application-provided context initialization attributes.
+ *
+ * Selects the API version in use (`mrc_api_version_used`).
+ */
 struct mrc_context_attr {
 	/* API version used */
 	uint32_t mrc_api_version_used;
 };
 
 /**
- * @brief Create a MRC lib context
+ * @brief Create an MRC context
  *
  * Create an MRC library context. `struct mrc_context` provides an instance
  * of the MRC library. It is the parent object for all other objects.
@@ -117,7 +133,7 @@ struct mrc_context_attr {
  * provider to choose the defaults.
  *
  * @param vcontext[in]     - IB Verbs context
- * @param context_attr[in] - MRC version used by the application
+ * @param context_attr[in] - optional version selection (may be NULL)
  *
  * @return Pointer to the allocated context on success.
  * @return NULL if the request fails.
@@ -224,6 +240,17 @@ int mrc_poll_cq(struct mrc_cq *cq,
  */
 int mrc_destroy_cq(struct mrc_cq *cq);
 
+/**
+ * @brief Traffic pattern hint attributes describing expected QP usage.
+ *
+ * Provides heuristic inputs to guide connection tuninig:
+ *  - num_qps_per_peer: Parallel QPs to the same destination IP.
+ *  - num_send_peers:   Concurrent distinct destination IPs.
+ *  - num_remote_recv_peers: Incast degree (remote QPs targeting same peer).
+ *  - vendor_cfg:       Provider-specific opaque configuration data.
+ *
+ * All integer counts are advisory upper bounds; provider may clamp internally.
+ */
 struct mrc_qp_hint_attr {
 	/*
 	 * Number of QPs using this hint that are sending data to the same
@@ -265,7 +292,7 @@ enum mrc_qp_hint_attr_mask {
 };
 
 /**
- * @brief MRC QP hint initialization attributes
+ * @brief Wrapper passed to `mrc_create_qp_hint()` holding base attributes.
  */
 struct mrc_qp_hint_init_attr {
 	struct mrc_qp_hint_attr attr;
@@ -336,7 +363,8 @@ int mrc_modify_qp_hint(struct mrc_qp_hint *qp_hint,
 		       int qp_hint_attr_mask);
 
 /**
- * @brief MRC QP initialization attributes
+ * @brief Attributes required to create an MRC QP.
+ *
  */
 struct mrc_qp_init_attr {
 	void               *qp_context;
@@ -430,6 +458,9 @@ enum mrc_qp_attr_mask {
 	MRC_QP_VENDOR_CFG		= (1<<31)
 };
 
+/**
+ * @brief Runtime / modifiable MRC QP attributes (query/modify interface).
+ */
 struct mrc_qp_attr {
 
 	/* MRC version used for this QP.
@@ -582,6 +613,10 @@ int mrc_post_send(struct mrc_qp *qp,
 		  struct ibv_send_wr *wr,
 		  struct ibv_send_wr **bad_wr);
 
+/**
+ * @brief Asynchronous event record returned by `mrc_get_async_event()`.
+ *        Must be acknowledged via `mrc_ack_async_event()`.
+ */
 struct mrc_async_event {
 	union {
 		struct mrc_cq *cq;
