@@ -89,7 +89,7 @@ enum mrc_ctl_attr_opt {
 	MRC_CTL_OPT_CAP_EV_PROBE			= (1<<4),
 	/* The implementation supports precise EV Event drop counts. */
 	MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= (1<<5),
-	/* A single segment SRH is supported with SRv6 */
+	/* A single segment SRH is supported with SRv6. */
 	MRC_CTL_OPT_CAP_SRV6_SRH			= (1<<6),
 };
 
@@ -114,7 +114,7 @@ struct mrc_ctl_attr {
 		/* Maximum number of EVs available across all profiles. */
 		uint32_t ev_max_count;
 
-		/* Free number of EV resources avilable across all profiles. */
+		/* Free number of EV resources available across all profiles. */
 		uint32_t ev_free_count;
 
 		/*
@@ -139,14 +139,20 @@ struct mrc_ctl_attr {
 		uint32_t ev_count_align;
 
 		/*
-		 * Maximum EV value supported per profile. This represents
-		 * the number of consecutive bits in an EV value that are
-		 * valid. Applies to both explicit and generated EVs. It's
-		 * an error if an ev_format_mask in an EV profile defining
-		 * generated EVs contains a set of fields that extends past
-		 * ev_max_bits.
+		 * The maximum EV value supported per profile for STEV mode.
+		 * This represents the number of consecutive bits in an EV
+		 * value that are valid. Applies to both explicit and
+		 * generated EVs. It's an error if an EV profile contains a
+		 * set of fields that extends past ev_max_bits.
 		 */
 		uint32_t ev_max_bits;
+
+		/*
+		 * Bitmask indicating which EV format modes are supported by
+		 * the device. Each bit corresponds to mode defined in the
+		 * mrc_ctl_ev_fmt_mode enum.
+		 */
+		uint32_t ev_fmt_mode_mask;
 
 		/*
 		 * Bitmask indicating which EV modes are supported by the
@@ -204,34 +210,19 @@ int mrc_ctl_query_device(struct ibv_context *context,
 /**
  * @brief Supported EV Format modes
  *
- * The STEV based EV modes place the structured EV value in the IPv6 flow
- * label and UDP source port.
+ * The STEV EV format places the structured EV value in the IPv6 flow label
+ * and UDP source port.
  *
- * The SRv6 based EV modes use an IPv6 header encap with an optional single
- * segment SRH header. The lower 8b of the UDP source port is used to hold
- * the EV index of the SRv6 EV entry that was used in the packet. EV index
- * values are equivalent to the EV array indices of the array returned by a
- * MRC_CTL_EV_OP_QUERY_EV_ARRAY operation on an EV profile.
+ * The SRv6 EV format uses an IPv6 header encap with an optional single
+ * segment SRH header. A portion of the UDP source port is used to hold the
+ * EV index, from the EV profile, of the SRv6 EV entry that was used in the
+ * packet.
  */
-enum mrc_ctl_ev_mode {
-	/* Controller will not provide any EVs (vendor managed e.g., ECMP) */
-	MRC_CTL_EV_MODE_AUTO			= 1 << 0,
-	/* Explicit EVs */
-	MRC_CTL_EV_MODE_STEV_EXPLICIT		= 1 << 1,
-	/* Generated EVs */
-	MRC_CTL_EV_MODE_STEV_GENERATED		= 1 << 2,
-	/* Compressed Explicit EVs */
-	MRC_CTL_EV_MODE_STEV_COMP_EXPLICIT	= 1 << 3,
-	/* Compressed Generated EVs */
-	MRC_CTL_EV_MODE_STEV_COMP_GENERATED	= 1 << 4,
-	/* Explicit SRv6 */
-	MRC_CTL_EV_MODE_SRV6_EXPLICIT		= 1 << 5,
-	/* Geneerated SRv6 */
-	MRC_CTL_EV_MODE_SRV6_GENERATED		= 1 << 6,
-	/* Compressed explicit SRv6 */
-	MRC_CTL_EV_MODE_SRV6_COMP_EXPLICIT	= 1 << 7,
-	/* Compressed generated SRv6 */
-	MRC_CTL_EV_MODE_SRV6_COMP_GENERATED	= 1 << 8,
+enum mrc_ctl_ev_fmt_mode {
+	/* Structured EVs */
+	MRC_CTL_EV_FMT_MODE_STEV	= 1 << 0,
+	/* SRv6/SRH EVs */
+	MRC_CTL_EV_FMT_MODE_SRV6	= 1 << 1,
 };
 
 /**
@@ -249,35 +240,27 @@ enum mrc_ctl_ev_fmt_profile_attr_mask {
 	MRC_CTL_EV_FMT_PROFILE_STATE		= 1 << 0,
 	MRC_CTL_EV_FMT_PROFILE_CUR_STATE	= 1 << 1,
 	MRC_CTL_EV_FMT_PROFILE_MODE		= 1 << 2,
-	MRC_CTL_EV_FMT_PROFILE_SRV6_SRH		= 1 << 3,
-	MRC_CTL_EV_FMT_PROFILE_VENDOR_MD	= 1 << 4,
-	MRC_CTL_EV_FMT_PROFILE_OP		= 1 << 5,
+	MRC_CTL_EV_FMT_PROFILE_OP		= 1 << 3,
 };
 
 /**
- * @brief EV Format field width structures
+ * @brief EV Format field structure
  */
 struct mrc_ctl_ev_fmt_field {
-	uint8_t width;		/* Field width in bits */
-	uint8_t min_val;	/* Minimum supported value */
-	uint8_t max_val;	/* Maximam supported value */
+	/* Field width in bits */
+	uint8_t width;
 };
 
 /**
  * @brief EV Format profile attributes
  *
- * EVs are abstract representations of network paths. The EV Format profile
- * defines the EV format paramaters used for explicit or generated EVs. It
- * provides guidance on the structure of the EV and how it's interpreted. This
- * profile is referenced by individual EV profiles and every EV profile
- * assigned to the same EV Format profile will be using the same EV formats.
+ * The EV Format profile defines an array of format fields which when
+ * combined, equals to the total width of an EV placed in a packet. Every
+ * EV profile is associated with an EV Format profile and the format fields
+ * define limits and the maximum width an EV can be expanded to.
  *
- * The fixed_field_width is used to reserve an initial fixed number of bits
- * in the EV value. The value placed in these fixed bits will likely be the
- * same across all EVs in a profile referencing this EV Format profile. For
- * example, with SRv6 the fixed_field_width can be set to 32b to hold the
- * locator value. Vendor implemenations may or may not impose restrictions on
- * the fixed value having to be the same across all EVs in a profile.
+ * For SRv6+SRH, if the SRH capability is supported, the EV format fields
+ * can extend beyond 128b.
  */
 struct mrc_ctl_ev_fmt_profile_attr {
 	/* Move the profile to this state. */
@@ -285,33 +268,18 @@ struct mrc_ctl_ev_fmt_profile_attr {
 	/* Current profile state. */
 	enum mrc_ctl_profile_state cur_profile_state;
 
-	/* The EV mode for this format profile. */
-	enum mrc_ctl_ev_mode ev_mode;
-
-	/*
-	 * If non-zero, a single segment SRH is also included with each SRv6
-	 * EV. This field only applies to SRv6 based EV modes.
-	 */
-	uint8_t srv6_use_srh;
-
-	/*
-	 * For compressed EV profiles, this field is vendor defined and
-	 * contains information relevant to the vendor's compreession scheme.
-	 * This field only applies to compressed EV modes.
-	 */
-	uint8_t vendor_metadata[MRC_CTL_EV_MAX_BYTES];
+	/* The EV format mode for this profile. */
+	enum mrc_ctl_ev_fmt_mode ev_fmt_mode;
 
 	struct {
 		enum mrc_ctl_ev_fmt_op op;
 
 		union {
 			struct {
-				/* Array of format field */
+				/* Array of format fields */
 				struct mrc_ctl_ev_fmt_field *fmt_fields;
 				/* Format field array length */
 				int fmt_field_count;
-				/* Width for a fixed EV prefix */
-				int fixed_field_width;
 			} modify_fmt_fields;
 
 			struct {
@@ -321,8 +289,6 @@ struct mrc_ctl_ev_fmt_profile_attr {
 				int fmt_field_count;
 				/* Configured number of format fields in use */
 				int *cur_fmt_field_count;
-				/* Configured width for a fixed EV prefix */
-				int *fixed_field_width;
 			} query_fmt_fields;
 		};
 	} ev_fmt_op;
@@ -341,28 +307,15 @@ struct mrc_ctl_ev_fmt_profile_attr {
  *
  * State transition requirements:
  *   To OFFLINE: MODE
- *   To ONLINE: MODIFY_FIELDS (for generated modes)
+ *   To ONLINE: MODIFY_FIELDS
  *
  * Allowed:
  *   OFFLINE state:
- *     - Modify: STATE(ONLINE/INIT), MODE, SRV6_SRH, VENDOR_MD,
- *               OP_MODIFY_FIELDS, OP_QUERY_FIELDS
- *     - Query: STATE, MODE, SRV6_SRH, VENDOR_MD, OP_QUERY_FIELDS
+ *     - Modify: STATE(ONLINE/INIT), MODE, MODIFY_FIELDS, QUERY_FIELDS
+ *     - Query: STATE, MODE, QUERY_FIELDS
  *   ONLINE state:
- *     - Modify: STATE(OFFLINE), OP_QUERY_FIELDS
- *     - Query: STATE, MODE, SRV6_SRH, VENDOR_MD, OP_QUERY_FIELDS
- *
- * The following restrictions apply for the generated EV modes:
- *   MRC_CTL_EV_MODE_GENERATED
- *     - The sum of the fixed_field_width and the widths for each of the
- *       format fields must NOT exceeed 32b.
- *   MRC_CTL_EV_MODE_SRV6_GENERATED
- *     - If SRH is NOT enabled, the sum of the fixed_field_width and the
- *       widths for each of the format fields must not exceeed 128b.
- *     - If SRH is enabled, the sum of the (fixed_field_width * 2) and the
- *       widths for each of the format fields must not exceed 256b.
- *   MRC_CTL_EV_MODE_SRV6_COMP_GENERATED
- *     - Vendor defined; refer to vendor documentation.
+ *     - Modify: STATE(OFFLINE), QUERY_FIELDS
+ *     - Query: STATE, MODE, QUERY_FIELDS
  *
  * @param mrc_ctx[in]           - MRC context
  * @param ev_fmt_profile_id[in] - EV Format Profile ID
@@ -375,7 +328,6 @@ struct mrc_ctl_ev_fmt_profile_attr {
  * @retval -E2BIG Supplied combination of format fields is unsupportable.
  * @retval -EIO Implementation specific error occurred.
  * @retval -EPERM Process lacks sufficient permissions.
- * @retval -EBUSY One or more active QPs are associated with this profile.
  */
 int mrc_ctl_modify_ev_fmt_profile(struct mrc_context *mrc_ctx,
 				  uint64_t ev_fmt_profile_id,
@@ -446,6 +398,18 @@ enum mrc_ctl_ev_state {
  *****************************************************************************/
 
 /**
+ * @brief Supported EV modes
+ */
+enum mrc_ctl_ev_mode {
+	/* Controller will not provide any EVs (vendor managed e.g., ECMP) */
+	MRC_CTL_EV_MODE_AUTO	= 1 << 0,
+	/* Explicit EVs */
+	MRC_CTL_EV_MODE_EXP	= 1 << 1,
+	/* Generated EVs */
+	MRC_CTL_EV_MODE_GEN	= 1 << 2,
+};
+
+/**
  * @brief Supported EV operations
  */
 enum mrc_ctl_ev_op {
@@ -453,6 +417,8 @@ enum mrc_ctl_ev_op {
 	MRC_CTL_EV_OP_MODIFY_EV_STATE,
 	MRC_CTL_EV_OP_QUERY_EV_STATE,
 	MRC_CTL_EV_OP_QUERY_EV_ARRAY,
+	MRC_CTL_EV_OP_MODIFY_FIELDS,
+	MRC_CTL_EV_OP_QUERY_FIELDS,
 };
 
 /**
@@ -461,15 +427,65 @@ enum mrc_ctl_ev_op {
 enum mrc_ctl_ev_profile_attr_mask {
 	MRC_CTL_EV_PROFILE_STATE	= 1 << 0,
 	MRC_CTL_EV_PROFILE_CUR_STATE	= 1 << 1,
-	MRC_CTL_EV_PROFILE_FMT_ID	= 1 << 2,
-	MRC_CTL_EV_PROFILE_COUNT	= 1 << 3,
-	MRC_CTL_EV_PROFILE_MIN_ACTIVE	= 1 << 4,
-	MRC_CTL_EV_PROFILE_EVENT_MASK	= 1 << 5,
-	MRC_CTL_EV_PROFILE_EV_OP	= 1 << 6,
+	MRC_CTL_EV_PROFILE_MODE		= 1 << 2,
+	MRC_CTL_EV_PROFILE_FMT_ID	= 1 << 3,
+	MRC_CTL_EV_PROFILE_COUNT	= 1 << 4,
+	MRC_CTL_EV_PROFILE_MIN_ACTIVE	= 1 << 5,
+	MRC_CTL_EV_PROFILE_EVENT_MASK	= 1 << 6,
+	MRC_CTL_EV_PROFILE_EV_OP	= 1 << 7,
+};
+
+/**
+ * @brief EV field structure
+ */
+struct mrc_ctl_ev_field {
+	/* Field width in bits. */
+	uint32_t width;
+	/* Field initialization value before applying the mask and EV bits. */
+	uint32_t init_val;
+	/* Minimum field value for generated EVs. */
+	uint32_t min_val;
+	/* Maximum field value for generated EVs. */
+	uint32_t max_val;
+	/* Mask bits detail where EV bits are overlaid on the field value. */
+	uint32_t mask;
 };
 
 /**
  * @brief EV Profile attributes
+ *
+ * EVs are abstract representations of network paths. The EV profile
+ * defines the EV parameters used for specifying explicit or generated EVs. It
+ * provides guidance on the structure of the EV and how it's both expanded
+ * and interpreted.
+ *
+ * The EV profile contains an array of EV fields that define how each field
+ * corresponds to a set of bits from the EV and how those bits are expanded
+ * into the final EV to be used in a packet. Each field contains a bit width,
+ * and initial value, a min/max value for generation, and a mask. The mask
+ * defines how many bits are taken from the EV and where they're placed in the
+ * expanded field value. For generated EVs, the mask also indicates the
+ * total number of bits the hardware must generate for the field. EV
+ * expansion steps per field are:
+ *
+ *  1. Value is initialized to the init_val.
+ *  2. For each bit set in the mask:
+ *      2a. Pull the next bit from the EV.
+ *      2b. Insert the bit value at the offset from the mask bit.
+ *
+ * Once each of the fields are expanded, they are concatenated together to
+ * form the final EV.
+ *
+ * Non-AUTO EV profiles are associated with an EV format profile. The EV
+ * format profile defines limits on the width of each field as well as the
+ * total width of an expanded EV.
+ *
+ * The configuration of an EV profile has the following restrictions:
+ *  - num_fields <= num_fmt_fields (from EV Format)
+ *  - sum of field widths <= sum of fmt_field widths (from EV Format)
+ *  - a field's init_val cannot be wider than the field's width
+ *  - a field's mask cannot contain bits set outside of the field width
+ *  - a field's max_val cannot be wider than the number of set mask bits
  */
 struct mrc_ctl_ev_profile_attr {
 	/* Move the profile to this state. */
@@ -477,14 +493,10 @@ struct mrc_ctl_ev_profile_attr {
 	/* Current profile state. */
 	enum mrc_ctl_profile_state cur_profile_state;
 
-	/*
-	 * The EV Format profile to use that specifies EV paramaters.
-	 * - AUTO: Vendor-defined mode
-	 * - EXPLICIT: Caller provides explicit EV values
-	 * - GENERATED: Hardware generated within EV bounds
-	 * - COMP_EXPLICIT: Caller provides compressed explicit EV values
-	 * - COMP_GENERATED: Hardware generated compressed within EV bounds
-	 */
+	/* The EV mode for this profile. */
+	enum mrc_ctl_ev_mode ev_mode;
+
+	/* The EV Format profile used for the EVs defined in this profile. */
 	uint64_t ev_fmt_profile_id;
 
 	/*
@@ -547,6 +559,22 @@ struct mrc_ctl_ev_profile_attr {
 				/* Array of EVs; pointer, length >= ev_count */
 				struct mrc_ctl_ev *ev;
 			} query_ev_array;
+
+			struct {
+				/* Array of fields */
+				struct mrc_ctl_ev_field *fields;
+				/* Field array length */
+				int field_count;
+			} modify_fields;
+
+			struct {
+				/* Array of empty fields */
+				struct mrc_ctl_ev_field *fields;
+				/* Field array length */
+				int field_count;
+				/* Configured number of fields in use */
+				int *cur_field_count;
+			} query_fields;
 		};
 	} ev_op;
 };
@@ -564,19 +592,21 @@ struct mrc_ctl_ev_profile_attr {
  *
  * State transition requirements:
  *   To OFFLINE:
- *     - FMT_ID, COUNT
+ *     - MODE, FMT_ID, COUNT, MODIFY_FIELDS
  *   To ONLINE:
- *     - MIN_ACTIVE, EVENT_MASK, REPLACE_EV (for explicit modes)
+ *     - MIN_ACTIVE, EVENT_MASK, REPLACE_EV (for EXP)
  *
  * Allowed:
  *   OFFLINE state:
- *     - Modify: STATE(ONLINE/INIT), FMT_ID, COUNT, MIN_ACTIVE, EVENT_MASK
- *     - Query: STATE, FMT_ID, COUNT, MIN_ACTIVE, EVENT_MASK
- *     - EV_OP: REPLACE_EV, MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY
+ *     - Modify: STATE(ONLINE/INIT), MODE, FMT_ID, COUNT, MIN_ACTIVE,
+ *               EVENT_MASK
+ *     - Query: STATE, MODE, FMT_ID, COUNT, MIN_ACTIVE, EVENT_MASK
+ *     - EV_OP: REPLACE_EV, MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY,
+ *              MODIFY_FIELDS, QUERY_FIELDS
  *   ONLINE state:
  *     - Modify: STATE(OFFLINE)
- *     - Query: STATE, FMT_ID, COUNT, MIN_ACTIVE, EVENT_MASK
- *     - EV_OP: MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY
+ *     - Query: STATE, MODE, FMT_ID, COUNT, MIN_ACTIVE, EVENT_MASK
+ *     - EV_OP: MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY, QUERY_FIELDS
  *       If EV_PROFILE_MODIFY_ONLINE supported: EVENT_MASK, REPLACE_EV
  *
  * Restrictions:
@@ -605,6 +635,11 @@ int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
  * @brief Query an EV profile
  *
  * Query an EV profile configuration.
+ *
+ * If MRC_CTL_EV_OP_QUERY_FIELDS is specified, an array of empty fields must
+ * be supplied to be filled in upon return. If the number of entries in the
+ * array (field_count) is not large enough then an -E2BIG error is returned
+ * and the required array size is set in cur_field_count.
  *
  * @param mrc_ctx[in]       - MRC context
  * @param ev_profile_id[in] - EV Profile ID
@@ -796,12 +831,11 @@ int mrc_ctl_poll_ev_event(struct mrc_cq *ev_cq,
  *****************************************************************************/
 
 /**
- * @brief SRv6 Probe paramaters
+ * @brief SRv6 Probe parameters
  *
  * If SRv6 is enabled for a probe, both the req_ev and rsp_ev fields must
  * contain the full locator and uSID stack to use. If SRH is also enabled,
- * the SRH segment must also include the full locator and uSID stack. No
- * compression is supported for probes.
+ * the SRH segment must also include the full locator and uSID stack.
  */
 struct mrc_ctl_srv6_probe {
 	uint8_t srv6_enable;
