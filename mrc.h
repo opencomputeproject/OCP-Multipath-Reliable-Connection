@@ -473,6 +473,9 @@ struct mrc_qp_attr {
 	       uint8_t exp_cnt;
        } retry;
 
+	/* QP hint, if NULL then no hint is assigned */
+	struct mrc_qp_hint *qp_hint;
+
 	uint8_t vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
 
