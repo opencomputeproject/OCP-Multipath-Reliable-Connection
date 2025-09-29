@@ -242,14 +242,6 @@ int mrc_destroy_cq(struct mrc_cq *cq);
 
 /**
  * @brief Traffic pattern hint attributes describing expected QP usage.
- *
- * Provides heuristic inputs to guide connection tuninig:
- *  - num_qps_per_peer: Parallel QPs to the same destination IP.
- *  - num_send_peers:   Concurrent distinct destination IPs.
- *  - num_remote_recv_peers: Incast degree (remote QPs targeting same peer).
- *  - vendor_cfg:       Provider-specific opaque configuration data.
- *
- * All integer counts are advisory upper bounds; provider may clamp internally.
  */
 struct mrc_qp_hint_attr {
 	/*
