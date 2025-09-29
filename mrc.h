@@ -473,6 +473,9 @@ struct mrc_qp_attr {
 	       uint8_t exp_cnt;
        } retry;
 
+	/* QP hint, if NULL then no hint is assigned */
+	struct mrc_qp_hint *qp_hint;
+
 	uint8_t vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
 
@@ -533,18 +536,6 @@ int mrc_modify_qp(struct mrc_qp *qp,
 		  int vattr_mask,
 		  struct mrc_qp_attr *mrc_attr,
 		  int mrc_attr_mask);
-
-/**
- * @brief Retrieve the QP number
- *
- * @param qp[in]   - MRC QP
- * @param qpn[out] - Returned QP number
- *
- * @return 0 on success.
- * @return -1 on error.
- */
-int mrc_get_qpn(struct mrc_qp *qp,
-		uint32_t *qpn);
 
 /**
  * @brief Post a receive operation on a QP
