@@ -42,7 +42,7 @@ struct mrc_qp;
 struct mrc_cq;
 struct mrc_comp_channel;
 
-struct mrc_attr {
+struct mrc_device_attr {
 	/*
 	 * Bitmap of all versions supported (see enum mrc_version).
 	 * The value 0 indicates the provider should choose an
@@ -90,7 +90,7 @@ struct mrc_attr {
  * @return Errors like ibv_query_device().
  */
 int mrc_query_device(struct ibv_context *context,
-		     struct mrc_attr *attr,
+		     struct mrc_device_attr *attr,
 		     int *supported);
 
 /* Context attributes declare the application's usage of MRC */
