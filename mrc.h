@@ -38,13 +38,13 @@ extern "C" {
  * @brief MRC wire (transport) protocol version bit values.
  *
  * Each non-zero constant denotes a distinct on-the-wire protocol version.
- * Devices advertise a bitmap (OR of these bits) via `mrc_attr.mrc_version`.
+ * Devices advertise a bitmap (OR of these bits) via `mrc_device_attr.mrc_protocol_version`.
  * Applications request exactly one bit (or 0 for provider default) in
- * `mrc_context_attr.mrc_api_version_used`.
+ * `mrc_qp_init_attr.protocol_version`.
  */
-enum mrc_version {
-	MRC_VERSION_0	= 0, /* unspecified / request provider default */
-	MRC_VERSION_1	= (1 << 0),
+enum mrc_protocol_version {
+	MRC_PROTOCOL_VERSION_0	= 0, /* MRC version unspecified / request provider default */
+	MRC_PROTOCOL_VERSION_1	= (1 << 0),
 };
 
 struct mrc_context;
@@ -55,11 +55,11 @@ struct mrc_comp_channel;
 
 struct mrc_device_attr {
 	/*
-	 * Bitmap of all versions supported (see enum mrc_version).
-	 * The value 0 indicates the provider should choose an
-	 * appropriate version.
+	 * Bitmap of all versions supported (see enum mrc_protocol_version).
+	 * The value 0 indicates the provider will choose an
+	 * an appropriate version.
 	 */
-	uint32_t mrc_version;
+	uint32_t mrc_protocol_version;
 
 	struct {
 		/* Max configurable WIMM value as requestor */
@@ -365,7 +365,7 @@ struct mrc_qp_init_attr {
 	/* The version of MRC wire protocol to use.
 	 * The value `0` here refers to the provider's default version.
 	 */
-	enum mrc_version    mrc_version;
+	enum mrc_protocol_version    protocol_version;
 };
 
 /**
@@ -409,7 +409,6 @@ int mrc_destroy_qp(struct mrc_qp *qp);
  * RTR         MRC_QP_MAX_WIMM_DEST
  *             MRC_QP_MPR_DEST
  *             MRC_QP_DYNAMIC_MPR_DEST
- *             MRC_QP_PROTOCOL_VERSION
  *
  * RTS         MRC_QP_MAX_WIMM
  *             MRC_QP_MPR
@@ -435,12 +434,8 @@ enum mrc_qp_attr_mask {
 	MRC_CC_PROFILE_ID		= (1<<7),
 	/* QP hint */
 	MRC_QP_HINT			= (1<<8),
-	/* MRC protocol version */
-	MRC_QP_PROTOCOL_VERSION		= (1<<9),
 	/* Linear + exponential retry counter */
-	MRC_QP_RETRY_CNT		= (1<<10),
-	/* MRC wire protocol version */
-	MRC_QP_VERSION			= (1<<11),
+	MRC_QP_RETRY_CNT		= (1<<9),
 	/* Vendor specific configuration data */
 	MRC_QP_VENDOR_CFG		= (1<<31)
 };
@@ -449,10 +444,6 @@ enum mrc_qp_attr_mask {
  * @brief Runtime / modifiable MRC QP attributes (query/modify interface).
  */
 struct mrc_qp_attr {
-	/* MRC version used for this QP.
-	 * This is valid only for QUERY operations  */
-	enum mrc_version version;
-
 	struct {
 		/* Requestor MPR value; unit=128 PSNs */
 		uint8_t mpr;
