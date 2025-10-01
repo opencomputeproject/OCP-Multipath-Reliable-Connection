@@ -101,17 +101,8 @@ struct mrc_ctl_attr {
 		 */
 		uint32_t ev_max_count_profile;
 
-		/*
-		 * Alignment requirements for the number of EVs that are
-		 * required in an explicit EV array. The alignment value
-		 * implies the minimum count required and it provides the
-		 * array sizing requirements. The array size should be:
-		 *   (ev_count_align + (k * ev_count_align))
-		 * where 'k' is a multiple chosen by the application. For
-		 * example, if a provider supports EVs in multiples of 8, it
-		 * would set the values 'ev_count_align = 8'. The total number
-		 * of EVs is subject to a maximum of ev_max_count_profile.
-		 * Value of 0 means any EV count increment is supported.
+		/* Explicit EV array length alignment; explicit EV arrays must
+		 * be a multiple of this.
 		 */
 		uint32_t ev_count_align;
 
