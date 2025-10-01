@@ -79,7 +79,7 @@ enum mrc_ctl_attr_opt {
 /**
  * @brief Control feature values supported by the implementation
  */
-struct mrc_ctl_attr {
+struct mrc_ctl_device_attr {
 	/* bitmap of all versions supported (see enum mrc_ctl_version) */
 	uint32_t mrc_ctl_version;
 
@@ -156,7 +156,7 @@ struct mrc_ctl_attr {
  * Returns 0 on success. Error codes as per ibv_query_device().
  */
 int mrc_ctl_query_device(struct ibv_context *context,
-			 struct mrc_ctl_attr *ctl_attr);
+			 struct mrc_ctl_device_attr *ctl_attr);
 
 /*****************************************************************************
  * EV Field Widths
