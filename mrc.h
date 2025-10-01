@@ -538,6 +538,18 @@ int mrc_modify_qp(struct mrc_qp *qp,
 		  int mrc_attr_mask);
 
 /**
+ * @brief Retrieve the QP number
+ *
+ * @param qp[in]   - MRC QP
+ * @param qpn[out] - Returned QP number
+ *
+ * @return 0 on success.
+ * @return -1 on error.
+ */
+int mrc_get_qpn(struct mrc_qp *qp,
+		uint32_t *qpn);
+
+/**
  * @brief Post a receive operation on a QP
  *
  * Posts a receive operation for RDMA w/ IMM operations on the specified
