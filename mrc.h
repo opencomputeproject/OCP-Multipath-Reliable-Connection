@@ -466,12 +466,12 @@ struct mrc_qp_attr {
 		uint64_t cc_profile_id;
 	} profile;
 
-       struct {
-	       /* Linear (fixed interval) retry limit. Max: 7 */
-	       uint8_t linear_cnt;
-	       /* Exponential backoff retry limit. Max: 25 (25 = infinite) */
-	       uint8_t exp_cnt;
-       } retry;
+	struct {
+		/* Linear (fixed interval) retry limit. Max: 7 */
+		uint8_t linear_cnt;
+		/* Exponential backoff retry limit. Max: 25 (25 = infinite) */
+		uint8_t exp_cnt;
+	} retry;
 
 	/* QP hint, if NULL then no hint is assigned */
 	struct mrc_qp_hint *qp_hint;
