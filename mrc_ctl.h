@@ -274,23 +274,12 @@ struct mrc_ctl_ev_fmt_profile_attr {
 	struct {
 		enum mrc_ctl_ev_fmt_op op;
 
-		union {
-			struct {
-				/* Array of format fields */
-				struct mrc_ctl_ev_fmt_field *fmt_fields;
-				/* Format field array length */
-				int fmt_field_count;
-			} modify_fmt_fields;
-
-			struct {
-				/* Array of empty format fields */
-				struct mrc_ctl_ev_fmt_field *fmt_fields;
-				/* Format field array length */
-				int fmt_field_count;
-				/* Configured number of format fields in use */
-				int *cur_fmt_field_count;
-			} query_fmt_fields;
-		};
+		struct {
+			/* Array of format fields */
+			struct mrc_ctl_ev_fmt_field *fmt_fields;
+			/* Format field array length */
+			int *fmt_field_count;
+		} fmt_fields;
 	} ev_fmt_op;
 };
 
@@ -339,9 +328,9 @@ int mrc_ctl_modify_ev_fmt_profile(struct mrc_context *mrc_ctx,
  *
  * If MRC_CTL_EV_FMT_OP_QUERY_FIELDS is specified, an array of empty format
  * fields (fmt_fieds) must be supplied to be filled in upon return. If the
- * number of entries in the array (fmt_field_count) is not large enough then
- * an -E2BIG error is returned and the required array size is set in
- * cur_fmt_field_count.
+ * number of entries in the array (*fmt_field_count) is not large enough,
+ * then an -E2BIG error is returned and the required array size is set back
+ * in (*fmt_field_count).
  *
  * The MRC_CTL_EV_FMT_OP_MODIFY_FIELDS operation is not allowed.
  *
@@ -462,23 +451,25 @@ struct mrc_ctl_ev_field {
  * The EV profile contains an array of EV fields that define how each field
  * corresponds to a set of bits from the EV and how those bits are expanded
  * into the final EV to be used in a packet. Each field contains a bit width,
- * and initial value, a min/max value for generation, and a mask. The mask
- * defines how many bits are taken from the EV and where they're placed in the
- * expanded field value. For generated EVs, the mask also indicates the
- * total number of bits the hardware must generate for the field. EV
- * expansion steps per field are:
+ * an initial value, a min/max value for generation, and a mask. The bits set
+ * in the mask define how many bits are taken from the EV and where they're
+ * placed in the expanded field value. For generated EVs, the mask also
+ * indicates the total number of bits the hardware must generate for the
+ * field. EV expansion steps per field are:
  *
- *  1. Value is initialized to the init_val.
+ *  1. Value is initialized to the init_val, left zero-filled to the width.
  *  2. For each bit set in the mask:
  *      2a. Pull the next bit from the EV.
- *      2b. Insert the bit value at the offset from the mask bit.
+ *      2b. Insert the bit value at the corresponding offset of the mask bit.
  *
  * Once each of the fields are expanded, they are concatenated together to
  * form the final EV.
  *
- * Non-AUTO EV profiles are associated with an EV format profile. The EV
- * format profile defines limits on the width of each field as well as the
- * total width of an expanded EV.
+ * Non-AUTO EV profiles are associated with an EV Format profile. The EV
+ * Format profile defines limits on the width of each field as well as the
+ * total width of an expanded EV. When an EV Format field width is wider than
+ * the corresponding EV profile field width, the extra bits are left
+ * zero-filled.
  *
  * The configuration of an EV profile has the following restrictions:
  *  - num_fields <= num_fmt_fields (from EV Format)
@@ -564,17 +555,8 @@ struct mrc_ctl_ev_profile_attr {
 				/* Array of fields */
 				struct mrc_ctl_ev_field *fields;
 				/* Field array length */
-				int field_count;
-			} modify_fields;
-
-			struct {
-				/* Array of empty fields */
-				struct mrc_ctl_ev_field *fields;
-				/* Field array length */
-				int field_count;
-				/* Configured number of fields in use */
-				int *cur_field_count;
-			} query_fields;
+				int *field_count;
+			} fields;
 		};
 	} ev_op;
 };
@@ -638,8 +620,8 @@ int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
  *
  * If MRC_CTL_EV_OP_QUERY_FIELDS is specified, an array of empty fields must
  * be supplied to be filled in upon return. If the number of entries in the
- * array (field_count) is not large enough then an -E2BIG error is returned
- * and the required array size is set in cur_field_count.
+ * array (*field_count) is not large enough, then an -E2BIG error is returned
+ * and the required array size is set back in (*field_count).
  *
  * @param mrc_ctx[in]       - MRC context
  * @param ev_profile_id[in] - EV Profile ID
@@ -831,18 +813,6 @@ int mrc_ctl_poll_ev_event(struct mrc_cq *ev_cq,
  *****************************************************************************/
 
 /**
- * @brief SRv6 Probe parameters
- *
- * If SRv6 is enabled for a probe, both the req_ev and rsp_ev fields must
- * contain the full locator and uSID stack to use. If SRH is also enabled,
- * the SRH segment must also include the full locator and uSID stack.
- */
-struct mrc_ctl_srv6_probe {
-	uint8_t srv6_enable;
-	uint8_t srv6_use_srh;
-};
-
-/**
  * @brief EV Probe Request
  */
 struct mrc_ctl_ev_probe_req {
@@ -852,8 +822,8 @@ struct mrc_ctl_ev_probe_req {
 	union ibv_gid sgid;
 	/* Destination GID; only ROCE_V2 GID type supported. */
 	union ibv_gid dgid;
-	/* SRv6 probe parameters. */
-	struct mrc_ctl_srv6_probe srv6;
+	/* EV format mode for req_ev and rsp_ev */
+	enum mrc_ctl_ev_fmt_mode ev_fmt_mode;
 	/* Probe request EV value and port. */
 	struct mrc_ctl_ev req_ev;
 	/* Probe response EV value. */
