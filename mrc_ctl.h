@@ -114,7 +114,7 @@ struct mrc_ctl_attr {
 		 * generated EVs contains a set of fields that extends past
 		 * ev_max_bits.
 		 */
-		uint32_t ev_max_bits;
+		uint32_t ev_max_width;
 	} ev;
 
 	/* CC attributes */
