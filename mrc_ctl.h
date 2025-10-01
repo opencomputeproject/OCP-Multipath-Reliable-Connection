@@ -139,7 +139,7 @@ struct mrc_ctl_attr {
 		 * The following common strings are defined:
 		 *   "uet-1.0-nscc" - UET 1.0 NSCC
 		 */
-		const char **cc_algorithms;
+		const char **algorithms;
 	} cc;
 
 	/*
