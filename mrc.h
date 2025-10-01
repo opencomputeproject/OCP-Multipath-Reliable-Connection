@@ -31,10 +31,6 @@ extern "C" {
 /**
  * @brief Max bytes for opaque vendor configuration data.
  *
- * Used as the fixed size of the `vendor_cfg` blobs in `struct mrc_qp_hint_attr`
- * and `struct mrc_qp_attr`. The contents are provider-defined; consult vendor
- * documentation for use cases. Unused trailing bytes MUST be zero-initialized
- * by callers.
  */
 #define MRC_MAX_VENDOR_CFG_SIZE 128
 
@@ -77,7 +73,7 @@ struct mrc_device_attr {
 		uint8_t max_mpr;
 		/* Allocation granularity (units = 128 PSNs) */
 		uint8_t mpr_resolution;
-		/* Non-zero if dynamic MPR supported */
+		/* Non-zero if dynamic MPR is supported */
 		uint8_t dynamic_mpr;
 	} mpr_attr;
 
@@ -108,7 +104,6 @@ int mrc_query_device(struct ibv_context *context,
 /**
  * @brief Application-provided context initialization attributes.
  *
- * Selects the API version in use (`mrc_api_version_used`).
  */
 struct mrc_context_attr {
 	/* API version used */
@@ -284,7 +279,7 @@ enum mrc_qp_hint_attr_mask {
 };
 
 /**
- * @brief Wrapper passed to `mrc_create_qp_hint()` holding base attributes.
+ * @brief Container for QP hint initialization attributes.
  */
 struct mrc_qp_hint_init_attr {
 	struct mrc_qp_hint_attr attr;
