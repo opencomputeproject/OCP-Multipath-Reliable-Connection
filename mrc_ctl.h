@@ -130,7 +130,7 @@ struct mrc_ctl_device_attr {
 		uint32_t ev_count_align;
 
 		/*
-		 * The maximum EV value supported per profile . This
+		 * The maximum EV value supported per profile. This
 		 * represents the number of consecutive bits in an EV
 		 * value that are valid. Applies to both explicit and
 		 * generated EVs. It's an error if an EV profile contains a
@@ -139,7 +139,7 @@ struct mrc_ctl_device_attr {
 		uint32_t ev_max_width;
 
 		/*
-		 * Bitmask indicating which EV format modes are supported by
+		 * Bitmask indicating which EV Format modes are supported by
 		 * the device. Each bit corresponds to mode defined in the
 		 * mrc_ctl_ev_fmt_mode enum.
 		 */
@@ -201,10 +201,10 @@ int mrc_ctl_query_device(struct ibv_context *context,
 /**
  * @brief Supported EV Format modes
  *
- * The STEV EV format places the structured EV value in the IPv6 flow label
+ * The STEV EV Format places the structured EV value in the IPv6 flow label
  * and UDP source port.
  *
- * The SRv6 EV format uses an IPv6 header encap with an optional single
+ * The SRv6 EV Format uses an IPv6 header encap with an optional single
  * segment SRH header. A portion of the UDP source port is used to hold the
  * EV index, from the EV profile, of the SRv6 EV entry that was used in the
  * packet.
@@ -256,7 +256,7 @@ struct mrc_ctl_ev_fmt_profile_attr {
 	/* Current profile state. */
 	enum mrc_ctl_profile_state cur_profile_state;
 
-	/* The EV format mode for this profile. */
+	/* The EV Format mode for this profile. */
 	enum mrc_ctl_ev_fmt_mode ev_fmt_mode;
 
 	struct {
@@ -826,7 +826,7 @@ struct mrc_ctl_ev_probe_req {
 	union ibv_gid sgid;
 	/* Destination GID; only ROCE_V2 GID type supported. */
 	union ibv_gid dgid;
-	/* EV format mode for req_ev and rsp_ev */
+	/* EV Format mode for req_ev and rsp_ev */
 	enum mrc_ctl_ev_fmt_mode ev_fmt_mode;
 	/* Probe request EV value and port. */
 	struct mrc_ctl_ev req_ev;
