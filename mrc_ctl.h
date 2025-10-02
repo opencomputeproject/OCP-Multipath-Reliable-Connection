@@ -181,12 +181,13 @@ struct mrc_ctl_ev_field {
  * @param ev_fields[in]      - Array containing EV field widths and bounds
  * @param ev_field_count[in] - Length of ev_fields argument
  *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval EIO Implementation specific error occurred.
- * @retval EBUSY One or more EV or CC profiles are in ONLINE state.
- * @retval E2BIG Supplied parameter combination is unsupportable.
- * @retval EPERM Process lacks sufficient permissions.
+ * @return 0 on success, -1 on failure (errno set).
+ * @par Errors
+ *      - EINVAL One or more supplied arguments are invalid.
+ *      - EIO Implementation specific error occurred.
+ *      - EBUSY One or more EV or CC profiles are in ONLINE state.
+ *      - E2BIG Supplied parameter combination is unsupportable.
+ *      - EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_modify_ev_field_widths(struct mrc_context *mrc_ctx,
 				   struct mrc_ctl_ev_field *ev_fields,
@@ -205,11 +206,12 @@ int mrc_ctl_modify_ev_field_widths(struct mrc_context *mrc_ctx,
  * @param ev_field_count[in]      - Length of provided ev_fields argument
  * @param cur_ev_field_count[out] - Number of configued EV fields
  *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval EIO Implementation specific error occurred.
- * @return E2BIG EV field count is less than total number of EV fields.
- * @retval EPERM Process lacks sufficient permissions.
+ * @return 0 on success, -1 on failure (errno set).
+ * @par Errors
+ *      - EINVAL One or more supplied arguments are invalid.
+ *      - EIO Implementation specific error occurred.
+ *      - E2BIG EV field count is less than total number of EV fields.
+ *      - EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_query_ev_field_widths(struct mrc_context *mrc_ctx,
 				  struct mrc_ctl_ev_field *ev_fields,
@@ -402,12 +404,13 @@ struct mrc_ctl_ev_profile_attr {
  * @param attr[in]          - EV Profile attribute structure
  * @param attr_mask[in]     - Bitmask of EV Profile attribute mask
  *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval ENOENT EV not found.
- * @retval EIO Implementation specific error occurred.
- * @retval EPERM Process lacks sufficient permissions.
- * @retval EBUSY One or more active QPs are associated with this profile.
+ * @return 0 on success, -1 on error (errno set).
+ * @par Errors
+ *      - EINVAL One or more supplied arguments are invalid.
+ *      - ENOENT EV not found.
+ *      - EIO Implementation specific error occurred.
+ *      - EPERM Process lacks sufficient permissions.
+ *      - EBUSY One or more active QPs are associated with this profile.
  */
 int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
 			      uint64_t ev_profile_id,
@@ -424,11 +427,12 @@ int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
  * @param attr[out]         - EV Profile attribute structure
  * @param attr_mask[in]     - Bitmask of EV Profile attribute mask
  *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval ENOENT EV not found.
- * @retval EIO Implementation specific error occurred.
- * @retval EPERM Process lacks sufficient permissions.
+ * @return 0 on success, -1 on error (errno set).
+ * @par Errors
+ *      - EINVAL One or more supplied arguments are invalid.
+ *      - ENOENT EV not found.
+ *      - EIO Implementation specific error occurred.
+ *      - EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_query_ev_profile(struct mrc_context *mrc_ctx,
 			     uint64_t ev_profile_id,
@@ -507,11 +511,12 @@ struct mrc_ctl_cc_nscc_cfg {
  * @param attr[in]          - CC Profile attribute structure
  * @param attr_mask[in]     - Bitmask of CC Profile attribute mask
  *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval EIO Implementation specific error occurred.
- * @retval EPERM Process lacks sufficient permissions.
- * @retval EBUSY One or more active QPs are associated with this profile.
+ * @return 0 on success, -1 on error (errno set).
+ * @par Errors
+ *      - EINVAL One or more supplied arguments are invalid.
+ *      - EIO Implementation specific error occurred.
+ *      - EPERM Process lacks sufficient permissions.
+ *      - EBUSY One or more active QPs are associated with this profile.
  */
 int mrc_ctl_modify_cc_profile(struct mrc_context *mrc_ctx,
 			      uint64_t cc_profile_id,
@@ -528,10 +533,11 @@ int mrc_ctl_modify_cc_profile(struct mrc_context *mrc_ctx,
  * @param attr[out]         - CC Profile attribute structure
  * @param attr_mask[in]     - Bitmask of CC Profile attribute mask
  *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval EIO Implementation specific error occurred.
- * @retval EPERM Process lacks sufficient permissions.
+ * @return 0 on success, -1 on error (errno set).
+ * @par Errors
+ *      - EINVAL One or more supplied arguments are invalid.
+ *      - EIO Implementation specific error occurred.
+ *      - EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_query_cc_profile(struct mrc_context *mrc_ctx,
 			     uint64_t cc_profile_id,
@@ -597,7 +603,7 @@ struct mrc_cq *mrc_ctl_create_ev_event_cq(struct mrc_context *mrc_ctx,
  *
  * @return
  * On success a non-negative value indicating the number of entries written
- * to the ev_event array is returned. On failure, a negative value
+ * to the EV Event CQ is returned. On failure, a negative value
  * corresponding to the errno is returned.
  */
 int mrc_ctl_poll_ev_event(struct mrc_cq *ev_cq,
@@ -652,14 +658,15 @@ struct mrc_ctl_ev_probe_rsp {
  * @param rsp[out]        - An array of response structures
  * @param num_rsp[out]    - Number of responses returned
  *
- * @retval 0 Success
- * @retval EAGAIN Resource temporarily unavailable; retry later.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval EIO Implementation specific error occurred.
- * @retval ENOMEM Error allocating memory for function.
- * @retval ENOTSUP Function not supported.
- * @retval EPERM Process lacks sufficient permissions.
- * @retval ETIMEDOUT Timeout occurred before all responses received.
+ * @retval 0 on success, -1 on error (errno set).
+ * @par Errors
+ *      - EAGAIN Resource temporarily unavailable; retry later.
+ *      - EINVAL One or more supplied arguments are invalid.
+ *      - EIO Implementation specific error occurred.
+ *      - ENOMEM Error allocating memory for function.
+ *      - ENOTSUP Function not supported.
+ *      - EPERM Process lacks sufficient permissions.
+ *      - ETIMEDOUT Timeout occurred before all responses received.
  */
 int mrc_ctl_probe_ev(struct mrc_context *mrc_ctx,
 		     uint8_t req_tc,
