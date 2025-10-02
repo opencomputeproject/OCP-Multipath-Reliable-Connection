@@ -28,12 +28,23 @@
 extern "C" {
 #endif
 
-/* Maximum size of opaque vendor configuration data */
+/**
+ * @brief Max bytes for opaque vendor configuration data.
+ *
+ */
 #define MRC_MAX_VENDOR_CFG_SIZE 128
 
-enum mrc_version {
-	MRC_VERSION_0	= 0, /* MRC version unspecified */
-	MRC_VERSION_1	= (1 << 0),
+/**
+ * @brief MRC wire (transport) protocol version bit values.
+ *
+ * Each non-zero constant denotes a distinct on-the-wire protocol version.
+ * Devices advertise a bitmap (OR of these bits) via `mrc_device_attr.mrc_protocol_version`.
+ * Applications request exactly one bit (or 0 for provider default) in
+ * `mrc_qp_init_attr.protocol_version`.
+ */
+enum mrc_protocol_version {
+	MRC_PROTOCOL_VERSION_0	= 0, /* MRC version unspecified / request provider default */
+	MRC_PROTOCOL_VERSION_1	= (1 << 0),
 };
 
 struct mrc_context;
@@ -42,35 +53,32 @@ struct mrc_qp;
 struct mrc_cq;
 struct mrc_comp_channel;
 
-struct mrc_attr {
+struct mrc_device_attr {
 	/*
-	 * Bitmap of all versions supported (see enum mrc_version).
-	 * The value 0 indicates the provider should choose an
+	 * Bitmap of all versions supported (see enum mrc_protocol_version).
+	 * The value 0 indicates the provider will choose an
 	 * an appropriate version.
 	 */
-	uint32_t mrc_version;
+	uint32_t mrc_protocol_version;
 
 	struct {
-		/* Max configurable wimm value as requestor. */
+		/* Max configurable WIMM value as requestor */
 		uint16_t max_wimm;
-		/* Max configurable wimm value as responder. */
+		/* Max configurable WIMM value as responder */
 		uint16_t max_wimm_dest;
 	} wimm_attr;
 
 	struct {
-		/*
-		 * Maximum supported MPR value as requestor or responder.
-		 * units = 128 PSNs
-		 */
+		/* Max supported MPR (units = 128 PSNs) */
 		uint8_t max_mpr;
-		/* MPR resource allocation resolution; unit = 128 PSNs. */
+		/* Allocation granularity (units = 128 PSNs) */
 		uint8_t mpr_resolution;
-		/* if 1/true, implementation supports dynamic MPR */
+		/* Non-zero if dynamic MPR is supported */
 		uint8_t dynamic_mpr;
 	} mpr_attr;
 
 	struct {
-		/* Maximum number of QP hints supported by the device. */
+		/* Max number of QP hints supported */
 		uint32_t max_qp_hint;
 	} qp_attr;
 };
@@ -82,25 +90,26 @@ struct mrc_attr {
  * The value returned in `supported` is 0 when MRC support is not
  * available.
  *
- * @param context[in]    - IB Verbs context
- * @param attrs[out]     - MRC attributes
- * @param supported[out] - MRC support
- *
- * @return 0 on success.
- * @return Errors like ibv_query_device().
+ * @param context[in]     - Verbs context
+ * @param attrs[out]      - MRC attributes
+ * @param supported[out]  - Non-zero if MRC supported
+ * @return 0 on success, -1 on failure (errno set)
  */
 int mrc_query_device(struct ibv_context *context,
-		     struct mrc_attr *attr,
+		     struct mrc_device_attr *attr,
 		     int *supported);
 
-/* Context attributes declare the application's usage of MRC */
+/**
+ * @brief Application-provided context initialization attributes.
+ *
+ */
 struct mrc_context_attr {
 	/* API version used */
 	uint32_t mrc_api_version_used;
 };
 
 /**
- * @brief Create a MRC lib context
+ * @brief Create an MRC context
  *
  * Create an MRC library context. `struct mrc_context` provides an instance
  * of the MRC library. It is the parent object for all other objects.
@@ -117,7 +126,7 @@ struct mrc_context_attr {
  * provider to choose the defaults.
  *
  * @param vcontext[in]     - IB Verbs context
- * @param context_attr[in] - MRC version used by the application
+ * @param context_attr[in] - optional version selection (may be NULL)
  *
  * @return Pointer to the allocated context on success.
  * @return NULL if the request fails.
@@ -132,8 +141,7 @@ struct mrc_context *mrc_create_context(struct ibv_context *vcontext,
  *
  * @param[in] mrc_ctx - MRC context
  *
- * @return 0 on success.
- * @return -1 on failure.
+ * @return 0 on success, -1 on failure (errno set).
  */
 int mrc_destroy_context(struct mrc_context *mrc_ctx);
 
@@ -157,8 +165,7 @@ int mrc_create_comp_channel(struct mrc_context *mrc_ctx,
  * @param channel[in] - MRC completion channel
  * @param fd[out]     - Returned file descriptor
  *
- * @return 0 on success.
- * @return -1 on failure.
+ * @return 0 on success, -1 on failure (errno set).
  */
 int mrc_get_comp_channel_fd(struct mrc_comp_channel *channel,
 			    int *fd);
@@ -182,8 +189,8 @@ int mrc_destroy_comp_channel(struct mrc_comp_channel *channel);
  *
  * @param mrc_ctx[in]     - MRC context to use
  * @param cqe[in]         - Minimum number of entries required for CQ
- * @param cq_context[in]  - application context
- * @param channel[in]     - completion channel
+ * @param cq_context[in]  - Application context
+ * @param channel[in]     - Completion channel
  * @param comp_vector[in] - Completion vector to signal completion events
  *
  * @return Pointer to the allocated CQ on success.
@@ -224,6 +231,9 @@ int mrc_poll_cq(struct mrc_cq *cq,
  */
 int mrc_destroy_cq(struct mrc_cq *cq);
 
+/**
+ * @brief Traffic pattern hint attributes describing expected QP usage.
+ */
 struct mrc_qp_hint_attr {
 	/*
 	 * Number of QPs using this hint that are sending data to the same
@@ -265,7 +275,7 @@ enum mrc_qp_hint_attr_mask {
 };
 
 /**
- * @brief MRC QP hint initialization attributes
+ * @brief Container for QP hint initialization attributes.
  */
 struct mrc_qp_hint_init_attr {
 	struct mrc_qp_hint_attr attr;
@@ -297,9 +307,8 @@ struct mrc_qp_hint *mrc_create_qp_hint(
  *
  * @param qp_hint[in] - MRC QP hint
  *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval EBUSY Profile is still being used by a QP.
+ * @return 0 on success, -1 on failure (errno set: EINVAL invalid,
+ *         EBUSY in use).
  */
 int mrc_destroy_qp_hint(struct mrc_qp_hint *qp_hint);
 
@@ -312,8 +321,7 @@ int mrc_destroy_qp_hint(struct mrc_qp_hint *qp_hint);
  * @param qp_hint_attr[out]     - MRC QP hint attributes
  * @param qp_hint_attr_mask[in] - MRC QP hint attributes to query
  *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
+ * @return 0 on success, -1 on failure (errno=EINVAL).
  */
 int mrc_query_qp_hint(struct mrc_qp_hint *qp_hint,
 		      struct mrc_qp_hint_attr *qp_hint_attr,
@@ -328,15 +336,15 @@ int mrc_query_qp_hint(struct mrc_qp_hint *qp_hint,
  * @param qp_hint_attr[in]      - MRC QP hint attributes
  * @param qp_hint_attr_mask[in] - MRC QP hint attributes to modify
  *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
+ * @return 0 on success, -1 on failure (errno=EINVAL).
  */
 int mrc_modify_qp_hint(struct mrc_qp_hint *qp_hint,
 		       struct mrc_qp_hint_attr *qp_hint_attr,
 		       int qp_hint_attr_mask);
 
 /**
- * @brief MRC QP initialization attributes
+ * @brief Attributes required to create an MRC QP.
+ *
  */
 struct mrc_qp_init_attr {
 	void               *qp_context;
@@ -350,7 +358,7 @@ struct mrc_qp_init_attr {
 	/* The version of MRC wire protocol to use.
 	 * The value `0` here refers to the provider's default version.
 	 */
-	enum mrc_version    mrc_version;
+	enum mrc_protocol_version    protocol_version;
 };
 
 /**
@@ -394,7 +402,6 @@ int mrc_destroy_qp(struct mrc_qp *qp);
  * RTR         MRC_QP_MAX_WIMM_DEST
  *             MRC_QP_MPR_DEST
  *             MRC_QP_DYNAMIC_MPR_DEST
- *             MRC_QP_PROTOCOL_VERSION
  *
  * RTS         MRC_QP_MAX_WIMM
  *             MRC_QP_MPR
@@ -420,22 +427,16 @@ enum mrc_qp_attr_mask {
 	MRC_CC_PROFILE_ID		= (1<<7),
 	/* QP hint */
 	MRC_QP_HINT			= (1<<8),
-	/* MRC protocol version */
-	MRC_QP_PROTOCOL_VERSION		= (1<<9),
 	/* Linear + exponential retry counter */
-	MRC_QP_RETRY_CNT		= (1<<10),
-	/* MRC wire protocol version */
-	MRC_QP_VERSION			= (1<<11),
+	MRC_QP_RETRY_CNT		= (1<<9),
 	/* Vendor specific configuration data */
 	MRC_QP_VENDOR_CFG		= (1<<31)
 };
 
+/**
+ * @brief Runtime / modifiable MRC QP attributes (query/modify interface).
+ */
 struct mrc_qp_attr {
-
-	/* MRC version used for this QP.
-	 * This is valid only for QUERY operations  */
-	enum mrc_version version;
-
 	struct {
 		/* Requestor MPR value; unit=128 PSNs */
 		uint8_t mpr;
@@ -466,12 +467,12 @@ struct mrc_qp_attr {
 		uint64_t cc_profile_id;
 	} profile;
 
-       struct {
-	       /* Linear (fixed interval) retry limit. Max: 7 */
-	       uint8_t linear_cnt;
-	       /* Exponential backoff retry limit. Max: 25 (25 = infinite) */
-	       uint8_t exp_cnt;
-       } retry;
+	struct {
+		/* Linear (fixed interval) retry limit. Max: 7 */
+		uint8_t linear_cnt;
+		/* Exponential backoff retry limit. Max: 25 (25 = infinite) */
+		uint8_t exp_cnt;
+	} retry;
 
 	/* QP hint, if NULL then no hint is assigned */
 	struct mrc_qp_hint *qp_hint;
@@ -507,7 +508,7 @@ int mrc_query_qp(struct mrc_qp *qp,
  * Modify a QP. Caller provides ibv_qp_attr and mrc_qp_attr structures and
  * masks.
  *
- * The following IBV field masks are NOT supported:
+ * The following IBV attributes are NOT supported:
  *     IBV_QP_PORT
  *     IBV_QP_TIMEOUT (use MRC_QP_TIMEOUT)
  *     IBV_QP_RETRY_CNT (use MRC_QP_RETRY_CNT)
@@ -518,9 +519,11 @@ int mrc_query_qp(struct mrc_qp *qp,
  *     IBV_QP_ALT_PATH
  *     IBV_QP_PATH_MIG_STATE
  *
- * The following IBV fields are modified:
+ * The following IBV attributes are modified:
  *     IBV_QP_AV: SGID is retrieved using ibv_query_gid() on the ibv_context
  *                associated with mrc_context
+ *
+ * QP lifecycle: set/query via IBV_QP_STATE; assert via IBV_QP_CUR_STATE.
  *
  * @param qp[in]            - MRC QP
  * @param vattr[in]         - Libibverbs attributes to modify
@@ -536,6 +539,17 @@ int mrc_modify_qp(struct mrc_qp *qp,
 		  int vattr_mask,
 		  struct mrc_qp_attr *mrc_attr,
 		  int mrc_attr_mask);
+
+/**
+ * @brief Retrieve the QP number
+ *
+ * @param qp[in]   - MRC QP
+ * @param qpn[out] - Returned QP number
+ *
+ * @return 0 on success, -1 on failure (errno set).
+ */
+int mrc_get_qpn(struct mrc_qp *qp,
+		uint32_t *qpn);
 
 /**
  * @brief Post a receive operation on a QP
@@ -570,6 +584,10 @@ int mrc_post_send(struct mrc_qp *qp,
 		  struct ibv_send_wr *wr,
 		  struct ibv_send_wr **bad_wr);
 
+/**
+ * @brief Asynchronous event record returned by `mrc_get_async_event()`.
+ *        Must be acknowledged via `mrc_ack_async_event()`.
+ */
 struct mrc_async_event {
 	union {
 		struct mrc_cq *cq;

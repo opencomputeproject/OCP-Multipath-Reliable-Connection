@@ -52,9 +52,9 @@ extern "C" {
 /**
  * @brief Version for the MRC control APIs
  */
-enum mrc_ctl_version {
-	MRC_CTL_VERSION_0	= 0, /* MRC not supported */
-	MRC_CTL_VERSION_1	= (1 << 0),
+enum mrc_ctl_protocol_version {
+	MRC_CTL_PROTOCOL_VERSION_0	= 0, /* MRC version unspecified */
+	MRC_CTL_PROTOCOL_VERSION_1	= (1 << 0),
 };
 
 /**
@@ -94,9 +94,11 @@ enum mrc_ctl_attr_opt {
 /**
  * @brief Control feature values supported by the implementation
  */
-struct mrc_ctl_attr {
-	/* bitmap of all versions supported (see enum mrc_ctl_version) */
-	uint32_t mrc_ctl_version;
+struct mrc_ctl_device_attr {
+	/* bitmap of all versions supported (see enum mrc_ctl_protocol_version)
+	 * The value 0 indicates that the provider will choose an appropriate
+	 * version */
+	uint32_t mrc_ctl_protocol_version;
 
 	/* EV attributes */
 	struct {
@@ -122,17 +124,8 @@ struct mrc_ctl_attr {
 		 */
 		uint32_t ev_max_count_profile;
 
-		/*
-		 * Alignment requirements for the number of EVs that are
-		 * required in an explicit EV array. The alignment value
-		 * implies the minimum count required and it provides the
-		 * array sizing requirements. The array size should be:
-		 *   (ev_count_align + (k * ev_count_align))
-		 * where 'k' is a multiple chosen by the application. For
-		 * example, if a provider supports EVs in multiples of 8, it
-		 * would set the values 'ev_count_align = 8'. The total number
-		 * of EVs is subject to a maximum of ev_max_count_profile.
-		 * Value of 0 means any EV count increment is supported.
+		/* Explicit EV array length alignment; explicit EV arrays must
+		 * be a multiple of this.
 		 */
 		uint32_t ev_count_align;
 
@@ -143,7 +136,7 @@ struct mrc_ctl_attr {
 		 * generated EVs. It's an error if an EV profile contains a
 		 * set of fields that extends past ev_max_bits.
 		 */
-		uint32_t ev_max_bits;
+		uint32_t ev_max_width;
 
 		/*
 		 * Bitmask indicating which EV format modes are supported by
@@ -173,7 +166,7 @@ struct mrc_ctl_attr {
 		 * The following common strings are defined:
 		 *   "uet-1.0-nscc" - UET 1.0 NSCC
 		 */
-		const char **cc_algorithms;
+		const char **algorithms;
 	} cc;
 
 	/*
@@ -199,7 +192,7 @@ struct mrc_ctl_attr {
  * Returns 0 on success. Error codes as per ibv_query_device().
  */
 int mrc_ctl_query_device(struct ibv_context *context,
-			 struct mrc_ctl_attr *ctl_attr);
+			 struct mrc_ctl_device_attr *ctl_attr);
 
 /*****************************************************************************
  * EV Format Profile
@@ -306,12 +299,13 @@ struct mrc_ctl_ev_fmt_profile_attr {
  * @param attr[in]              - EV Profile attribute structure
  * @param attr_mask[in]         - Bitmask of EV Profile attribute mask
  *
- * @return 0 on success.
- * @retval -EINVAL One or more supplied arguments are invalid.
- * @retval -EBUSY One or more associated EV profiles are in the ONLINE state.
- * @retval -E2BIG Supplied combination of format fields is unsupportable.
- * @retval -EIO Implementation specific error occurred.
- * @retval -EPERM Process lacks sufficient permissions.
+ * @return 0 on success, -1 on failure (errno set).
+ * @par Errors
+ *      - EINVAL One or more supplied arguments are invalid.
+ *      - EBUSY One or more associated EV profiles are in the ONLINE state.
+ *      - E2BIG Supplied combination of format fields is unsupportable.
+ *      - EIO Implementation specific error occurred.
+ *      - EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_modify_ev_fmt_profile(struct mrc_context *mrc_ctx,
 				  uint64_t ev_fmt_profile_id,
@@ -324,7 +318,7 @@ int mrc_ctl_modify_ev_fmt_profile(struct mrc_context *mrc_ctx,
  * If MRC_CTL_EV_FMT_OP_QUERY_FIELDS is specified, an array of empty format
  * fields (fmt_fieds) must be supplied to be filled in upon return. If the
  * number of entries in the array (*fmt_field_count) is not large enough,
- * then an -E2BIG error is returned and the required array size is set back
+ * then an E2BIG error is returned and the required array size is set back
  * in (*fmt_field_count).
  *
  * The MRC_CTL_EV_FMT_OP_MODIFY_FIELDS operation is not allowed.
@@ -334,11 +328,12 @@ int mrc_ctl_modify_ev_fmt_profile(struct mrc_context *mrc_ctx,
  * @param attr[out]         - EV Profile attribute structure
  * @param attr_mask[in]     - Bitmask of EV Profile attribute mask
  *
- * @return 0 on success.
- * @retval -EINVAL One or more supplied arguments are invalid.
- * @return -E2BIG Format field count is less than the total number of fields.
- * @retval -EIO Implementation specific error occurred.
- * @retval -EPERM Process lacks sufficient permissions.
+ * @return 0 on success, -1 on failure (errno set).
+ * @par Errors
+ *      - EINVAL One or more supplied arguments are invalid.
+ *      - E2BIG Format field count is less than the total number of fields.
+ *      - EIO Implementation specific error occurred.
+ *      - EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_query_ev_fmt_profile(struct mrc_context *mrc_ctx,
 				 uint64_t ev_fmt_profile_id,
@@ -606,12 +601,13 @@ struct mrc_ctl_ev_profile_attr {
  * @param attr[in]          - EV Profile attribute structure
  * @param attr_mask[in]     - Bitmask of EV Profile attribute mask
  *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval ENOENT EV not found.
- * @retval EIO Implementation specific error occurred.
- * @retval EPERM Process lacks sufficient permissions.
- * @retval EBUSY One or more active QPs are associated with this profile.
+ * @return 0 on success, -1 on error (errno set).
+ * @par Errors
+ *      - EINVAL One or more supplied arguments are invalid.
+ *      - ENOENT EV not found.
+ *      - EIO Implementation specific error occurred.
+ *      - EPERM Process lacks sufficient permissions.
+ *      - EBUSY One or more active QPs are associated with this profile.
  */
 int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
 			      uint64_t ev_profile_id,
@@ -625,7 +621,7 @@ int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
  *
  * If MRC_CTL_EV_OP_QUERY_FIELDS is specified, an array of empty fields must
  * be supplied to be filled in upon return. If the number of entries in the
- * array (*field_count) is not large enough, then an -E2BIG error is returned
+ * array (*field_count) is not large enough, then an E2BIG error is returned
  * and the required array size is set back in (*field_count).
  *
  * @param mrc_ctx[in]       - MRC context
@@ -633,11 +629,12 @@ int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
  * @param attr[out]         - EV Profile attribute structure
  * @param attr_mask[in]     - Bitmask of EV Profile attribute mask
  *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval ENOENT EV not found.
- * @retval EIO Implementation specific error occurred.
- * @retval EPERM Process lacks sufficient permissions.
+ * @return 0 on success, -1 on error (errno set).
+ * @par Errors
+ *      - EINVAL One or more supplied arguments are invalid.
+ *      - ENOENT EV not found.
+ *      - EIO Implementation specific error occurred.
+ *      - EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_query_ev_profile(struct mrc_context *mrc_ctx,
 			     uint64_t ev_profile_id,
@@ -716,11 +713,12 @@ struct mrc_ctl_cc_nscc_cfg {
  * @param attr[in]          - CC Profile attribute structure
  * @param attr_mask[in]     - Bitmask of CC Profile attribute mask
  *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval EIO Implementation specific error occurred.
- * @retval EPERM Process lacks sufficient permissions.
- * @retval EBUSY One or more active QPs are associated with this profile.
+ * @return 0 on success, -1 on error (errno set).
+ * @par Errors
+ *      - EINVAL One or more supplied arguments are invalid.
+ *      - EIO Implementation specific error occurred.
+ *      - EPERM Process lacks sufficient permissions.
+ *      - EBUSY One or more active QPs are associated with this profile.
  */
 int mrc_ctl_modify_cc_profile(struct mrc_context *mrc_ctx,
 			      uint64_t cc_profile_id,
@@ -737,10 +735,11 @@ int mrc_ctl_modify_cc_profile(struct mrc_context *mrc_ctx,
  * @param attr[out]         - CC Profile attribute structure
  * @param attr_mask[in]     - Bitmask of CC Profile attribute mask
  *
- * @return 0 on success.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval EIO Implementation specific error occurred.
- * @retval EPERM Process lacks sufficient permissions.
+ * @return 0 on success, -1 on error (errno set).
+ * @par Errors
+ *      - EINVAL One or more supplied arguments are invalid.
+ *      - EIO Implementation specific error occurred.
+ *      - EPERM Process lacks sufficient permissions.
  */
 int mrc_ctl_query_cc_profile(struct mrc_context *mrc_ctx,
 			     uint64_t cc_profile_id,
@@ -806,7 +805,7 @@ struct mrc_cq *mrc_ctl_create_ev_event_cq(struct mrc_context *mrc_ctx,
  *
  * @return
  * On success a non-negative value indicating the number of entries written
- * to the ev_event array is returned. On failure, a negative value
+ * to the EV Event CQ is returned. On failure, a negative value
  * corresponding to the errno is returned.
  */
 int mrc_ctl_poll_ev_event(struct mrc_cq *ev_cq,
@@ -863,14 +862,15 @@ struct mrc_ctl_ev_probe_rsp {
  * @param rsp[out]        - An array of response structures
  * @param num_rsp[out]    - Number of responses returned
  *
- * @retval 0 Success
- * @retval EAGAIN Resource temporarily unavailable; retry later.
- * @retval EINVAL One or more supplied arguments are invalid.
- * @retval EIO Implementation specific error occurred.
- * @retval ENOMEM Error allocating memory for function.
- * @retval ENOTSUP Function not supported.
- * @retval EPERM Process lacks sufficient permissions.
- * @retval ETIMEDOUT Timeout occurred before all responses received.
+ * @retval 0 on success, -1 on error (errno set).
+ * @par Errors
+ *      - EAGAIN Resource temporarily unavailable; retry later.
+ *      - EINVAL One or more supplied arguments are invalid.
+ *      - EIO Implementation specific error occurred.
+ *      - ENOMEM Error allocating memory for function.
+ *      - ENOTSUP Function not supported.
+ *      - EPERM Process lacks sufficient permissions.
+ *      - ETIMEDOUT Timeout occurred before all responses received.
  */
 int mrc_ctl_probe_ev(struct mrc_context *mrc_ctx,
 		     uint8_t req_tc,
