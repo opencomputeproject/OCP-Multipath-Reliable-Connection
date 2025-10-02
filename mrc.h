@@ -449,7 +449,6 @@ enum mrc_qp_attr_mask {
  * @brief Runtime / modifiable MRC QP attributes (query/modify interface).
  */
 struct mrc_qp_attr {
-
 	/* MRC version used for this QP.
 	 * This is valid only for QUERY operations  */
 	enum mrc_version version;
@@ -525,7 +524,7 @@ int mrc_query_qp(struct mrc_qp *qp,
  * Modify a QP. Caller provides ibv_qp_attr and mrc_qp_attr structures and
  * masks.
  *
- * The following IBV field masks are NOT supported:
+ * The following IBV attributes are NOT supported:
  *     IBV_QP_PORT
  *     IBV_QP_TIMEOUT (use MRC_QP_TIMEOUT)
  *     IBV_QP_RETRY_CNT (use MRC_QP_RETRY_CNT)
@@ -536,9 +535,11 @@ int mrc_query_qp(struct mrc_qp *qp,
  *     IBV_QP_ALT_PATH
  *     IBV_QP_PATH_MIG_STATE
  *
- * The following IBV fields are modified:
+ * The following IBV attributes are modified:
  *     IBV_QP_AV: SGID is retrieved using ibv_query_gid() on the ibv_context
  *                associated with mrc_context
+ *
+ * QP lifecycle: set/query via IBV_QP_STATE; assert via IBV_QP_CUR_STATE.
  *
  * @param qp[in]            - MRC QP
  * @param vattr[in]         - Libibverbs attributes to modify
