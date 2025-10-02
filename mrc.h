@@ -82,9 +82,9 @@ struct mrc_device_attr {
  * The value returned in `supported` is 0 when MRC support is not
  * available.
  *
- * @param context[in]    verbs context
- * @param attrs[out]     - MRC attributes
- * @param supported[out] non-zero if MRC supported
+ * @param context[in]     - Verbs context
+ * @param attrs[out]      - MRC attributes
+ * @param supported[out]  - Non-zero if MRC supported
  * @return 0 on success, -1 on failure (errno set)
  */
 int mrc_query_device(struct ibv_context *context,
@@ -178,8 +178,8 @@ int mrc_destroy_comp_channel(struct mrc_comp_channel *channel);
  *
  * @param mrc_ctx[in]     - MRC context to use
  * @param cqe[in]         - Minimum number of entries required for CQ
- * @param cq_context[in]  - application context
- * @param channel[in]     - completion channel
+ * @param cq_context[in]  - Application context
+ * @param channel[in]     - Completion channel
  * @param comp_vector[in] - Completion vector to signal completion events
  *
  * @return Pointer to the allocated CQ on success.
