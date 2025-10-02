@@ -452,12 +452,18 @@ struct mrc_ctl_ev_field {
  * indicates the total number of bits the hardware must generate for the
  * field. EV expansion steps per field are:
  *
- *  1. Value is initialized to the init_val, left zero-filled to the width.
- *  2. For each bit set in the mask:
- *      2a. Pull the next bit from the EV.
- *      2b. Insert the bit value at the corresponding offset of the mask bit.
+ *  1. The field value is initialized to the init_val.
+ *       1a. Field value = init_val
+ *       1b. Field value is left zero-filled expanding to the field width.
+ *  2. For each bit set in the mask, overwrite the init_val bit in the field
+ *     value.
+ *       2a. Pull the next most significant bit from the EV.
+ *       2b. Set the bit's value into the field value at the corresponding
+ *           offset of the mask bit.
+*        2c. Shift the EV left by one bit.
+ *  3. Field value is fully expanded and ready for concatenation.
  *
- * Once each of the fields are expanded, they are concatenated together to
+ * After all fields have been expanded, they are concatenated together to
  * form the final EV.
  *
  * Non-AUTO EV profiles are associated with an EV Format profile. The EV
