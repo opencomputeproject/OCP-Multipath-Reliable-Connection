@@ -89,8 +89,6 @@ enum mrc_ctl_attr_opt {
 	MRC_CTL_OPT_CAP_EV_PROBE			= (1<<4),
 	/* The implementation supports precise EV Event drop counts. */
 	MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= (1<<5),
-	/* A single segment SRH is supported with SRv6. */
-	MRC_CTL_OPT_CAP_SRV6_SRH			= (1<<6),
 };
 
 /**
@@ -258,9 +256,6 @@ struct mrc_ctl_ev_fmt_field {
  * combined, equals to the total width of an EV placed in a packet. Every
  * EV profile is associated with an EV Format profile and the format fields
  * define limits and the maximum width an EV can be expanded to.
- *
- * For SRv6+SRH, if the SRH capability is supported, the EV format fields
- * can extend beyond 128b.
  */
 struct mrc_ctl_ev_fmt_profile_attr {
 	/* Move the profile to this state. */
@@ -357,10 +352,10 @@ int mrc_ctl_query_ev_fmt_profile(struct mrc_context *mrc_ctx,
 /**
  * @brief EV value
  *
+ * For STEV EV types, the first 32b/4B holds the value.
+ *
  * For SRv6 EV types, the first 128b/16B holds the SRv6 address and the second
  * 128b/16B holds the single segment SRH address.
- *
- * For non-SRv6 EV types, the first 32b/4B holds the value.
  */
 typedef uint8_t mrc_ctl_ev_t[MRC_CTL_EV_MAX_BYTES];
 
