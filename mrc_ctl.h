@@ -139,8 +139,8 @@ struct mrc_ctl_attr {
 		uint32_t ev_count_align;
 
 		/*
-		 * The maximum EV value supported per profile for STEV mode.
-		 * This represents the number of consecutive bits in an EV
+		 * The maximum EV value supported per profile . This
+		 * represents the number of consecutive bits in an EV
 		 * value that are valid. Applies to both explicit and
 		 * generated EVs. It's an error if an EV profile contains a
 		 * set of fields that extends past ev_max_bits.
@@ -470,6 +470,10 @@ struct mrc_ctl_ev_field {
  * total width of an expanded EV. When an EV Format field width is wider than
  * the corresponding EV profile field width, the extra bits are left
  * zero-filled.
+ *
+ * If a deployment requires a portion of the EV to be fixed, then a field must
+ * be defined with the fixed width, init_val set to the fixed value, and
+ * min_val/max_val/mask are all set to zero.
  *
  * The configuration of an EV profile has the following restrictions:
  *  - num_fields <= num_fmt_fields (from EV Format)
