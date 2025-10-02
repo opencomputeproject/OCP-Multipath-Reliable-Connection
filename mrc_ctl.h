@@ -42,9 +42,9 @@ extern "C" {
 /* Unpopulated (unset) EV entry definition. */
 #define MRC_CTL_EV_UNPOPULATED (struct mrc_ctl_ev){ .val = 0, .port = 0 }
 
-enum mrc_ctl_version {
-	MRC_CTL_VERSION_0	= 0, /* MRC not supported */
-	MRC_CTL_VERSION_1	= (1 << 0),
+enum mrc_ctl_protocol_version {
+	MRC_CTL_PROTOCOL_VERSION_0	= 0, /* MRC version unspecified */
+	MRC_CTL_PROTOCOL_VERSION_1	= (1 << 0),
 };
 
 /*****************************************************************************
@@ -80,8 +80,10 @@ enum mrc_ctl_attr_opt {
  * @brief Control feature values supported by the implementation
  */
 struct mrc_ctl_device_attr {
-	/* bitmap of all versions supported (see enum mrc_ctl_version) */
-	uint32_t mrc_ctl_version;
+	/* bitmap of all versions supported (see enum mrc_ctl_protocol_version)
+	 * The value 0 indicates that the provider will choose an appropriate
+	 * version */
+	uint32_t mrc_ctl_protocol_version;
 
 	/* EV attributes */
 	struct {
