@@ -30,7 +30,6 @@ extern "C" {
 
 /**
  * @brief Max bytes for opaque vendor configuration data.
- *
  */
 #define MRC_MAX_VENDOR_CFG_SIZE 128
 
@@ -38,12 +37,13 @@ extern "C" {
  * @brief MRC wire (transport) protocol version bit values.
  *
  * Each non-zero constant denotes a distinct on-the-wire protocol version.
- * Devices advertise a bitmap (OR of these bits) via `mrc_device_attr.mrc_protocol_version`.
- * Applications request exactly one bit (or 0 for provider default) in
- * `mrc_qp_init_attr.protocol_version`.
+ * Devices advertise a bitmap (OR of these bits) via
+ * `mrc_device_attr.mrc_protocol_version`. Applications request exactly one
+ * bit (or 0 for provider default) in `mrc_qp_init_attr.protocol_version`.
  */
 enum mrc_protocol_version {
-	MRC_PROTOCOL_VERSION_0	= 0, /* MRC version unspecified / request provider default */
+	/* MRC version unspecified / request provider default */
+	MRC_PROTOCOL_VERSION_0	= 0,
 	MRC_PROTOCOL_VERSION_1	= (1 << 0),
 };
 
@@ -53,11 +53,13 @@ struct mrc_qp;
 struct mrc_cq;
 struct mrc_comp_channel;
 
+/**
+ * @brief MRC device attributes
+ */
 struct mrc_device_attr {
-	/*
-	 * Bitmap of all versions supported (see enum mrc_protocol_version).
-	 * The value 0 indicates the provider will choose an
-	 * an appropriate version.
+	/* Bitmap of all versions supported (see enum mrc_protocol_version).
+	 * The value 0 indicates the provider will choose an appropriate
+	 * version.
 	 */
 	uint32_t mrc_protocol_version;
 
@@ -101,7 +103,6 @@ int mrc_query_device(struct ibv_context *context,
 
 /**
  * @brief Application-provided context initialization attributes.
- *
  */
 struct mrc_context_attr {
 	/* API version used */
@@ -235,8 +236,7 @@ int mrc_destroy_cq(struct mrc_cq *cq);
  * @brief Traffic pattern hint attributes describing expected QP usage.
  */
 struct mrc_qp_hint_attr {
-	/*
-	 * Number of QPs using this hint that are sending data to the same
+	/* Number of QPs using this hint that are sending data to the same
 	 * peer (i.e., same destination IP address) while this QP is sending
 	 * data.
 	 *
@@ -245,14 +245,12 @@ struct mrc_qp_hint_attr {
 	 */
 	int num_qps_per_peer;
 
-	/*
-	 * Number of different peers (i.e., different destination IP
+	/* Number of different peers (i.e., different destination IP
 	 * addresses) that QPs using this hint are sending data to
 	 * simultaneously.
 	 */
 	int num_send_peers;
-	/*
-	 * Number of remote QPs that will target the same peer (i.e., same
+	/* Number of remote QPs that will target the same peer (i.e., same
 	 * destination IP address) when this QP is sending data.
 	 *
 	 * For example, this parameter can be considered as the incast
@@ -344,7 +342,6 @@ int mrc_modify_qp_hint(struct mrc_qp_hint *qp_hint,
 
 /**
  * @brief Attributes required to create an MRC QP.
- *
  */
 struct mrc_qp_init_attr {
 	void               *qp_context;
@@ -355,8 +352,8 @@ struct mrc_qp_init_attr {
 	struct ibv_pd      *pd;
 	/* see enum ibv_qp_create_send_ops_flags */
 	uint64_t            send_ops_flags;
-	/* The version of MRC wire protocol to use.
-	 * The value `0` here refers to the provider's default version.
+	/* The version of MRC wire protocol to use. The value `0` here refers
+	 * to the provider's default version.
 	 */
 	enum mrc_protocol_version    protocol_version;
 };
@@ -456,8 +453,7 @@ struct mrc_qp_attr {
 	/* Local ACK timeout; 1.024 * 2^timeout us. Max val = 24 (17.17s) */
 	uint8_t timeout;
 
-	/*
-	 * Application specified profile. The profile is learned OOB by the
+	/* Application specified profile. The profile is learned OOB by the
 	 * application and is used by the provider to associate the QP with
 	 * an EV and CC profile that was previously programmed by a system
 	 * controller.
@@ -585,8 +581,7 @@ int mrc_post_send(struct mrc_qp *qp,
 		  struct ibv_send_wr **bad_wr);
 
 /**
- * @brief Asynchronous event record returned by `mrc_get_async_event()`.
- *        Must be acknowledged via `mrc_ack_async_event()`.
+ * @brief Asynchronous event record
  */
 struct mrc_async_event {
 	union {
