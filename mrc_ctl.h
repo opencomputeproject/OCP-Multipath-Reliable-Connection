@@ -39,12 +39,31 @@
 extern "C" {
 #endif
 
-/* Unpopulated (unset) EV entry definition. */
+/**
+ * @brief Unpopulated (unset) EV entry definition.
+ */
 #define MRC_CTL_EV_UNPOPULATED (struct mrc_ctl_ev){ .val = 0, .port = 0 }
 
+/**
+ * @brief Maximum number of bytes in an EV value
+ */
+#define MRC_CTL_EV_MAX_BYTES 32
+
+/**
+ * @brief Version for the MRC control APIs
+ */
 enum mrc_ctl_protocol_version {
 	MRC_CTL_PROTOCOL_VERSION_0	= 0, /* MRC version unspecified */
 	MRC_CTL_PROTOCOL_VERSION_1	= (1 << 0),
+};
+
+/**
+ * @brief Profile state value used for all MRC control profiles
+ */
+enum mrc_ctl_profile_state {
+	MRC_CTL_PROFILE_INIT,    /* Initialized and ready for config. */
+	MRC_CTL_PROFILE_OFFLINE, /* Configured but not usable. */
+	MRC_CTL_PROFILE_ONLINE,  /* Is usable. */
 };
 
 /*****************************************************************************
@@ -61,19 +80,15 @@ enum mrc_ctl_attr_opt {
 	MRC_CTL_OPT_CAP_CC_PROFILE_MODIFY_ONLINE	= (1<<1),
 	/* The implementation supports EV Events */
 	MRC_CTL_OPT_CAP_EV_EVENT			= (1<<2),
-	/* The implementation supports explicit EV arrays */
-	MRC_CTL_OPT_CAP_EV_EXPLICIT			= (1<<3),
-	/* The implementation supports generated EV arrays */
-	MRC_CTL_OPT_CAP_EV_GENERATED			= (1<<4),
 	/*
-	* Only contiguous ranges supported in explicit mode. First EV value is
-	* base; last is 'base_ev_val + (ev_count - 1)'
+	 * Only contiguous ranges supported in explicit mode. First EV value
+	 * is the base; last is 'base_ev_val + (ev_count - 1)'
 	 */
-	MRC_CTL_OPT_CAP_EV_EXPLICIT_RANGE		= (1<<5),
+	MRC_CTL_OPT_CAP_EV_EXPLICIT_RANGE		= (1<<3),
 	/* The implementation supports EV Probes. */
-	MRC_CTL_OPT_CAP_EV_PROBE			= (1<<6),
+	MRC_CTL_OPT_CAP_EV_PROBE			= (1<<4),
 	/* The implementation supports precise EV Event drop counts. */
-	MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= (1<<7),
+	MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= (1<<5),
 };
 
 /**
@@ -87,13 +102,19 @@ struct mrc_ctl_device_attr {
 
 	/* EV attributes */
 	struct {
+		/*
+		 * Maximum number of EV Format profiles supported by the
+		 * device.
+		 */
+		uint32_t ev_max_fmt_profiles;
+
 		/* Maximum number of EV profiles supported by the device. */
 		uint32_t ev_max_profiles;
 
 		/* Maximum number of EVs available across all profiles. */
 		uint32_t ev_max_count;
 
-		/* Free number of EV resources avilable across all profiles. */
+		/* Free number of EV resources available across all profiles. */
 		uint32_t ev_free_count;
 
 		/*
@@ -109,14 +130,27 @@ struct mrc_ctl_device_attr {
 		uint32_t ev_count_align;
 
 		/*
-		 * Maximum EV value supported per profile. This represents
-		 * the number of consecutive bits in an EV value that are
-		 * valid. Applies to both explicit and generated EVs. It's
-		 * an error if an ev_format_mask in an EV profile defining
-		 * generated EVs contains a set of fields that extends past
-		 * ev_max_bits.
+		 * The maximum EV value supported per profile. This
+		 * represents the number of consecutive bits in an EV
+		 * value that are valid. Applies to both explicit and
+		 * generated EVs. It's an error if an EV profile contains a
+		 * set of fields that extends past ev_max_bits.
 		 */
 		uint32_t ev_max_width;
+
+		/*
+		 * Bitmask indicating which EV Format modes are supported by
+		 * the device. Each bit corresponds to mode defined in the
+		 * mrc_ctl_ev_fmt_mode enum.
+		 */
+		uint32_t ev_fmt_mode_mask;
+
+		/*
+		 * Bitmask indicating which EV modes are supported by the
+		 * device. Each bit corresponds to mode defined in the
+		 * mrc_ctl_ev_mode enum.
+		 */
+		uint32_t ev_mode_mask;
 	} ev;
 
 	/* CC attributes */
@@ -161,74 +195,168 @@ int mrc_ctl_query_device(struct ibv_context *context,
 			 struct mrc_ctl_device_attr *ctl_attr);
 
 /*****************************************************************************
- * EV Field Widths
+ * EV Format Profile
  *****************************************************************************/
 
 /**
- * @brief EV field width structures
+ * @brief Supported EV Format modes
+ *
+ * The STEV EV Format places the structured EV value in the IPv6 flow label
+ * and UDP source port.
+ *
+ * The SRv6 EV Format uses an IPv6 header encap with an optional single
+ * segment SRH header. A portion of the UDP source port is used to hold the
+ * EV index, from the EV profile, of the SRv6 EV entry that was used in the
+ * packet.
  */
-struct mrc_ctl_ev_field {
-	uint8_t width;		/* Field width in bits */
-	uint8_t min_val;	/* Min. supported val */
-	uint8_t max_val;	/* Max. supported val */
+enum mrc_ctl_ev_fmt_mode {
+	/* Structured EVs */
+	MRC_CTL_EV_FMT_MODE_STEV	= 1 << 0,
+	/* SRv6/SRH EVs */
+	MRC_CTL_EV_FMT_MODE_SRV6	= 1 << 1,
 };
 
 /**
- * @brief Modify EV field widths
- *
- * Sets hardware EV field widths. Not allowed if any EV or CC profile is
- * not in INIT state.
- *
- * @param mrc_ctx[in]        - MRC context
- * @param ev_fields[in]      - Array containing EV field widths and bounds
- * @param ev_field_count[in] - Length of ev_fields argument
- *
- * @return 0 on success, -1 on failure (errno set).
- * @par Errors
- *      - EINVAL One or more supplied arguments are invalid.
- *      - EIO Implementation specific error occurred.
- *      - EBUSY One or more EV or CC profiles are in ONLINE state.
- *      - E2BIG Supplied parameter combination is unsupportable.
- *      - EPERM Process lacks sufficient permissions.
+ * @brief Supported EV Format operations
  */
-int mrc_ctl_modify_ev_field_widths(struct mrc_context *mrc_ctx,
-				   struct mrc_ctl_ev_field *ev_fields,
-				   int ev_field_count);
+enum mrc_ctl_ev_fmt_op {
+	MRC_CTL_EV_FMT_OP_MODIFY_FIELDS,
+	MRC_CTL_EV_FMT_OP_QUERY_FIELDS,
+};
 
 /**
- * @brief Query the EV field widths.
+ * @brief EV Format profile attribute mask
+ */
+enum mrc_ctl_ev_fmt_profile_attr_mask {
+	MRC_CTL_EV_FMT_PROFILE_STATE		= 1 << 0,
+	MRC_CTL_EV_FMT_PROFILE_CUR_STATE	= 1 << 1,
+	MRC_CTL_EV_FMT_PROFILE_MODE		= 1 << 2,
+	MRC_CTL_EV_FMT_PROFILE_OP		= 1 << 3,
+};
+
+/**
+ * @brief EV Format field structure
+ */
+struct mrc_ctl_ev_fmt_field {
+	/* Field width in bits */
+	uint8_t width;
+};
+
+/**
+ * @brief EV Format profile attributes
  *
- * Retrieves the hardware EV field widths.
+ * The EV Format profile defines an array of format fields which when
+ * combined, equals to the total width of an EV placed in a packet. Every
+ * EV profile is associated with an EV Format profile and the format fields
+ * define limits and the maximum width an EV can be expanded to.
+ */
+struct mrc_ctl_ev_fmt_profile_attr {
+	/* Move the profile to this state. */
+	enum mrc_ctl_profile_state profile_state;
+	/* Current profile state. */
+	enum mrc_ctl_profile_state cur_profile_state;
+
+	/* The EV Format mode for this profile. */
+	enum mrc_ctl_ev_fmt_mode ev_fmt_mode;
+
+	struct {
+		enum mrc_ctl_ev_fmt_op op;
+
+		struct {
+			/* Array of format fields */
+			struct mrc_ctl_ev_fmt_field *fmt_fields;
+			/* Format field array length */
+			int *fmt_field_count;
+		} fmt_fields;
+	} ev_fmt_op;
+};
+
+/**
+ * @brief Modify an EV Format profile
  *
- * If ev_field_count is less than the total number of EV fields, the function
- * returns an error and sets cur_ev_field_count to the required array size.
+ * EV Format profile state machine:
+ *   INIT -> OFFLINE -> ONLINE -> OFFLINE -> INIT
  *
- * @param mrc_ctx[in]             - MRC context
- * @param ev_fields[out]          - Populated with EV field widths and bounds
- * @param ev_field_count[in]      - Length of provided ev_fields argument
- * @param cur_ev_field_count[out] - Number of configued EV fields
+ * States:
+ *   INIT:    Profile created; not yet configured.
+ *   OFFLINE: Configured but inactive; can be modified.
+ *   ONLINE:  Active and usable; only limited modifications allowed.
+ *
+ * State transition requirements:
+ *   To OFFLINE: MODE
+ *   To ONLINE: MODIFY_FIELDS
+ *
+ * Allowed:
+ *   OFFLINE state:
+ *     - Modify: STATE(ONLINE/INIT), MODE, MODIFY_FIELDS, QUERY_FIELDS
+ *     - Query: STATE, MODE, QUERY_FIELDS
+ *   ONLINE state:
+ *     - Modify: STATE(OFFLINE), QUERY_FIELDS
+ *     - Query: STATE, MODE, QUERY_FIELDS
+ *
+ * @param mrc_ctx[in]           - MRC context
+ * @param ev_fmt_profile_id[in] - EV Format Profile ID
+ * @param attr[in]              - EV Profile attribute structure
+ * @param attr_mask[in]         - Bitmask of EV Profile attribute mask
  *
  * @return 0 on success, -1 on failure (errno set).
  * @par Errors
  *      - EINVAL One or more supplied arguments are invalid.
+ *      - EBUSY One or more associated EV profiles are in the ONLINE state.
+ *      - E2BIG Supplied combination of format fields is unsupportable.
  *      - EIO Implementation specific error occurred.
- *      - E2BIG EV field count is less than total number of EV fields.
  *      - EPERM Process lacks sufficient permissions.
  */
-int mrc_ctl_query_ev_field_widths(struct mrc_context *mrc_ctx,
-				  struct mrc_ctl_ev_field *ev_fields,
-				  int ev_field_count,
-				  int *cur_ev_field_count);
+int mrc_ctl_modify_ev_fmt_profile(struct mrc_context *mrc_ctx,
+				  uint64_t ev_fmt_profile_id,
+				  struct mrc_ctl_ev_fmt_profile_attr *attr,
+				  int attr_mask);
+
+/**
+ * @brief Query an EV Format profile
+ *
+ * If MRC_CTL_EV_FMT_OP_QUERY_FIELDS is specified, an array of empty format
+ * fields (fmt_fieds) must be supplied to be filled in upon return. If the
+ * number of entries in the array (*fmt_field_count) is not large enough,
+ * then an E2BIG error is returned and the required array size is set back
+ * in (*fmt_field_count).
+ *
+ * The MRC_CTL_EV_FMT_OP_MODIFY_FIELDS operation is not allowed.
+ *
+ * @param mrc_ctx[in]       - MRC context
+ * @param ev_profile_id[in] - EV Profile ID
+ * @param attr[out]         - EV Profile attribute structure
+ * @param attr_mask[in]     - Bitmask of EV Profile attribute mask
+ *
+ * @return 0 on success, -1 on failure (errno set).
+ * @par Errors
+ *      - EINVAL One or more supplied arguments are invalid.
+ *      - E2BIG Format field count is less than the total number of fields.
+ *      - EIO Implementation specific error occurred.
+ *      - EPERM Process lacks sufficient permissions.
+ */
+int mrc_ctl_query_ev_fmt_profile(struct mrc_context *mrc_ctx,
+				 uint64_t ev_fmt_profile_id,
+				 struct mrc_ctl_ev_fmt_profile_attr *attr,
+				 int attr_mask);
 
 /*****************************************************************************
  * EV Structures
  *****************************************************************************/
 
 /**
- * @brief EV types and structures
+ * @brief EV value
+ *
+ * For STEV EV types, the first 32b/4B holds the value.
+ *
+ * For SRv6 EV types, the first 128b/16B holds the SRv6 address and the second
+ * 128b/16B holds the single segment SRH address.
  */
-typedef uint32_t mrc_ctl_ev_t;
+typedef uint8_t mrc_ctl_ev_t[MRC_CTL_EV_MAX_BYTES];
 
+/**
+ * @brief EV entry (value and port)
+ */
 struct mrc_ctl_ev {
 	mrc_ctl_ev_t val;
 	uint8_t port;
@@ -244,26 +372,20 @@ enum mrc_ctl_ev_state {
 	MRC_CTL_EV_UNKNOWN	= (1<<31)
 };
 
+/*****************************************************************************
+ * EV Profile
+ *****************************************************************************/
+
 /**
  * @brief Supported EV modes
  */
 enum mrc_ctl_ev_mode {
 	/* Controller will not provide any EVs (vendor managed e.g., ECMP) */
-	MRC_CTL_EV_MODE_AUTO		= 0,
-	/* Explicit EVs (MRC_CTL_OPT_CAP_EV_EXPLICIT) */
-	MRC_CTL_EV_MODE_EXPLICIT	= 1,
-	/* Generated EVs (MRC_CTL_OPT_CAP_EV_GENERATED) */
-	MRC_CTL_EV_MODE_GENERATED	= 2,
-};
-
-/*****************************************************************************
- * EV Profile
- *****************************************************************************/
-
-enum mrc_ctl_profile_state {
-	MRC_CTL_PROFILE_INIT,    /* Initialized and ready for config. */
-	MRC_CTL_PROFILE_OFFLINE, /* Configured but not usable. */
-	MRC_CTL_PROFILE_ONLINE,  /* Is usable. */
+	MRC_CTL_EV_MODE_AUTO	= 1 << 0,
+	/* Explicit EVs */
+	MRC_CTL_EV_MODE_EXP	= 1 << 1,
+	/* Generated EVs */
+	MRC_CTL_EV_MODE_GEN	= 1 << 2,
 };
 
 /**
@@ -274,6 +396,8 @@ enum mrc_ctl_ev_op {
 	MRC_CTL_EV_OP_MODIFY_EV_STATE,
 	MRC_CTL_EV_OP_QUERY_EV_STATE,
 	MRC_CTL_EV_OP_QUERY_EV_ARRAY,
+	MRC_CTL_EV_OP_MODIFY_FIELDS,
+	MRC_CTL_EV_OP_QUERY_FIELDS,
 };
 
 /**
@@ -283,14 +407,76 @@ enum mrc_ctl_ev_profile_attr_mask {
 	MRC_CTL_EV_PROFILE_STATE	= 1 << 0,
 	MRC_CTL_EV_PROFILE_CUR_STATE	= 1 << 1,
 	MRC_CTL_EV_PROFILE_MODE		= 1 << 2,
-	MRC_CTL_EV_PROFILE_COUNT	= 1 << 3,
-	MRC_CTL_EV_PROFILE_MIN_ACTIVE	= 1 << 4,
-	MRC_CTL_EV_PROFILE_EVENT_MASK	= 1 << 5,
-	MRC_CTL_EV_PROFILE_EV_OP	= 1 << 6,
+	MRC_CTL_EV_PROFILE_FMT_ID	= 1 << 3,
+	MRC_CTL_EV_PROFILE_COUNT	= 1 << 4,
+	MRC_CTL_EV_PROFILE_MIN_ACTIVE	= 1 << 5,
+	MRC_CTL_EV_PROFILE_EVENT_MASK	= 1 << 6,
+	MRC_CTL_EV_PROFILE_EV_OP	= 1 << 7,
+};
+
+/**
+ * @brief EV field structure
+ */
+struct mrc_ctl_ev_field {
+	/* Field width in bits. */
+	uint32_t width;
+	/* Field initialization value before applying the mask and EV bits. */
+	uint32_t init_val;
+	/* Minimum field value for generated EVs. */
+	uint32_t min_val;
+	/* Maximum field value for generated EVs. */
+	uint32_t max_val;
+	/* Mask bits detail where EV bits are overlaid on the field value. */
+	uint32_t mask;
 };
 
 /**
  * @brief EV Profile attributes
+ *
+ * EVs are abstract representations of network paths. The EV profile
+ * defines the EV parameters used for specifying explicit or generated EVs. It
+ * provides guidance on the structure of the EV and how it's both expanded
+ * and interpreted.
+ *
+ * The EV profile contains an array of EV fields that define how each field
+ * corresponds to a set of bits from the EV and how those bits are expanded
+ * into the final EV to be used in a packet. Each field contains a bit width,
+ * an initial value, a min/max value for generation, and a mask. The bits set
+ * in the mask define how many bits are taken from the EV and where they're
+ * placed in the expanded field value. For generated EVs, the mask also
+ * indicates the total number of bits the hardware must generate for the
+ * field. EV expansion steps per field are:
+ *
+ *  1. The field value is initialized to the init_val.
+ *       1a. Field value = init_val
+ *       1b. Field value is left zero-filled expanding to the field width.
+ *  2. For each bit set in the mask, overwrite the init_val bit in the field
+ *     value.
+ *       2a. Pull the next most significant bit from the EV.
+ *       2b. Set the bit's value into the field value at the corresponding
+ *           offset of the mask bit.
+*        2c. Shift the EV left by one bit.
+ *  3. Field value is fully expanded and ready for concatenation.
+ *
+ * After all fields have been expanded, they are concatenated together to
+ * form the final EV.
+ *
+ * Non-AUTO EV profiles are associated with an EV Format profile. The EV
+ * Format profile defines limits on the width of each field as well as the
+ * total width of an expanded EV. When an EV Format field width is wider than
+ * the corresponding EV profile field width, the extra bits are left
+ * zero-filled.
+ *
+ * If a deployment requires a portion of the EV to be fixed, then a field must
+ * be defined with the fixed width, init_val set to the fixed value, and
+ * min_val/max_val/mask are all set to zero.
+ *
+ * The configuration of an EV profile has the following restrictions:
+ *  - num_fields <= num_fmt_fields (from EV Format)
+ *  - sum of field widths <= sum of fmt_field widths (from EV Format)
+ *  - a field's init_val cannot be wider than the field's width
+ *  - a field's mask cannot contain bits set outside of the field width
+ *  - a field's max_val cannot be wider than the number of set mask bits
  */
 struct mrc_ctl_ev_profile_attr {
 	/* Move the profile to this state. */
@@ -298,13 +484,11 @@ struct mrc_ctl_ev_profile_attr {
 	/* Current profile state. */
 	enum mrc_ctl_profile_state cur_profile_state;
 
-	/*
-	 * The EV mode for this profile:
-	 * - MRC_CTL_EV_MODE_AUTO: Vendor-defined mode.
-	 * - MRC_CTL_EV_MODE_EXPLICIT: Caller provides explicit EV values.
-	 * - MRC_CTL_EV_MODE_GENERATED: HW generated within EV field bounds.
-	 */
+	/* The EV mode for this profile. */
 	enum mrc_ctl_ev_mode ev_mode;
+
+	/* The EV Format profile used for the EVs defined in this profile. */
+	uint64_t ev_fmt_profile_id;
 
 	/*
 	 * Number of EVs in the profile's EV array.
@@ -366,6 +550,13 @@ struct mrc_ctl_ev_profile_attr {
 				/* Array of EVs; pointer, length >= ev_count */
 				struct mrc_ctl_ev *ev;
 			} query_ev_array;
+
+			struct {
+				/* Array of fields */
+				struct mrc_ctl_ev_field *fields;
+				/* Field array length */
+				int *field_count;
+			} fields;
 		};
 	} ev_op;
 };
@@ -383,17 +574,21 @@ struct mrc_ctl_ev_profile_attr {
  *
  * State transition requirements:
  *   To OFFLINE:
- *     - MODE, COUNT
+ *     - MODE, FMT_ID, COUNT, MODIFY_FIELDS
  *   To ONLINE:
- *     - MIN_ACTIVE, EVENT_MASK, REPLACE_EV (for MODE_EXPLICIT)
+ *     - MIN_ACTIVE, EVENT_MASK, REPLACE_EV (for EXP)
  *
  * Allowed:
  *   OFFLINE state:
- *     - Query: STATE(to ONLINE or INIT), MODE, COUNT, MIN_ACTIVE, EVENT_MASK
- *     - EV_OP: REPLACE_EV, MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY
+ *     - Modify: STATE(ONLINE/INIT), MODE, FMT_ID, COUNT, MIN_ACTIVE,
+ *               EVENT_MASK
+ *     - Query: STATE, MODE, FMT_ID, COUNT, MIN_ACTIVE, EVENT_MASK
+ *     - EV_OP: REPLACE_EV, MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY,
+ *              MODIFY_FIELDS, QUERY_FIELDS
  *   ONLINE state:
- *     - Query: STATE(to OFFLINE), MODE, COUNT, MIN_ACTIVE, EVENT_MASK
- *     - EV_OP: MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY
+ *     - Modify: STATE(OFFLINE)
+ *     - Query: STATE, MODE, FMT_ID, COUNT, MIN_ACTIVE, EVENT_MASK
+ *     - EV_OP: MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY, QUERY_FIELDS
  *       If EV_PROFILE_MODIFY_ONLINE supported: EVENT_MASK, REPLACE_EV
  *
  * Restrictions:
@@ -423,6 +618,11 @@ int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
  * @brief Query an EV profile
  *
  * Query an EV profile configuration.
+ *
+ * If MRC_CTL_EV_OP_QUERY_FIELDS is specified, an array of empty fields must
+ * be supplied to be filled in upon return. If the number of entries in the
+ * array (*field_count) is not large enough, then an E2BIG error is returned
+ * and the required array size is set back in (*field_count).
  *
  * @param mrc_ctx[in]       - MRC context
  * @param ev_profile_id[in] - EV Profile ID
@@ -626,6 +826,8 @@ struct mrc_ctl_ev_probe_req {
 	union ibv_gid sgid;
 	/* Destination GID; only ROCE_V2 GID type supported. */
 	union ibv_gid dgid;
+	/* EV Format mode for req_ev and rsp_ev */
+	enum mrc_ctl_ev_fmt_mode ev_fmt_mode;
 	/* Probe request EV value and port. */
 	struct mrc_ctl_ev req_ev;
 	/* Probe response EV value. */
