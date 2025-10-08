@@ -80,8 +80,7 @@ enum mrc_ctl_attr_opt {
 	MRC_CTL_OPT_CAP_CC_PROFILE_MODIFY_ONLINE	= (1<<1),
 	/* The implementation supports EV Events */
 	MRC_CTL_OPT_CAP_EV_EVENT			= (1<<2),
-	/*
-	 * Only contiguous ranges supported in explicit mode. First EV value
+	/* Only contiguous ranges supported in explicit mode. First EV value
 	 * is the base; last is 'base_ev_val + (ev_count - 1)'
 	 */
 	MRC_CTL_OPT_CAP_EV_EXPLICIT_RANGE		= (1<<3),
@@ -95,15 +94,15 @@ enum mrc_ctl_attr_opt {
  * @brief Control feature values supported by the implementation
  */
 struct mrc_ctl_device_attr {
-	/* bitmap of all versions supported (see enum mrc_ctl_protocol_version)
-	 * The value 0 indicates that the provider will choose an appropriate
-	 * version */
+	/* Bitmap of all versions supported (see the enum
+	 * mrc_ctl_protocol_version) The value 0 indicates that the provider
+	 * will choose an appropriate version.
+	 */
 	uint32_t mrc_ctl_protocol_version;
 
 	/* EV attributes */
 	struct {
-		/*
-		 * Maximum number of EV Format profiles supported by the
+		/* Maximum number of EV Format profiles supported by the
 		 * device.
 		 */
 		uint32_t ev_max_fmt_profiles;
@@ -117,8 +116,7 @@ struct mrc_ctl_device_attr {
 		/* Free number of EV resources available across all profiles. */
 		uint32_t ev_free_count;
 
-		/*
-		 * Maximum number of EVs supported per profile. If the
+		/* Maximum number of EVs supported per profile. If the
 		 * controller is supplying an explicit EV array, then that
 		 * array can contain at most this many EVs.
 		 */
@@ -129,24 +127,21 @@ struct mrc_ctl_device_attr {
 		 */
 		uint32_t ev_count_align;
 
-		/*
-		 * The maximum EV value supported per profile. This
+		/* The maximum EV value supported per profile. This
 		 * represents the number of consecutive bits in an EV
 		 * value that are valid. Applies to both explicit and
 		 * generated EVs. It's an error if an EV profile contains a
-		 * set of fields that extends past ev_max_bits.
+		 * set of fields that extends past ev_max_width.
 		 */
 		uint32_t ev_max_width;
 
-		/*
-		 * Bitmask indicating which EV Format modes are supported by
+		/* Bitmask indicating which EV Format modes are supported by
 		 * the device. Each bit corresponds to mode defined in the
 		 * mrc_ctl_ev_fmt_mode enum.
 		 */
 		uint32_t ev_fmt_mode_mask;
 
-		/*
-		 * Bitmask indicating which EV modes are supported by the
+		/* Bitmask indicating which EV modes are supported by the
 		 * device. Each bit corresponds to mode defined in the
 		 * mrc_ctl_ev_mode enum.
 		 */
@@ -158,8 +153,7 @@ struct mrc_ctl_device_attr {
 		/* Maximum number of CC profiles supported by the device. */
 		uint32_t cc_max_profiles;
 
-		/*
-		 * Array of CC algorithm strings.
+		/* Array of CC algorithm strings.
 		 * Last element is NULL; stop iterating at NULL.
 		 * Consumers must NOT free these pointers.
 		 *
@@ -169,9 +163,8 @@ struct mrc_ctl_device_attr {
 		const char **algorithms;
 	} cc;
 
-	/*
-	 * Port mask for ports owned by this this function; each bit represents
-	 * an active port.  Port numbers match ibv_query_port() (1-based).
+	/* Port mask for ports owned by this this function; each bit represents
+	 * an active port. Port numbers match ibv_query_port() (1-based).
 	 */
 	uint64_t port_mask;
 
@@ -455,7 +448,7 @@ struct mrc_ctl_ev_field {
  *       2a. Pull the next most significant bit from the EV.
  *       2b. Set the bit's value into the field value at the corresponding
  *           offset of the mask bit.
-*        2c. Shift the EV left by one bit.
+ *       2c. Shift the EV left by one bit.
  *  3. Field value is fully expanded and ready for concatenation.
  *
  * After all fields have been expanded, they are concatenated together to
@@ -490,8 +483,7 @@ struct mrc_ctl_ev_profile_attr {
 	/* The EV Format profile used for the EVs defined in this profile. */
 	uint64_t ev_fmt_profile_id;
 
-	/*
-	 * Number of EVs in the profile's EV array.
+	/* Number of EVs in the profile's EV array.
 	 *  - For explicit and generated mode: caller sets the array size,
 	 *    subject to system configuration and device alignment and maximum
 	 *    limits.
@@ -500,15 +492,13 @@ struct mrc_ctl_ev_profile_attr {
 	 */
 	uint32_t ev_count;
 
-	/*
-	 * Min number of EVs that must remain active to avoid the situation of
+	/* Min number of EVs that must remain active to avoid the situation of
 	 * marking too many EVs as ASSUMED_BAD. This value cannot be greater
 	 * than ev_count.
 	 */
 	uint32_t ev_min_active;
 
-	/*
-	 * EV event mask for EV state change notifications on this profile.
+	/* EV event mask for EV state change notifications on this profile.
 	 * Only EV_ASSUMED_BAD and EV_GOOD is supported. May be modified when
 	 * the profile is in ONLINE state if the provider advertises
 	 * EV_PROFILE_MODIFY_ONLINE capability.
@@ -524,8 +514,7 @@ struct mrc_ctl_ev_profile_attr {
 				struct mrc_ctl_ev cur_ev;
 				/* New EV (formatted according to EV fields) */
 				struct mrc_ctl_ev new_ev;
-				/*
-				 * If zero only one instance is replaced, else
+				/* If zero only one instance is replaced, else
 				 * allow matches are replaced. Entry selected
 				 * is implemenation specific.
 				 */
@@ -760,8 +749,7 @@ int mrc_ctl_query_cc_profile(struct mrc_context *mrc_ctx,
 struct mrc_ctl_ev_event {
 	uint64_t profile_id;
 	struct mrc_ctl_ev ev;
-	/*
-	 * If MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT is set, this field
+	/* If MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT is set, this field
 	 * contains the number of EV Events dropped between the previous and
 	 * current event delivered to the queue. If not set, this field is
 	 * 1/true if any events were dropped between the previous and current
