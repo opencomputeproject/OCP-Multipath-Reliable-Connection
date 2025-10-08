@@ -40,6 +40,11 @@ extern "C" {
 #endif
 
 /**
+ * @brief Max bytes for opaque vendor configuration data.
+ */
+#define MRC_CTL_MAX_VENDOR_CFG_SIZE 128
+
+/**
  * @brief Unpopulated (unset) EV entry definition.
  */
 #define MRC_CTL_EV_UNPOPULATED (struct mrc_ctl_ev){ .val = 0, .port = 0 }
@@ -225,6 +230,7 @@ enum mrc_ctl_ev_fmt_profile_attr_mask {
 	MRC_CTL_EV_FMT_PROFILE_CUR_STATE	= 1 << 1,
 	MRC_CTL_EV_FMT_PROFILE_MODE		= 1 << 2,
 	MRC_CTL_EV_FMT_PROFILE_OP		= 1 << 3,
+	MRC_CTL_EV_FMT_VENDOR_CFG		= 1 << 31,
 };
 
 /**
@@ -262,6 +268,9 @@ struct mrc_ctl_ev_fmt_profile_attr {
 			int *fmt_field_count;
 		} fmt_fields;
 	} ev_fmt_op;
+
+	/* vendor specific configuration */
+	uint8_t vendor_cfg[MRC_CTL_MAX_VENDOR_CFG_SIZE];
 };
 
 /**
@@ -405,6 +414,7 @@ enum mrc_ctl_ev_profile_attr_mask {
 	MRC_CTL_EV_PROFILE_MIN_ACTIVE	= 1 << 5,
 	MRC_CTL_EV_PROFILE_EVENT_MASK	= 1 << 6,
 	MRC_CTL_EV_PROFILE_EV_OP	= 1 << 7,
+	MRC_CTL_EV_PROFILE_VENDOR_CFG	= 1 << 31,
 };
 
 /**
@@ -548,6 +558,9 @@ struct mrc_ctl_ev_profile_attr {
 			} fields;
 		};
 	} ev_op;
+
+	/* vendor specific configuration */
+	uint8_t vendor_cfg[MRC_CTL_MAX_VENDOR_CFG_SIZE];
 };
 
 /**
@@ -642,6 +655,7 @@ enum mrc_ctl_cc_profile_attr_mask {
 	MRC_CTL_CC_PROFILE_CUR_STATE	= 1 << 1,
 	MRC_CTL_CC_PROFILE_ALGORITHM	= 1 << 2,
 	MRC_CTL_CC_PROFILE_CONFIG	= 1 << 3,
+	MRC_CTL_CC_PROFILE_VENDOR_CFG	= 1 << 31,
 };
 
 /**
@@ -658,6 +672,9 @@ struct mrc_ctl_cc_profile_attr {
 
 	/* Algorithm-specific configuration structure. */
 	const void *cc_config;
+
+	/* vendor specific configuration */
+	uint8_t vendor_cfg[MRC_CTL_MAX_VENDOR_CFG_SIZE];
 };
 
 /**
