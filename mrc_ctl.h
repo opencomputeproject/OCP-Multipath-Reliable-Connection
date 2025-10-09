@@ -212,6 +212,8 @@ enum mrc_ctl_ev_fmt_mode {
 	MRC_CTL_EV_FMT_MODE_STEV	= 1 << 0,
 	/* SRv6/SRH EVs */
 	MRC_CTL_EV_FMT_MODE_SRV6	= 1 << 1,
+	/* UDP Source Port EVs */
+	MRC_CTL_EV_FMT_MODE_UDP		= 1 << 2,
 };
 
 /**
