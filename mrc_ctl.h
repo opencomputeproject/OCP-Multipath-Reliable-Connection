@@ -264,8 +264,8 @@ struct mrc_ctl_ev_fmt_profile_attr {
 		struct {
 			/* Array of format fields */
 			struct mrc_ctl_ev_fmt_field *fmt_fields;
-			/* Format field array length */
-			int *fmt_field_count;
+			/* Format field array length (in/out) */
+			int fmt_field_count;
 		} fmt_fields;
 	} ev_fmt_op;
 
@@ -318,10 +318,10 @@ int mrc_ctl_modify_ev_fmt_profile(struct mrc_context *mrc_ctx,
  * @brief Query an EV Format profile
  *
  * If MRC_CTL_EV_FMT_OP_QUERY_FIELDS is specified, an array of empty format
- * fields (fmt_fieds) must be supplied to be filled in upon return. If the
- * number of entries in the array (*fmt_field_count) is not large enough,
+ * fields (fmt_fields) must be supplied to be filled in upon return. If the
+ * number of entries in the array (fmt_field_count) is not large enough,
  * then an E2BIG error is returned and the required array size is set back
- * in (*fmt_field_count).
+ * in (fmt_field_count).
  *
  * The MRC_CTL_EV_FMT_OP_MODIFY_FIELDS operation is not allowed.
  *
@@ -475,7 +475,7 @@ struct mrc_ctl_ev_field {
  * min_val/max_val/mask are all set to zero.
  *
  * The configuration of an EV profile has the following restrictions:
- *  - num_fields <= num_fmt_fields (from EV Format)
+ *  - field_count <= fmt_field_count (from EV Format)
  *  - sum of field widths <= sum of fmt_field widths (from EV Format)
  *  - a field's init_val cannot be wider than the field's width
  *  - a field's mask cannot contain bits set outside of the field width
@@ -526,7 +526,7 @@ struct mrc_ctl_ev_profile_attr {
 				struct mrc_ctl_ev new_ev;
 				/* If zero only one instance is replaced, else
 				 * allow matches are replaced. Entry selected
-				 * is implemenation specific.
+				 * is implementation specific.
 				 */
 				int all_copies;
 			} replace_ev;
@@ -553,8 +553,8 @@ struct mrc_ctl_ev_profile_attr {
 			struct {
 				/* Array of fields */
 				struct mrc_ctl_ev_field *fields;
-				/* Field array length */
-				int *field_count;
+				/* Field array length (in/out) */
+				int field_count;
 			} fields;
 		};
 	} ev_op;
@@ -623,8 +623,8 @@ int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
  *
  * If MRC_CTL_EV_OP_QUERY_FIELDS is specified, an array of empty fields must
  * be supplied to be filled in upon return. If the number of entries in the
- * array (*field_count) is not large enough, then an E2BIG error is returned
- * and the required array size is set back in (*field_count).
+ * array (field_count) is not large enough, then an E2BIG error is returned
+ * and the required array size is set back in (field_count).
  *
  * @param mrc_ctx[in]       - MRC context
  * @param ev_profile_id[in] - EV Profile ID
