@@ -198,20 +198,17 @@ int mrc_ctl_query_device(struct ibv_context *context,
 
 /**
  * @brief Supported EV Format modes
- *
- * The STEV EV Format places the structured EV value in the IPv6 flow label
- * and UDP source port.
- *
- * The SRv6 EV Format uses an IPv6 header encap with an optional single
- * segment SRH header. A portion of the UDP source port is used to hold the
- * EV index, from the EV profile, of the SRv6 EV entry that was used in the
- * packet.
+ * - STEV: EV bits spread across IPv6 flow label + UDP src port.
+ * - SRv6: SRv6+(optional SRH) uSID encap.
+ * - UDP:  EV carried entirely in UDP src port (IPv4/IPv6).
  */
 enum mrc_ctl_ev_fmt_mode {
 	/* Structured EVs */
 	MRC_CTL_EV_FMT_MODE_STEV	= 1 << 0,
 	/* SRv6/SRH EVs */
 	MRC_CTL_EV_FMT_MODE_SRV6	= 1 << 1,
+	/* UDP Source Port EVs */
+	MRC_CTL_EV_FMT_MODE_UDP		= 1 << 2,
 };
 
 /**
