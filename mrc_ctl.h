@@ -198,20 +198,17 @@ int mrc_ctl_query_device(struct ibv_context *context,
 
 /**
  * @brief Supported EV Format modes
- *
- * The STEV EV Format places the structured EV value in the IPv6 flow label
- * and UDP source port.
- *
- * The SRv6 EV Format uses an IPv6 header encap with an optional single
- * segment SRH header. A portion of the UDP source port is used to hold the
- * EV index, from the EV profile, of the SRv6 EV entry that was used in the
- * packet.
+ * - STEV: EV bits spread across IPv6 flow label + UDP src port.
+ * - SRv6: SRv6+(optional SRH) uSID encap.
+ * - UDP:  EV carried entirely in UDP src port (IPv4/IPv6).
  */
 enum mrc_ctl_ev_fmt_mode {
 	/* Structured EVs */
 	MRC_CTL_EV_FMT_MODE_STEV	= 1 << 0,
 	/* SRv6/SRH EVs */
 	MRC_CTL_EV_FMT_MODE_SRV6	= 1 << 1,
+	/* UDP Source Port EVs */
+	MRC_CTL_EV_FMT_MODE_UDP		= 1 << 2,
 };
 
 /**
@@ -264,8 +261,8 @@ struct mrc_ctl_ev_fmt_profile_attr {
 		struct {
 			/* Array of format fields */
 			struct mrc_ctl_ev_fmt_field *fmt_fields;
-			/* Format field array length */
-			int *fmt_field_count;
+			/* Format field array length (in/out) */
+			int fmt_field_count;
 		} fmt_fields;
 	} ev_fmt_op;
 
@@ -318,10 +315,10 @@ int mrc_ctl_modify_ev_fmt_profile(struct mrc_context *mrc_ctx,
  * @brief Query an EV Format profile
  *
  * If MRC_CTL_EV_FMT_OP_QUERY_FIELDS is specified, an array of empty format
- * fields (fmt_fieds) must be supplied to be filled in upon return. If the
- * number of entries in the array (*fmt_field_count) is not large enough,
+ * fields (fmt_fields) must be supplied to be filled in upon return. If the
+ * number of entries in the array (fmt_field_count) is not large enough,
  * then an E2BIG error is returned and the required array size is set back
- * in (*fmt_field_count).
+ * in (fmt_field_count).
  *
  * The MRC_CTL_EV_FMT_OP_MODIFY_FIELDS operation is not allowed.
  *
@@ -398,6 +395,7 @@ enum mrc_ctl_ev_op {
 	MRC_CTL_EV_OP_MODIFY_EV_STATE,
 	MRC_CTL_EV_OP_QUERY_EV_STATE,
 	MRC_CTL_EV_OP_QUERY_EV_ARRAY,
+	MRC_CTL_EV_OP_QUERY_EV_ID,
 	MRC_CTL_EV_OP_MODIFY_FIELDS,
 	MRC_CTL_EV_OP_QUERY_FIELDS,
 };
@@ -475,7 +473,7 @@ struct mrc_ctl_ev_field {
  * min_val/max_val/mask are all set to zero.
  *
  * The configuration of an EV profile has the following restrictions:
- *  - num_fields <= num_fmt_fields (from EV Format)
+ *  - field_count <= fmt_field_count (from EV Format)
  *  - sum of field widths <= sum of fmt_field widths (from EV Format)
  *  - a field's init_val cannot be wider than the field's width
  *  - a field's mask cannot contain bits set outside of the field width
@@ -526,7 +524,7 @@ struct mrc_ctl_ev_profile_attr {
 				struct mrc_ctl_ev new_ev;
 				/* If zero only one instance is replaced, else
 				 * allow matches are replaced. Entry selected
-				 * is implemenation specific.
+				 * is implementation specific.
 				 */
 				int all_copies;
 			} replace_ev;
@@ -550,11 +548,19 @@ struct mrc_ctl_ev_profile_attr {
 				struct mrc_ctl_ev *ev;
 			} query_ev_array;
 
+			/* Available only if EV Format mode is MRC_CTL_EV_FMT_MODE_SRV6. */
+			struct {
+				/* EV to query */
+				struct mrc_ctl_ev ev;
+				/* EV's Identifier; output-only */
+				uint32_t ev_id;
+			} query_ev_id;
+
 			struct {
 				/* Array of fields */
 				struct mrc_ctl_ev_field *fields;
-				/* Field array length */
-				int *field_count;
+				/* Field array length (in/out) */
+				int field_count;
 			} fields;
 		};
 	} ev_op;
@@ -590,7 +596,8 @@ struct mrc_ctl_ev_profile_attr {
  *   ONLINE state:
  *     - Modify: STATE(OFFLINE)
  *     - Query: STATE, MODE, FMT_ID, COUNT, MIN_ACTIVE, EVENT_MASK
- *     - EV_OP: MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY, QUERY_FIELDS
+ *     - EV_OP: MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY, QUERY_EV_ID,
+ *              QUERY_FIELDS
  *       If EV_PROFILE_MODIFY_ONLINE supported: EVENT_MASK, REPLACE_EV
  *
  * Restrictions:
@@ -623,8 +630,8 @@ int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
  *
  * If MRC_CTL_EV_OP_QUERY_FIELDS is specified, an array of empty fields must
  * be supplied to be filled in upon return. If the number of entries in the
- * array (*field_count) is not large enough, then an E2BIG error is returned
- * and the required array size is set back in (*field_count).
+ * array (field_count) is not large enough, then an E2BIG error is returned
+ * and the required array size is set back in (field_count).
  *
  * @param mrc_ctx[in]       - MRC context
  * @param ev_profile_id[in] - EV Profile ID
