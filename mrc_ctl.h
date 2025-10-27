@@ -395,6 +395,7 @@ enum mrc_ctl_ev_op {
 	MRC_CTL_EV_OP_MODIFY_EV_STATE,
 	MRC_CTL_EV_OP_QUERY_EV_STATE,
 	MRC_CTL_EV_OP_QUERY_EV_ARRAY,
+	MRC_CTL_EV_OP_QUERY_EV_ID,
 	MRC_CTL_EV_OP_MODIFY_FIELDS,
 	MRC_CTL_EV_OP_QUERY_FIELDS,
 };
@@ -547,6 +548,14 @@ struct mrc_ctl_ev_profile_attr {
 				struct mrc_ctl_ev *ev;
 			} query_ev_array;
 
+			/* Available only if EV Format mode is MRC_CTL_EV_FMT_MODE_SRV6. */
+			struct {
+				/* EV to query */
+				struct mrc_ctl_ev ev;
+				/* EV's Identifier; output-only */
+				uint32_t ev_id;
+			} query_ev_id;
+
 			struct {
 				/* Array of fields */
 				struct mrc_ctl_ev_field *fields;
@@ -587,7 +596,8 @@ struct mrc_ctl_ev_profile_attr {
  *   ONLINE state:
  *     - Modify: STATE(OFFLINE)
  *     - Query: STATE, MODE, FMT_ID, COUNT, MIN_ACTIVE, EVENT_MASK
- *     - EV_OP: MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY, QUERY_FIELDS
+ *     - EV_OP: MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY, QUERY_EV_ID,
+ *              QUERY_FIELDS
  *       If EV_PROFILE_MODIFY_ONLINE supported: EVENT_MASK, REPLACE_EV
  *
  * Restrictions:
