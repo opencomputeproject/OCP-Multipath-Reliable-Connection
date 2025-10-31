@@ -7,9 +7,9 @@ RDMA write performance benchmark using LIB MRC API that sweeps across multiple m
 
 * **libibverbs** headers/libs (e.g., via `rdma-core`)
 * **MRC headers** available and pointed to by `MRC_H_PATH`
-  * Default assumption: headers live at parent folder
+  * Default assumption: headers live at parent dir
 * **MRC library** (`lib_mrc.so`) in the same directory as headers
-  * Default assumption: headers live at parent folder
+  * Default assumption: headers live at parent dir
 * **RDMA-capable NICs** (e.g., ConnectX adapters)
 * **Network connectivity** between client and server nodes
 

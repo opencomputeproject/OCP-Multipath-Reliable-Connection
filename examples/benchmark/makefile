@@ -20,7 +20,7 @@ CFLAGS += -I$(MRC_H_PATH)
 # ---- Provider .so path  ----
 MRC_LIB_DIR ?= $(MRC_H_PATH)
 
-# ---- ibverbs via pkg-config (fallback to -libverbs) ----
+# ---- ibverbs via pkg-config ----
 IBVERBS_CFLAGS := $(shell $(PKG_CONFIG) --cflags libibverbs 2>/dev/null)
 IBVERBS_LIBS   := $(shell $(PKG_CONFIG) --libs   libibverbs 2>/dev/null)
 ifeq ($(strip $(IBVERBS_LIBS)),)
