@@ -239,14 +239,3 @@ The benchmark performs a message size sweep, testing each size for the specified
 * **MsgRate(Mpps)**: Message rate in Millions of messages per second
 
 The sweep demonstrates bandwidth scaling from small messages (limited by message rate) to large messages.
-
-
-## Troubleshooting
-
-### Common Issues
-
-1. **"No InfiniBand devices found"**
-   - Check RDMA devices: `ibstat -l`
-
-2. **"MRC not supported on device"**
-   - Verify if MRC config service is started
