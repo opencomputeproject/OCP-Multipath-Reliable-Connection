@@ -674,8 +674,9 @@ struct mrc_ctl_cc_profile_attr {
 	/* Current profile state. */
 	enum mrc_ctl_profile_state cur_profile_state;
 
-	/* String describing CC algorithm to associate with this profile. */
-	const char *cc_algorithm;
+	/* Must string match a device_attr.cc.algorithms entry; NULL
+	 * disables CC. */
+	const char *algorithm;
 
 	/* Algorithm-specific configuration structure. */
 	const void *cc_config;
