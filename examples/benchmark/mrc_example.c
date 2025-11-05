@@ -50,6 +50,7 @@
 #define DEF_WARMUP_ITERS 100
 #define DEF_POLL_SIZE 16
 #define DEF_TX_DEPTH 128
+#define DEF_RX_DEPTH 1
 #define DEF_CQ_MOD 64
 
 #if DEF_SWEEP_MAX_MSG_SIZE > MAX_MSG_SIZE
@@ -153,7 +154,7 @@ static inline struct mrc_qp *create_mrc_qp(struct mrc_context *mctx,
 
   a.cap.max_send_wr = DEF_TX_DEPTH;
   a.cap.max_send_sge = 1;
-  a.cap.max_recv_wr = 1;
+  a.cap.max_recv_wr = DEF_RX_DEPTH;
   a.cap.max_recv_sge = 1;
 
   struct mrc_qp *qp = mrc_create_qp(mctx, &a);
@@ -202,6 +203,56 @@ static int post_rdma_write(struct mrc_qp *qp, void *buf, uint32_t len,
   if (rc) {
     MRC_LOG_ERROR("post WRITE rc=%d errno=%d (bad=%p)", rc, errno, (void *)bad);
   }
+  return rc;
+}
+
+static int post_rdma_write_with_imm(struct mrc_qp *qp, void *buf, uint32_t len,
+                                    uint32_t lkey, uint64_t remote_addr,
+                                    uint32_t rkey, uint32_t imm_data,
+                                    uint64_t wr_id) {
+  struct ibv_sge sge = {0};
+  struct ibv_send_wr wr = {0};
+
+  sge.addr = (uintptr_t)buf;
+  sge.length = len;
+  sge.lkey = lkey;
+
+  wr.wr_id = wr_id;
+  wr.sg_list = &sge;
+  wr.num_sge = 1;
+  wr.opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
+  wr.send_flags = IBV_SEND_SIGNALED;
+  wr.imm_data = htonl(imm_data);
+  wr.wr.rdma.remote_addr = remote_addr;
+  wr.wr.rdma.rkey = rkey;
+  wr.next = NULL;
+
+  struct ibv_send_wr *bad = NULL;
+  int rc = mrc_post_send(qp, &wr, &bad);
+  if (rc) {
+    MRC_LOG_ERROR("post WRITE_WITH_IMM rc=%d errno=%d (bad=%p)", rc, errno,
+                  (void *)bad);
+  }
+  return rc;
+}
+
+static int post_recv(struct mrc_qp *qp, void *buf, uint32_t len, uint32_t lkey,
+                     uint64_t wr_id) {
+  struct ibv_sge sge = {.addr = (uintptr_t)buf, .length = len, .lkey = lkey};
+  struct ibv_recv_wr wr = {0};
+  wr.wr_id = wr_id;
+  if (len > 0) {
+    wr.sg_list = &sge;
+    wr.num_sge = 1;
+  } else {
+    wr.sg_list = NULL;
+    wr.num_sge = 0;
+  }
+
+  struct ibv_recv_wr *bad = NULL;
+  int rc = mrc_post_recv(qp, &wr, &bad);
+  if (rc)
+    MRC_LOG_ERROR("post RECV rc=%d errno=%d", rc, errno);
   return rc;
 }
 
@@ -313,36 +364,76 @@ static int run_benchmark_sender(struct mrc_resources *res, size_t msg_size,
 
   clock_gettime(CLOCK_MONOTONIC, &ts1);
 
+  // Send one-byte RDMA write with immediate as signal after benchmark poll done
+  MRC_LOG_DEBUG("Sending one-byte write-with-immediate signal");
+  // Write to peer's base address
+  uint64_t signal_addr =
+      peer_recv_addr - msg_size; // Write to start of peer's buffer
+  if (post_rdma_write_with_imm(res->mrc_qp, res->signal_buffer, 1,
+                               res->signal_mr->lkey, signal_addr, peer_rkey,
+                               0x004D5243, 0xFFFFFFFFULL)) {
+    free(wc);
+    return -1;
+  }
+
+  // Poll for the signal completion
+  struct ibv_wc signal_wc;
+  do {
+    n = mrc_poll_cq(res->mrc_cq, 1, &signal_wc);
+  } while (n == 0);
+
+  if (n < 0 || signal_wc.status != IBV_WC_SUCCESS) {
+    MRC_LOG_ERROR("Signal write completion failed: %s",
+                  ibv_wc_status_str(signal_wc.status));
+    free(wc);
+    return -1;
+  }
+  MRC_LOG_DEBUG("Signal write-with-immediate completed successfully");
+
   free(wc);
   double elapsed = ts_diff_sec(&ts0, &ts1);
   *out = compute_stats(elapsed, iters, /*batch=*/1, msg_size);
-
-  // Synchronize with receiver after benchmark completes
-  MRC_LOG_DEBUG("Sender: syncing with receiver after benchmark completion");
-  if (sock_sync(res->tcp_sock, 1)) {
-    MRC_LOG_ERROR("Sender sync after benchmark failed");
-    return -1;
-  }
-  MRC_LOG_DEBUG("Sender: sync completed");
 
   return 0;
 }
 
 static int run_benchmark_receiver(struct mrc_resources *res, int iters,
                                   size_t msg_size, struct bench_stats *out) {
-  (void)res;
   (void)iters;
   (void)msg_size;
   (void)out;
-  MRC_LOG_DEBUG("Receiver has no work to do in RDMA WRITE test");
 
-  // Synchronize with sender after benchmark completes
-  MRC_LOG_DEBUG("Receiver: syncing with sender after benchmark completion");
-  if (sock_sync(res->tcp_sock, 0)) {
-    MRC_LOG_ERROR("Receiver sync after benchmark failed");
+  // Post one receive for the write-with-immediate signal
+  MRC_LOG_DEBUG("Receiver: posting RECV for write-with-immediate signal");
+  char *dummy_recv_buf = (char *)res->buffer + 2 * msg_size;
+  if (post_recv(res->mrc_qp, dummy_recv_buf, 0, res->mr->lkey, 0x1000)) {
+    MRC_LOG_ERROR("Receiver: failed to post RECV");
     return -1;
   }
-  MRC_LOG_DEBUG("Receiver: sync completed");
+
+  // Wait for the write-with-immediate completion
+  MRC_LOG_DEBUG("Receiver: waiting for write-with-immediate signal");
+  struct ibv_wc wc;
+  int n;
+  do {
+    n = mrc_poll_cq(res->mrc_recv_cq, 1, &wc);
+  } while (n == 0);
+
+  if (n < 0 || wc.status != IBV_WC_SUCCESS) {
+    MRC_LOG_ERROR("Receiver: signal recv completion failed: %s",
+                  ibv_wc_status_str(wc.status));
+    return -1;
+  }
+
+  if (wc.opcode != IBV_WC_RECV_RDMA_WITH_IMM) {
+    MRC_LOG_ERROR("Receiver: unexpected opcode: %d", wc.opcode);
+    return -1;
+  }
+
+  uint32_t imm_data = ntohl(wc.imm_data);
+  MRC_LOG_DEBUG(
+      "Receiver: received write-with-immediate signal, imm_data=0x%08x",
+      imm_data);
 
   return 0;
 }
@@ -665,6 +756,23 @@ int main(int argc, char **argv) {
   MRC_LOG_INFO("MR: %zu bytes (send %zu, recv %zu, counter 4)", buf_size,
                max_msg_size, max_msg_size);
 
+  // --- Signal Buffer & MR ---
+  res.signal_buffer = memalign(sysconf(_SC_PAGESIZE), 1);
+  if (!res.signal_buffer) {
+    MRC_LOG_ERROR("signal_buffer memalign failed");
+    cleanup_resources(&res);
+    return 1;
+  }
+  memset(res.signal_buffer, 0, 1);
+
+  res.signal_mr = register_memory_region(res.ibv_pd, res.signal_buffer, 1);
+  if (!res.signal_mr) {
+    MRC_LOG_ERROR("signal_mr registration failed");
+    cleanup_resources(&res);
+    return 1;
+  }
+  MRC_LOG_INFO("Signal MR: 1 byte registered");
+
   // --- INIT ---
   if (change_mrc_qp_to_init(res.mrc_qp)) {
     cleanup_resources(&res);
@@ -718,6 +826,7 @@ int main(int argc, char **argv) {
 
     // Synchronize before starting
     int is_client = role == 1;
+
     MRC_LOG_DEBUG("SYNC POINT 1: sock_sync (is_client=%d, msg_size=%zu)...",
                   is_client, cur_msg_size);
     if (sock_sync(res.tcp_sock, is_client)) {
@@ -744,7 +853,7 @@ int main(int argc, char **argv) {
     if (is_client) {
       print_results(cur_msg_size, iters, &st);
     } else {
-      validate_received_data((char *)res.buffer, cur_msg_size);
+      validate_received_data(recv_buf, cur_msg_size);
     }
 
     if (cur_msg_size >= max_msg_size)

@@ -186,51 +186,6 @@ Usage:
 ./script.sh 0 192.168.1.100 18181 mlx5_1 2000 134217728
 ```
 
-## Example output
-
-The benchmark performs a message size sweep, testing each size for the specified number of iterations:
-
-```
-[MRC INFO] Params: iters=1000 msg_size_sweep=[1, 67108864] step=x2
-[MRC INFO] QP created: (req) send_wr=4096 recv_wr=256 (act) send_wr=4096 recv_wr=256
-[MRC INFO] MR: 134217732 bytes (send 67108864, recv 67108864, counter 4)
-[MRC INFO] Client connecting 10.0.4.123:18185
-[MRC INFO] Conn info:
-[MRC INFO]   Local  -> qpn:0x002201 psn:0x15a283 rkey:0x00049b00 addr:0x0000493391300010 gid:2603:10b0:012e:a401:0000:0000:0137:0000
-[MRC INFO]   Remote -> qpn:0x0021fc psn:0xac732c rkey:0x00049a00 addr:0x0000527b21020010 gid:2603:10b0:012e:a401:0000:0000:013a:0000
-[MRC INFO] QP ready (RTS)
-[MRC INFO] Start benchmark sweep: iters=1000 msg_size range [1, 67108864] (x2 steps)
-
- MsgSize    TotalOps       BW_avg(Gbps)       MsgRate(Mpps)
- 1          1000           0.02               2.633353
- 2          1000           0.05               3.405612
- 4          1000           0.10               3.134403
- 8          1000           0.20               3.132204
- 16         1000           0.47               3.697787
- 32         1000           0.70               2.747487
- 64         1000           1.41               2.744599
- 128        1000           3.81               3.722454
- 256        1000           7.59               3.703909
- 512        1000           13.31              3.249116
- 1024       1000           25.74              3.142599
- 2048       1000           61.58              3.758706
- 4096       1000           87.03              2.655951
- 8192       1000           100.83             1.538573
- 16384      1000           129.43             0.987486
- 32768      1000           171.01             0.652346
- 65536      1000           232.72             0.443885
- 131072     1000           321.44             0.306549
- 262144     1000           429.27             0.204692
- 524288     1000           441.42             0.105244
- 1048576    1000           436.16             0.051994
- 2097152    1000           432.93             0.025805
- 4194304    1000           433.32             0.012914
- 8388608    1000           436.30             0.006501
- 16777216   1000           433.54             0.003230
- 33554432   1000           433.20             0.001614
- 67108864   1000           434.03             0.000808
-```
-
 ### Output Columns
 
 * **MsgSize**: Message size in bytes for this test iteration

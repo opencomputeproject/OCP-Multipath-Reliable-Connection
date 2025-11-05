@@ -29,11 +29,13 @@ struct mrc_resources {
   struct mrc_cq *mrc_cq;
   struct mrc_cq *mrc_recv_cq;
   struct ibv_mr *mr;
+  struct ibv_mr *signal_mr;
   struct ibv_pd *ibv_pd;
   struct mrc_context *mctx;
   struct ibv_context *ibv_context;
   struct ibv_device **device_list;
   void *buffer;
+  void *signal_buffer;
   int tcp_sock;
   int tcp_listen_sock;
 };
