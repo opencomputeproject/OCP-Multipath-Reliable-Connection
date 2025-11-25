@@ -318,8 +318,6 @@ void cleanup_resources(struct mrc_resources *res) {
     mrc_destroy_cq(res->mrc_recv_cq);
   if (res->mr)
     ibv_dereg_mr(res->mr);
-  if (res->signal_mr)
-    ibv_dereg_mr(res->signal_mr);
   if (res->ibv_pd)
     ibv_dealloc_pd(res->ibv_pd);
   if (res->mctx)
@@ -330,8 +328,6 @@ void cleanup_resources(struct mrc_resources *res) {
     ibv_free_device_list(res->device_list);
   if (res->buffer)
     free(res->buffer);
-  if (res->signal_buffer)
-    free(res->signal_buffer);
   if (res->tcp_sock > 0)
     close(res->tcp_sock);
   if (res->tcp_listen_sock > 0)
