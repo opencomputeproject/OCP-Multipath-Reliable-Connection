@@ -4,8 +4,8 @@
  */
 
 /*
- * This simple application demonstrates EV expansions various EV Format
- * profile and EV profile configurations.
+ * This simple application demonstrates EV expansions for the various EV
+ * Format profile and EV profile configurations.
  *
  * Build: gcc ev_expansion.c -o ev_expansion
  *   Run: ./ev_expansion
