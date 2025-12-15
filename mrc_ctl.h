@@ -168,10 +168,10 @@ struct mrc_ctl_device_attr {
 		const char **algorithms;
 	} cc;
 
-	/* Port mask for ports owned by this this function; each bit represents
-	 * an active port. Port numbers match ibv_query_port() (1-based).
+	/* Port mask for ports owned by this this function. Port numbers
+	 * match ibv_query_port() (1-based).
 	 */
-	uint64_t port_mask;
+	uint32_t port_mask;
 
 	/* bitmap of all optional features supported (mrc_ctl_attr_opt) */
 	uint32_t opt_attr;
@@ -191,6 +191,42 @@ struct mrc_ctl_device_attr {
  */
 int mrc_ctl_query_device(struct ibv_context *context,
 			 struct mrc_ctl_device_attr *ctl_attr);
+
+/*
+ * @brief Get available ports
+ *
+ * Get the available ports on the device. The total number of available ports
+ * is returned as well as a bitmask identifying the specific ports that are
+ * available. Valid available ports are within the bits set in the port_mask
+ * field of mrc_ctl_device_attr.
+ *
+ * @param context[in]          - mrc_context to query
+ * @param avail_port_mask[out] - specific ports enabled
+ *
+ * @return 0 on success, -1 on failure (errno set).
+ * @par Errors
+ *      - EINVAL Failed to get available port or invalid argument.
+ */
+int mrc_ctl_get_avail_ports(struct mrc_context *context,
+			    uint32_t *avail_port_mask);
+
+/*
+ * @brief Set available ports
+ *
+ * Set the available ports on the device. The bitmask identifying specific
+ * ports is used to enable/disable individual ports. Valid available ports
+ * are within the bits set in the port_mask field of mrc_ctl_device_attr.
+ *
+ * context[in]         - mrc_context to configure
+ * avail_port_mask[in] - specific ports to enable
+ *
+ * @return 0 on success, -1 on failure (errno set).
+ * @par Errors
+ *      - EINVAL Failed to set available ports or invalid argument.
+ *      - EPERM Process lacks sufficient permissions.
+ */
+int mrc_ctl_set_avail_ports(struct mrc_context *context,
+			    uint32_t avail_port_mask);
 
 /*****************************************************************************
  * EV Format Profile
