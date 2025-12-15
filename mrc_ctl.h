@@ -88,9 +88,9 @@ enum mrc_ctl_attr_opt {
 	/* Only contiguous ranges supported in explicit mode. First EV value
 	 * is the base; last is 'base_ev_val + (ev_count - 1)'
 	 */
-	MRC_CTL_OPT_CAP_EV_EXPLICIT_RANGE		= 1 << 3,
-	/* The implementation supports EV Probes. */
-	MRC_CTL_OPT_CAP_EV_PROBE			= 1 << 4,
+	MRC_CTL_OPT_CAP_EV_EXPLICIT_RANGE		= (1<<3),
+	/* The implementation supports endpoint requests. */
+	MRC_CTL_OPT_CAP_EP_REQ				= (1<<4),
 	/* The implementation supports precise EV Event drop counts. */
 	MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= 1 << 5,
 };
@@ -826,33 +826,43 @@ int mrc_ctl_poll_ev_event(struct mrc_cq *ev_cq,
 			  struct mrc_ctl_ev_event *ev_event);
 
 /****************************************************************************
- * EV Probes
+ * Endpoint Requests
  *****************************************************************************/
 
 /**
- * @brief EV Probe Request
+ * @brief Type of endpoint request to send.
  */
-struct mrc_ctl_ev_probe_req {
-	/* Application provided (request) probe ID. */
-	uint16_t probe_id;
+enum mrc_ctl_ep_req_type {
+	MRC_CTL_EP_REQ_TYPE_EV_PROBE,
+	MRC_CTL_EP_REQ_TYPE_PORT_STATUS
+};
+
+/**
+ * @brief Endpoint Request
+ */
+struct mrc_ctl_ep_req {
+	/* Application provided request ID. */
+	uint16_t req_id;
+	/* Request type to send. */
+	enum mrc_ctl_ep_req_type req_type;
 	/* Source GID; only ROCE_V2 GID type supported. */
 	union ibv_gid sgid;
 	/* Destination GID; only ROCE_V2 GID type supported. */
 	union ibv_gid dgid;
-	/* EV Format mode for req_ev and rsp_ev */
+	/* EV Format mode. */
 	enum mrc_ctl_ev_fmt_mode ev_fmt_mode;
-	/* Probe request EV value and port. */
+	/* EV value and port. */
 	struct mrc_ctl_ev req_ev;
-	/* Probe response EV value. */
-	mrc_ctl_ev_t rsp_ev;
+	/* Port status (for MRC_CTL_EP_REQ_TYPE_PORT_STATUS) */
+	uint32_t port_status;
 };
 
 /**
- * @brief EV Probe Response
+ * @brief Endpoint Response
  */
-struct mrc_ctl_ev_probe_rsp {
-	/* Associated request probe ID for this response. */
-	uint16_t probe_id;
+struct mrc_ctl_ep_rsp {
+	/* Associated request ID for this response. */
+	uint16_t req_id;
 	/* RTT; units = 1ns. */
 	unsigned int rtt;
 	/* 1/true if rtt has been adjusted for responder service time. */
@@ -860,7 +870,7 @@ struct mrc_ctl_ev_probe_rsp {
 };
 
 /**
- * @brief Send EV Probe requests and wait for responses
+ * @brief Send endpoint requests and wait for responses
  *
  * This non-interruptible function blocks the caller until all responses are
  * received or timeout occurs. Responses are delivered into the response
@@ -885,13 +895,13 @@ struct mrc_ctl_ev_probe_rsp {
  *      - EPERM Process lacks sufficient permissions.
  *      - ETIMEDOUT Timeout occurred before all responses received.
  */
-int mrc_ctl_probe_ev(struct mrc_context *mrc_ctx,
-		     uint8_t req_tc,
-		     struct mrc_ctl_ev_probe_req *req,
-		     int num_req,
-		     uint32_t rsp_timeout,
-		     struct mrc_ctl_ev_probe_rsp *rsp,
-		     int *num_rsp);
+int mrc_ctl_ep_req_send(struct mrc_context *mrc_ctx,
+			uint8_t req_tc,
+			struct mrc_ctl_ep_req *req,
+			int num_req,
+			uint32_t rsp_timeout,
+			struct mrc_ctl_ep_rsp *rsp,
+			int *num_rsp);
 
 #ifdef __cplusplus
 }
