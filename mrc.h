@@ -54,6 +54,14 @@ struct mrc_cq;
 struct mrc_comp_channel;
 
 /**
+ * @brief Features supported by the implementation
+ */
+enum mrc_device_cap {
+	/* Device supports sending TRIM NACKs */
+	MRC_DEVICE_CAP_TRIM_NACK	= (1<<0),
+};
+
+/**
  * @brief MRC device attributes
  */
 struct mrc_device_attr {
@@ -83,6 +91,9 @@ struct mrc_device_attr {
 		/* Max number of QP hints supported */
 		uint32_t max_qp_hint;
 	} qp_attr;
+
+	/* bitmap of additional capabilities (mrc_device_cap) */
+	uint32_t cap;
 };
 
 /**
@@ -425,9 +436,16 @@ enum mrc_qp_attr_mask {
 	/* QP hint */
 	MRC_QP_HINT			= 1 << 8,
 	/* Linear + exponential retry counter */
-	MRC_QP_RETRY_CNT		= 1 << 9,
+	MRC_QP_RETRY_CNT		= (1<<9),
+	/* Additional capabilities */
+	MRC_QP_CAP			= (1<<10),
 	/* Vendor specific configuration data */
 	MRC_QP_VENDOR_CFG		= 1 << 31
+};
+
+enum mrc_qp_cap {
+	/* Responder TRIM NACK support */
+	MRC_QP_TRIM_NACK_DEST		= (1<<0),
 };
 
 /**
@@ -472,6 +490,9 @@ struct mrc_qp_attr {
 
 	/* QP hint, if NULL then no hint is assigned */
 	struct mrc_qp_hint *qp_hint;
+
+	/* bitmap of additional features (mrc_qp_cap) */
+	uint32_t cap;
 
 	uint8_t vendor_cfg[MRC_MAX_VENDOR_CFG_SIZE];
 };
