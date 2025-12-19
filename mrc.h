@@ -398,7 +398,7 @@ int mrc_destroy_qp(struct mrc_qp *qp);
  *
  * RTR         MRC_QP_MAX_WIMM_DEST
  *             MRC_QP_MPR_DEST
- *             MRC_QP_DYNAMIC_MPR_DEST
+ *             MRC_QP_DYNAMIC_MPR
  *
  * RTS         MRC_QP_MAX_WIMM
  *             MRC_QP_MPR
