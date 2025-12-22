@@ -61,6 +61,8 @@ enum mrc_device_cap {
 	MRC_DEVICE_CAP_TRIM_NACK	= (1<<0),
 	/* Device supports Dynamic MPR */
 	MRC_DEVICE_CAP_DYNAMIC_MPR	= (1<<1),
+	/* Device supports responder service-time */
+	MRC_DEVICE_CAP_SVC_TIME		= (1<<2),
 };
 
 /**
@@ -446,10 +448,12 @@ enum mrc_qp_attr_mask {
 };
 
 enum mrc_qp_cap {
-	/* Peer does not support generation of TRIM NACKs */
+	/* Remote (responder) does not support generating TRIM NACKs */
 	MRC_QP_TRIM_NACK_DEST_UNSUPPORTED	= (1<<0),
 	/* Enable Dynamic MPR on this QP (req & rsp role) */
 	MRC_QP_DYNAMIC_MPR			= (1<<1),
+	/* Remote (responder) does not support service-time */
+	MRC_QP_SVC_TIME_DEST_UNSUPPORTED	= (1<<2),
 };
 
 /**
@@ -554,6 +558,10 @@ int mrc_query_qp(struct mrc_qp *qp,
  *  - TRIM NACK: Device advertises `MRC_DEVICE_CAP_TRIM_NACK`.
  *    Enabled by default when supported; disable responder per-QP via
  *    `MRC_QP_TRIM_NACK_DEST_UNSUPPORTED` if the remote peer lacks support.
+ *
+ *  - Service Time: Device advertises `MRC_DEVICE_CAP_SVC_TIME`.
+ *    Enabled by default when supported; disable responder per-QP via
+ *    `MRC_QP_SVC_TIME_DEST_UNSUPPORTED` if the remote peer lacks support.
  *
  * @param qp[in]            - MRC QP
  * @param vattr[in]         - Libibverbs attributes to modify
