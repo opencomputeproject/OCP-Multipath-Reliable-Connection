@@ -89,8 +89,8 @@ enum mrc_ctl_attr_opt {
 	 * is the base; last is 'base_ev_val + (ev_count - 1)'
 	 */
 	MRC_CTL_OPT_CAP_EV_EXPLICIT_RANGE		= (1<<3),
-	/* The implementation supports endpoint requests. */
-	MRC_CTL_OPT_CAP_EP_REQ				= (1<<4),
+	/* The implementation supports EV Probe endpoint operation. */
+	MRC_CTL_OPT_CAP_EV_PROBE			= (1<<4),
 	/* The implementation supports precise EV Event drop counts. */
 	MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= 1 << 5,
 };
@@ -394,7 +394,7 @@ typedef uint8_t mrc_ctl_ev_t[MRC_CTL_EV_MAX_BYTES];
  */
 struct mrc_ctl_ev {
 	mrc_ctl_ev_t val;
-	uint8_t port;
+	uint8_t port; /* (1-based) */
 };
 
 /**
@@ -866,31 +866,44 @@ int mrc_ctl_poll_ev_event(struct mrc_cq *ev_cq,
  *****************************************************************************/
 
 /**
- * @brief Type of endpoint request to send.
+ * @brief Endpoint operation type.
  */
-enum mrc_ctl_ep_req_type {
-	MRC_CTL_EP_REQ_TYPE_EV_PROBE,
-	MRC_CTL_EP_REQ_TYPE_PORT_STATUS
+enum mrc_ctl_ep_op_type {
+	/* Send EV Probe */
+	MRC_CTL_EP_OP_EV_PROBE,
+	/* Update/query port status */
+	MRC_CTL_EP_OP_PORT_STATUS_UPDATE
 };
 
 /**
  * @brief Endpoint Request
  */
 struct mrc_ctl_ep_req {
-	/* Application provided request ID. */
+	/* Application-provided request ID.
+	 * Must be unique across outstanding requests; do not reuse until prior
+	 * responses have drained or fabric buffering is impossible. */
 	uint16_t req_id;
-	/* Request type to send. */
-	enum mrc_ctl_ep_req_type req_type;
 	/* Source GID; only ROCE_V2 GID type supported. */
 	union ibv_gid sgid;
 	/* Destination GID; only ROCE_V2 GID type supported. */
 	union ibv_gid dgid;
-	/* EV Format mode. */
-	enum mrc_ctl_ev_fmt_mode ev_fmt_mode;
-	/* EV value and port. */
-	struct mrc_ctl_ev req_ev;
-	/* Port status (for MRC_CTL_EP_REQ_TYPE_PORT_STATUS) */
-	uint32_t port_status;
+
+	/* Operation-specific parameters. */
+	union {
+		struct {
+			/* EV format. */
+			enum mrc_ctl_ev_fmt_mode ev_fmt_mode;
+			/* EV and port. */
+			struct mrc_ctl_ev req_ev;
+		} ev_probe;
+
+		struct {
+			/* Port number (1-based) for transmit */
+			uint8_t port;
+			/* Port status mask (1-based). */
+			uint32_t port_status;
+		} port_status_update;
+	} op;
 };
 
 /**
@@ -899,45 +912,52 @@ struct mrc_ctl_ep_req {
 struct mrc_ctl_ep_rsp {
 	/* Associated request ID for this response. */
 	uint16_t req_id;
+	/* Port response was received on (1-based) */
+	uint8_t port;
 	/* RTT; units = 1ns. */
 	unsigned int rtt;
-	/* 1/true if rtt has been adjusted for responder service time. */
+	/* Non-zero if rtt has been adjusted for responder service time. */
 	uint8_t adj_svc_time;
 };
 
 /**
- * @brief Send endpoint requests and wait for responses
+ * @brief Send endpoint operation requests and wait for responses
  *
- * This non-interruptible function blocks the caller until all responses are
- * received or timeout occurs. Responses are delivered into the response
- * structure in order of arrival. Responses are not buffered between
- * invocations.
+ * Sends a batch of same-type endpoint operations and blocks until
+ * responses arrive or the timeout elapses. Responses are returned in
+ * arrival order and are not buffered between calls.
+ *
+ * `op_type` selects operation:
+ * - MRC_CTL_EP_OP_EV_PROBE: Populate `req[i].op.ev_probe`
+ * - MRC_CTL_EP_OP_PORT_STATUS_UPDATE: Populate `req[i].op.port_status_update`
  *
  * @param mrc_ctx[in]     - MRC context
- * @param req_tc[in]      - Request (DSCP) traffic class
- * @param req[in]         - An array of requests
- * @param num_req[in]     - length of request array
- * @param rsp_timeout[in] - Waiting period for responses; units = 1ns
- * @param rsp[out]        - An array of response structures
- * @param num_rsp[out]    - Number of responses returned
+ * @param req_tc[in]      - Request traffic class (DSCP)
+ * @param op_type[in]     - Endpoint operation type for this batch
+ * @param req[in]         - Array of operation requests (length = `num_req`)
+ * @param num_req[in]     - Number of requests in `req`
+ * @param rsp_timeout[in] - Response wait timeout; units = 1ns
+ * @param rsp[out]        - Array to receive responses; sized for `num_req`
+ * @param num_rsp[out]    - Number of responses returned in `rsp`
  *
  * @retval 0 on success, -1 on error (errno set).
  * @par Errors
  *      - EAGAIN Resource temporarily unavailable; retry later.
  *      - EINVAL One or more supplied arguments are invalid.
  *      - EIO Implementation specific error occurred.
- *      - ENOMEM Error allocating memory for function.
- *      - ENOTSUP Function not supported.
+ *      - ENOMEM Error allocating memory.
+ *      - ENOTSUP Operation not supported.
  *      - EPERM Process lacks sufficient permissions.
  *      - ETIMEDOUT Timeout occurred before all responses received.
  */
-int mrc_ctl_ep_req_send(struct mrc_context *mrc_ctx,
-			uint8_t req_tc,
-			struct mrc_ctl_ep_req *req,
-			int num_req,
-			uint32_t rsp_timeout,
-			struct mrc_ctl_ep_rsp *rsp,
-			int *num_rsp);
+int mrc_ctl_ep_batch_send_wait(struct mrc_context *mrc_ctx,
+				uint8_t req_tc,
+				enum mrc_ctl_ep_op_type op_type,
+				struct mrc_ctl_ep_req *req,
+				int num_req,
+				uint32_t rsp_timeout,
+				struct mrc_ctl_ep_rsp *rsp,
+				int *num_rsp);
 
 #ifdef __cplusplus
 }
