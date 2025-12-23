@@ -168,10 +168,10 @@ struct mrc_ctl_device_attr {
 		const char **algorithms;
 	} cc;
 
-	/* Port mask for ports owned by this this function. Port numbers
-	 * match ibv_query_port() (1-based).
+	/* Bitmap of physical ports owned by this function.
+	 * Bit N set => port N. Port numbers are 1-based (ibv_query_port()).
 	 */
-	uint32_t port_mask;
+	uint32_t phy_port_mask;
 
 	/* bitmap of all optional features supported (mrc_ctl_attr_opt) */
 	uint32_t opt_attr;
@@ -192,41 +192,82 @@ struct mrc_ctl_device_attr {
 int mrc_ctl_query_device(struct ibv_context *context,
 			 struct mrc_ctl_device_attr *ctl_attr);
 
-/*
- * @brief Get available ports
- *
- * Get the available ports on the device. The total number of available ports
- * is returned as well as a bitmask identifying the specific ports that are
- * available. Valid available ports are within the bits set in the port_mask
- * field of mrc_ctl_device_attr.
- *
- * @param context[in]          - mrc_context to query
- * @param avail_port_mask[out] - specific ports enabled
- *
- * @return 0 on success, -1 on failure (errno set).
- * @par Errors
- *      - EINVAL Failed to get available port or invalid argument.
- */
-int mrc_ctl_get_avail_ports(struct mrc_context *context,
-			    uint32_t *avail_port_mask);
+/****************************************************************************
+ * Port Attributes
+ ****************************************************************************/
 
-/*
- * @brief Set available ports
+/**
+ * @brief Port state
  *
- * Set the available ports on the device. The bitmask identifying specific
- * ports is used to enable/disable individual ports. Valid available ports
- * are within the bits set in the port_mask field of mrc_ctl_device_attr.
+ * The controller uses MRC_PORT_ADMIN_DISABLE to administratively disable a
+ * port. ibv_query_port() MUST report an administratively disabled port as
+ * DOWN.
+ */
+enum mrc_ctl_port_state
+{
+	MRC_PORT_NOP 		= 0,
+	MRC_PORT_DOWN 		= 1,
+	MRC_PORT_INIT 		= 2,
+	MRC_PORT_ARMED 		= 3,
+	MRC_PORT_ACTIVE 	= 4,
+	MRC_PORT_ACTIVE_DEFER 	= 5,
+	MRC_PORT_ADMIN_DISABLE	= 128,
+};
+
+/**
+ * @brief Port attribute mask
+ */
+enum mrc_ctl_port_attr_mask {
+	MRC_CTL_PORT_STATE	= 1 << 0,
+};
+
+/**
+ * @brief Port attributes
+ */
+struct mrc_ctl_port_attr {
+	/* Reported port state. */
+	enum mrc_ctl_port_state state;
+};
+
+/**
+ * @brief Query a port's status
  *
- * context[in]         - mrc_context to configure
- * avail_port_mask[in] - specific ports to enable
+ * @param context[in]  - MRC context
+ * @param port_num[in] - Port number (1-based)
+ * @param attr[out]    - Returned port attributes
+ *
+ * Returns MRC_PORT_ADMIN_DISABLE when the port is logically disabled via
+ * the controller; otherwise returns the operational state.
  *
  * @return 0 on success, -1 on failure (errno set).
  * @par Errors
- *      - EINVAL Failed to set available ports or invalid argument.
- *      - EPERM Process lacks sufficient permissions.
+ *      - EINVAL Invalid argument or port.
+ *      - EIO Implementation specific error occurred.
+ *      - EPERM  Insufficient permissions.
  */
-int mrc_ctl_set_avail_ports(struct mrc_context *context,
-			    uint32_t avail_port_mask);
+int mrc_ctl_query_port(struct mrc_context *context,
+		       uint8_t port_num,
+		       struct mrc_ctl_port_attr *attr);
+
+/**
+ * @brief Modify a port's status
+ *
+ * @param context[in]   - MRC context
+ * @param port_num[in]  - Port number (1-based)
+ * @param attr[in]      - Port attributes to set
+ * @param attr_mask[in] - Bitmask of attributes to modify
+ *                       (mrc_ctl_port_attr_mask)
+ *
+ * @return 0 on success, -1 on failure (errno set).
+ * @par Errors
+ *      - EINVAL Invalid argument or port.
+ *      - EIO Implementation specific error occurred.
+ *      - EPERM  Insufficient permissions.
+ */
+int mrc_ctl_mod_port(struct mrc_context *context,
+		     uint8_t port_num,
+		     struct mrc_ctl_port_attr *attr,
+		     int attr_mask);
 
 /*****************************************************************************
  * EV Format Profile
