@@ -59,7 +59,7 @@ extern "C" {
  */
 enum mrc_ctl_protocol_version {
 	MRC_CTL_PROTOCOL_VERSION_0	= 0, /* MRC version unspecified */
-	MRC_CTL_PROTOCOL_VERSION_1	= (1 << 0),
+	MRC_CTL_PROTOCOL_VERSION_1	= 1 << 0,
 };
 
 /**
@@ -80,19 +80,19 @@ enum mrc_ctl_profile_state {
  */
 enum mrc_ctl_attr_opt {
 	/* Device supports modifying ONLINE EV profiles */
-	MRC_CTL_OPT_CAP_EV_PROFILE_MODIFY_ONLINE	= (1<<0),
+	MRC_CTL_OPT_CAP_EV_PROFILE_MODIFY_ONLINE	= 1 << 0,
 	/* Device supports modifying ONLINE CC profiles */
-	MRC_CTL_OPT_CAP_CC_PROFILE_MODIFY_ONLINE	= (1<<1),
+	MRC_CTL_OPT_CAP_CC_PROFILE_MODIFY_ONLINE	= 1 << 1,
 	/* The implementation supports EV Events */
-	MRC_CTL_OPT_CAP_EV_EVENT			= (1<<2),
+	MRC_CTL_OPT_CAP_EV_EVENT			= 1 << 2,
 	/* Only contiguous ranges supported in explicit mode. First EV value
 	 * is the base; last is 'base_ev_val + (ev_count - 1)'
 	 */
-	MRC_CTL_OPT_CAP_EV_EXPLICIT_RANGE		= (1<<3),
+	MRC_CTL_OPT_CAP_EV_EXPLICIT_RANGE		= 1 << 3,
 	/* The implementation supports EV Probes. */
-	MRC_CTL_OPT_CAP_EV_PROBE			= (1<<4),
+	MRC_CTL_OPT_CAP_EV_PROBE			= 1 << 4,
 	/* The implementation supports precise EV Event drop counts. */
-	MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= (1<<5),
+	MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= 1 << 5,
 };
 
 /**
@@ -365,10 +365,10 @@ struct mrc_ctl_ev {
  * @brief Supported EV states
  */
 enum mrc_ctl_ev_state {
-	MRC_CTL_EV_GOOD		= (1<<0),
-	MRC_CTL_EV_ASSUMED_BAD	= (1<<1),
-	MRC_CTL_EV_DENIED	= (1<<2),
-	MRC_CTL_EV_UNKNOWN	= (1<<31)
+	MRC_CTL_EV_GOOD		= 1 << 0,
+	MRC_CTL_EV_ASSUMED_BAD	= 1 << 1,
+	MRC_CTL_EV_DENIED	= 1 << 2,
+	MRC_CTL_EV_UNKNOWN	= 1 << 31
 };
 
 /*****************************************************************************

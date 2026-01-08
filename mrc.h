@@ -44,7 +44,7 @@ extern "C" {
 enum mrc_protocol_version {
 	/* MRC version unspecified / request provider default */
 	MRC_PROTOCOL_VERSION_0	= 0,
-	MRC_PROTOCOL_VERSION_1	= (1 << 0),
+	MRC_PROTOCOL_VERSION_1	= 1 << 0,
 };
 
 struct mrc_context;
@@ -266,10 +266,10 @@ struct mrc_qp_hint_attr {
  * @brief MRC QP hint attribute mask
  */
 enum mrc_qp_hint_attr_mask {
-	MRC_QP_HINT_NUM_QPS_PER_PEER		= (1<<0),
-	MRC_QP_HINT_NUM_SEND_PEERS		= (1<<1),
-	MRC_QP_HINT_NUM_REMOTE_RECV_PEERS	= (1<<2),
-	MRC_QP_HINT_VENDOR_CFG			= (1<<31)
+	MRC_QP_HINT_NUM_QPS_PER_PEER		= 1 << 0,
+	MRC_QP_HINT_NUM_SEND_PEERS		= 1 << 1,
+	MRC_QP_HINT_NUM_REMOTE_RECV_PEERS	= 1 << 2,
+	MRC_QP_HINT_VENDOR_CFG			= 1 << 31
 };
 
 /**
@@ -407,27 +407,27 @@ int mrc_destroy_qp(struct mrc_qp *qp);
  */
 enum mrc_qp_attr_mask {
 	/* Max WIMM as requestor */
-	MRC_QP_MAX_WIMM			= (1<<0),
+	MRC_QP_MAX_WIMM			= 1 << 0,
 	/* Max WIMM as responder */
-	MRC_QP_MAX_WIMM_DEST		= (1<<1),
+	MRC_QP_MAX_WIMM_DEST		= 1 << 1,
 	/* Requestor MPR */
-	MRC_QP_MPR			= (1<<2),
+	MRC_QP_MPR			= 1 << 2,
 	/* Responder MPR */
-	MRC_QP_MPR_DEST			= (1<<3),
+	MRC_QP_MPR_DEST			= 1 << 3,
 	/* Responder dynamic MPR support */
-	MRC_QP_DYNAMIC_MPR_DEST		= (1<<4),
+	MRC_QP_DYNAMIC_MPR_DEST		= 1 << 4,
 	/* QP ACK timeout */
-	MRC_QP_TIMEOUT			= (1<<5),
+	MRC_QP_TIMEOUT			= 1 << 5,
 	/* EV Profile */
-	MRC_EV_PROFILE_ID		= (1<<6),
+	MRC_EV_PROFILE_ID		= 1 << 6,
 	/* CC Profile */
-	MRC_CC_PROFILE_ID		= (1<<7),
+	MRC_CC_PROFILE_ID		= 1 << 7,
 	/* QP hint */
-	MRC_QP_HINT			= (1<<8),
+	MRC_QP_HINT			= 1 << 8,
 	/* Linear + exponential retry counter */
-	MRC_QP_RETRY_CNT		= (1<<9),
+	MRC_QP_RETRY_CNT		= 1 << 9,
 	/* Vendor specific configuration data */
-	MRC_QP_VENDOR_CFG		= (1<<31)
+	MRC_QP_VENDOR_CFG		= 1 << 31
 };
 
 /**
