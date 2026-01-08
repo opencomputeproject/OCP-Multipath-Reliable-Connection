@@ -472,7 +472,6 @@ enum mrc_ctl_ev_op {
 	MRC_CTL_EV_OP_MODIFY_EV_STATE,
 	MRC_CTL_EV_OP_QUERY_EV_STATE,
 	MRC_CTL_EV_OP_QUERY_EV_ARRAY,
-	MRC_CTL_EV_OP_QUERY_EV_ID,
 	MRC_CTL_EV_OP_MODIFY_FIELDS,
 	MRC_CTL_EV_OP_QUERY_FIELDS,
 };
@@ -624,14 +623,6 @@ struct mrc_ctl_ev_profile_attr {
 				/* Array of EVs; pointer, length >= ev_count */
 				struct mrc_ctl_ev *ev;
 			} query_ev_array;
-
-			/* Available only if EV Format mode is MRC_CTL_EV_FMT_MODE_SRV6. */
-			struct {
-				/* EV to query */
-				struct mrc_ctl_ev ev;
-				/* EV's Identifier; output-only */
-				uint32_t ev_id;
-			} query_ev_id;
 
 			struct {
 				/* Array of fields */
