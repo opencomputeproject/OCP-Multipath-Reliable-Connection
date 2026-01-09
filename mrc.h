@@ -71,11 +71,11 @@ struct mrc_device_attr {
 	} wimm_attr;
 
 	struct {
-		/* Max supported MPR (units = 128 PSNs) */
+		/* Maximum supported MPR (req or rsp) (units = 128 PSNs) */
 		uint8_t max_mpr;
 		/* Allocation granularity (units = 128 PSNs) */
 		uint8_t mpr_resolution;
-		/* Non-zero if dynamic MPR is supported */
+		/* Non-zero if Dynamic MPR is supported */
 		uint8_t dynamic_mpr;
 	} mpr_attr;
 
@@ -410,12 +410,12 @@ enum mrc_qp_attr_mask {
 	MRC_QP_MAX_WIMM			= 1 << 0,
 	/* Max WIMM as responder */
 	MRC_QP_MAX_WIMM_DEST		= 1 << 1,
-	/* Requestor MPR */
+	/* MPR as requestor */
 	MRC_QP_MPR			= 1 << 2,
-	/* Responder MPR */
+	/* MPR as responder */
 	MRC_QP_MPR_DEST			= 1 << 3,
-	/* Responder dynamic MPR support */
-	MRC_QP_DYNAMIC_MPR_DEST		= 1 << 4,
+	/* Dynamic MPR (req/rsp) */
+	MRC_QP_DYNAMIC_MPR		= 1 << 4,
 	/* QP ACK timeout */
 	MRC_QP_TIMEOUT			= 1 << 5,
 	/* EV Profile */
@@ -439,8 +439,8 @@ struct mrc_qp_attr {
 		uint8_t mpr;
 		/* Responder MPR value; unit=128 PSNs */
 		uint8_t mpr_dest;
-		/* if 1/true, enable Responder dynamic MPR support */
-		uint8_t dynamic_mpr_dest;
+		/* if 1/true, enable Dynamic MPR support */
+		uint8_t dynamic_mpr;
 	} mpr;
 
 	struct {
