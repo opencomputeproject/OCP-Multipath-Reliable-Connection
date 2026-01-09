@@ -193,51 +193,37 @@ int mrc_ctl_query_device(struct ibv_context *context,
 			 struct mrc_ctl_device_attr *ctl_attr);
 
 /****************************************************************************
- * Port Attributes
+ * Port Administrative Control
  ****************************************************************************/
 
 /**
- * @brief Port state
- *
- * The controller uses MRC_PORT_ADMIN_DISABLE to administratively disable a
- * port. ibv_query_port() MUST report an administratively disabled port as
- * DOWN.
+ * @brief Port administrative disable
  */
-enum mrc_ctl_port_state
-{
-	MRC_PORT_NOP 		= 0,
-	MRC_PORT_DOWN 		= 1,
-	MRC_PORT_INIT 		= 2,
-	MRC_PORT_ARMED 		= 3,
-	MRC_PORT_ACTIVE 	= 4,
-	MRC_PORT_ACTIVE_DEFER 	= 5,
-	MRC_PORT_ADMIN_DISABLE	= 128,
-};
 
 /**
  * @brief Port attribute mask
  */
 enum mrc_ctl_port_attr_mask {
-	MRC_CTL_PORT_STATE	= 1 << 0,
+	/* Toggle or query the administrative disable flag (0 or 1). */
+	MRC_CTL_PORT_ADMIN_DISABLED	= 1 << 0,
 };
 
 /**
  * @brief Port attributes
  */
 struct mrc_ctl_port_attr {
-	/* Reported port state. */
-	enum mrc_ctl_port_state state;
+	/* 1 if administratively disabled; 0 otherwise. Providers must report
+	 * disabled ports as IBV_PORT_DOWN in ibv_query_port().
+	 */
+	uint8_t admin_disabled;
 };
 
 /**
- * @brief Query a port's status
+ * @brief Query a port's administrative status
  *
  * @param context[in]  - MRC context
  * @param port_num[in] - Port number (1-based)
  * @param attr[out]    - Returned port attributes
- *
- * Returns MRC_PORT_ADMIN_DISABLE when the port is logically disabled via
- * the controller; otherwise returns the operational state.
  *
  * @return 0 on success, -1 on failure (errno set).
  * @par Errors
@@ -250,7 +236,7 @@ int mrc_ctl_query_port(struct mrc_context *context,
 		       struct mrc_ctl_port_attr *attr);
 
 /**
- * @brief Modify a port's status
+ * @brief Modify a port's administrative status
  *
  * @param context[in]   - MRC context
  * @param port_num[in]  - Port number (1-based)
@@ -260,9 +246,9 @@ int mrc_ctl_query_port(struct mrc_context *context,
  *
  * @return 0 on success, -1 on failure (errno set).
  * @par Errors
- *      - EINVAL Invalid argument or port.
- *      - EIO Implementation specific error occurred.
- *      - EPERM  Insufficient permissions.
+ *      - EINVAL Invalid argument
+ *      - EIO Implementation specific error
+ *      - EPERM  Insufficient permissions
  */
 int mrc_ctl_mod_port(struct mrc_context *context,
 		     uint8_t port_num,
