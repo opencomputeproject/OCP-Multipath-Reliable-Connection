@@ -58,11 +58,11 @@ struct mrc_comp_channel;
  */
 enum mrc_device_cap {
 	/* Device supports generating TRIM NACKs */
-	MRC_DEVICE_CAP_TRIM_NACK	= (1<<0),
+	MRC_DEVICE_CAP_TRIM_NACK	= 1 << 0,
 	/* Device supports Dynamic MPR */
-	MRC_DEVICE_CAP_DYNAMIC_MPR	= (1<<1),
+	MRC_DEVICE_CAP_DYNAMIC_MPR	= 1 << 1,
 	/* Device supports responder service-time */
-	MRC_DEVICE_CAP_SVC_TIME		= (1<<2),
+	MRC_DEVICE_CAP_SVC_TIME		= 1 << 2,
 };
 
 /**
@@ -432,28 +432,28 @@ enum mrc_qp_attr_mask {
 	/* Dynamic MPR (req/rsp) */
 	MRC_QP_DYNAMIC_MPR		= 1 << 4,
 	/* QP ACK timeout */
-	MRC_QP_TIMEOUT			= 1 << 5,
+	MRC_QP_TIMEOUT			= 1 << 4,
 	/* EV Profile */
-	MRC_EV_PROFILE_ID		= 1 << 6,
+	MRC_EV_PROFILE_ID		= 1 << 5,
 	/* CC Profile */
-	MRC_CC_PROFILE_ID		= 1 << 7,
+	MRC_CC_PROFILE_ID		= 1 << 6,
 	/* QP hint */
-	MRC_QP_HINT			= 1 << 8,
+	MRC_QP_HINT			= 1 << 7,
 	/* Linear + exponential retry counter */
-	MRC_QP_RETRY_CNT		= (1<<9),
+	MRC_QP_RETRY_CNT		= 1 << 8,
 	/* Additional capabilities */
-	MRC_QP_CAP			= (1<<10),
+	MRC_QP_CAP			= 1 << 9,
 	/* Vendor specific configuration data */
 	MRC_QP_VENDOR_CFG		= 1 << 31
 };
 
 enum mrc_qp_cap {
 	/* Remote (responder) does not support generating TRIM NACKs */
-	MRC_QP_TRIM_NACK_DEST_UNSUPPORTED	= (1<<0),
+	MRC_QP_TRIM_NACK_DEST_UNSUPPORTED	=  1 << 0,
 	/* Enable Dynamic MPR on this QP (req & rsp role) */
-	MRC_QP_DYNAMIC_MPR			= (1<<1),
+	MRC_QP_DYNAMIC_MPR			=  1 << 1,
 	/* Remote (responder) does not support service-time */
-	MRC_QP_SVC_TIME_DEST_UNSUPPORTED	= (1<<2),
+	MRC_QP_SVC_TIME_DEST_UNSUPPORTED	=  1 << 2
 };
 
 /**
