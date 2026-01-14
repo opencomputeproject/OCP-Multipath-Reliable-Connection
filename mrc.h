@@ -432,17 +432,17 @@ enum mrc_qp_attr_mask {
 	/* Dynamic MPR (req/rsp) */
 	MRC_QP_DYNAMIC_MPR		= 1 << 4,
 	/* QP ACK timeout */
-	MRC_QP_TIMEOUT			= 1 << 4,
+	MRC_QP_TIMEOUT			= 1 << 5,
 	/* EV Profile */
-	MRC_EV_PROFILE_ID		= 1 << 5,
+	MRC_EV_PROFILE_ID		= 1 << 6,
 	/* CC Profile */
-	MRC_CC_PROFILE_ID		= 1 << 6,
+	MRC_CC_PROFILE_ID		= 1 << 7,
 	/* QP hint */
-	MRC_QP_HINT			= 1 << 7,
+	MRC_QP_HINT			= 1 << 8,
 	/* Linear + exponential retry counter */
-	MRC_QP_RETRY_CNT		= 1 << 8,
+	MRC_QP_RETRY_CNT		= 1 << 9,
 	/* Additional capabilities */
-	MRC_QP_CAP			= 1 << 9,
+	MRC_QP_CAP			= 1 << 10,
 	/* Vendor specific configuration data */
 	MRC_QP_VENDOR_CFG		= 1 << 31
 };
