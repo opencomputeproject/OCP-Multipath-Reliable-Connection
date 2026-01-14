@@ -449,11 +449,11 @@ enum mrc_qp_attr_mask {
 
 enum mrc_qp_cap {
 	/* Remote (responder) does not support generating TRIM NACKs */
-	MRC_QP_TRIM_NACK_DEST_UNSUPPORTED	=  1 << 0,
+	MRC_CAP_TRIM_NACK_DEST_UNSUPPORTED	=  1 << 0,
 	/* Enable Dynamic MPR on this QP (req & rsp role) */
-	MRC_QP_DYNAMIC_MPR			=  1 << 1,
+	MRC_CAP_DYNAMIC_MPR			=  1 << 1,
 	/* Remote (responder) does not support service-time */
-	MRC_QP_SVC_TIME_DEST_UNSUPPORTED	=  1 << 2
+	MRC_CAP_SVC_TIME_DEST_UNSUPPORTED	=  1 << 2
 };
 
 /**
