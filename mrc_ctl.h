@@ -47,7 +47,7 @@ extern "C" {
 /**
  * @brief Unpopulated (unset) EV entry definition.
  */
-#define MRC_CTL_EV_UNPOPULATED (struct mrc_ctl_ev){ .val = 0, .port = 0 }
+#define MRC_CTL_EV_UNPOPULATED (struct mrc_ctl_ev){ .val = {0}, .port = 0 }
 
 /**
  * @brief Maximum number of bytes in an EV value
@@ -88,9 +88,9 @@ enum mrc_ctl_attr_opt {
 	/* Only contiguous ranges supported in explicit mode. First EV value
 	 * is the base; last is 'base_ev_val + (ev_count - 1)'
 	 */
-	MRC_CTL_OPT_CAP_EV_EXPLICIT_RANGE		= (1<<3),
+	MRC_CTL_OPT_CAP_EV_EXPLICIT_RANGE		= 1 << 3,
 	/* The implementation supports EV Probe endpoint operation. */
-	MRC_CTL_OPT_CAP_EV_OP_PROBE			= (1<<4),
+	MRC_CTL_OPT_CAP_EV_OP_PROBE			= 1 << 4,
 	/* The implementation supports precise EV Event drop counts. */
 	MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= 1 << 5,
 };
@@ -184,7 +184,7 @@ struct mrc_ctl_device_attr {
  * Should be called after EV generation fields are configured.
  *
  * @param context[in]    - IB Verbs context
- * @param ctl_attrs[out] - MRC Control attributes
+ * @param ctl_attr[out]  - MRC Control attributes
  *
  * @return
  * Returns 0 on success. Error codes as per ibv_query_device().
@@ -358,8 +358,8 @@ struct mrc_ctl_ev_fmt_profile_attr {
  *
  * @param mrc_ctx[in]           - MRC context
  * @param ev_fmt_profile_id[in] - EV Format Profile ID
- * @param attr[in]              - EV Profile attribute structure
- * @param attr_mask[in]         - Bitmask of EV Profile attribute mask
+ * @param attr[in]              - EV Format profile attribute structure
+ * @param attr_mask[in]         - Bitmask of EV Format profile attribute mask
  *
  * @return 0 on success, -1 on failure (errno set).
  * @par Errors
@@ -385,10 +385,10 @@ int mrc_ctl_modify_ev_fmt_profile(struct mrc_context *mrc_ctx,
  *
  * The MRC_CTL_EV_FMT_OP_MODIFY_FIELDS operation is not allowed.
  *
- * @param mrc_ctx[in]       - MRC context
- * @param ev_profile_id[in] - EV Profile ID
- * @param attr[out]         - EV Profile attribute structure
- * @param attr_mask[in]     - Bitmask of EV Profile attribute mask
+ * @param mrc_ctx[in]           - MRC context
+ * @param ev_fmt_profile_id[in] - EV Format Profile ID
+ * @param attr[out]             - EV Format profile attribute structure
+ * @param attr_mask[in]         - Bitmask of EV Format profile attribute mask
  *
  * @return 0 on success, -1 on failure (errno set).
  * @par Errors
@@ -569,9 +569,9 @@ struct mrc_ctl_ev_profile_attr {
 	uint32_t ev_min_active;
 
 	/* EV event mask for EV state change notifications on this profile.
-	 * Only EV_ASSUMED_BAD and EV_GOOD is supported. May be modified when
-	 * the profile is in ONLINE state if the provider advertises
-	 * EV_PROFILE_MODIFY_ONLINE capability.
+	 * Only MRC_CTL_EV_ASSUMED_BAD and MRC_CTL_EV_GOOD are supported. May be
+	 * modified when the profile is in ONLINE state if the provider advertises
+	 * MRC_CTL_OPT_CAP_EV_PROFILE_MODIFY_ONLINE capability.
 	 */
 	int ev_event_mask;
 
@@ -650,9 +650,9 @@ struct mrc_ctl_ev_profile_attr {
  *   ONLINE state:
  *     - Modify: STATE(OFFLINE)
  *     - Query: STATE, MODE, FMT_ID, COUNT, MIN_ACTIVE, EVENT_MASK
- *     - EV_OP: MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY, QUERY_EV_ID,
+ *     - EV_OP: MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY,
  *              QUERY_FIELDS
- *       If EV_PROFILE_MODIFY_ONLINE supported: EVENT_MASK, REPLACE_EV
+ *       If MRC_CTL_OPT_CAP_EV_PROFILE_MODIFY_ONLINE supported: EVENT_MASK, REPLACE_EV
  *
  * Restrictions:
  *   On INIT -> OFFLINE, Explicit array EVs are all EV_UNPOPULATED; MUST be
@@ -773,8 +773,8 @@ struct mrc_ctl_cc_nscc_cfg {
  *   To OFFLINE: CC_ALGORITHM
  *   To ONLINE:  CC_CONFIG
  *
- * Allowed in ONLINE state (if CC_PROFILE_MODIFY_ONLINE advertised):
- *   CC_CONFIG
+ * If MRC_CTL_OPT_CAP_CC_PROFILE_MODIFY_ONLINE is advertised:
+ *   ONLINE: CC_CONFIG
  *
  * @param mrc_ctx[in]       - MRC context
  * @param cc_profile_id[in] - CC Profile ID
