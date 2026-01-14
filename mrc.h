@@ -108,7 +108,7 @@ struct mrc_device_attr {
  * available.
  *
  * @param context[in]     - Verbs context
- * @param attrs[out]      - MRC attributes
+ * @param attr[out]       - MRC attributes
  * @param supported[out]  - Non-zero if MRC supported
  * @return 0 on success, -1 on failure (errno set)
  */
@@ -297,7 +297,7 @@ struct mrc_qp_hint_init_attr {
 /**
  * @brief Create an MRC QP hint
  *
- * A QP hint consists of a set attributes that give some hints to the provider
+ * A QP hint consists of a set of attributes that give some hints to the provider
  * regarding the expected traffic patterns across a set of QPs that will be
  * assigned to the QP hint resource. Usage of the QP hint is optional though
  * helps the provider optimize the allocation of underlying resources given
@@ -429,31 +429,29 @@ enum mrc_qp_attr_mask {
 	MRC_QP_MPR			= 1 << 2,
 	/* MPR as responder */
 	MRC_QP_MPR_DEST			= 1 << 3,
-	/* Dynamic MPR (req/rsp) */
-	MRC_QP_DYNAMIC_MPR		= 1 << 4,
 	/* QP ACK timeout */
-	MRC_QP_TIMEOUT			= 1 << 5,
+	MRC_QP_TIMEOUT			= 1 << 4,
 	/* EV Profile */
-	MRC_EV_PROFILE_ID		= 1 << 6,
+	MRC_QP_EV_PROFILE_ID		= 1 << 5,
 	/* CC Profile */
-	MRC_CC_PROFILE_ID		= 1 << 7,
+	MRC_QP_CC_PROFILE_ID		= 1 << 6,
 	/* QP hint */
-	MRC_QP_HINT			= 1 << 8,
+	MRC_QP_HINT			= 1 << 7,
 	/* Linear + exponential retry counter */
-	MRC_QP_RETRY_CNT		= 1 << 9,
+	MRC_QP_RETRY_CNT		= 1 << 8,
 	/* Additional capabilities */
-	MRC_QP_CAP			= 1 << 10,
+	MRC_QP_CAP			= 1 << 9,
 	/* Vendor specific configuration data */
 	MRC_QP_VENDOR_CFG		= 1 << 31
 };
 
 enum mrc_qp_cap {
-	/* Remote (responder) does not support generating TRIM NACKs */
-	MRC_CAP_TRIM_NACK_DEST_UNSUPPORTED	=  1 << 0,
+	/* Responder does not support generating TRIM NACKs */
+	MRC_QP_CAP_TRIM_NACK_DEST_UNSUPPORTED	=  1 << 0,
 	/* Enable Dynamic MPR on this QP (req & rsp role) */
-	MRC_CAP_DYNAMIC_MPR			=  1 << 1,
+	MRC_QP_CAP_DYNAMIC_MPR			=  1 << 1,
 	/* Remote (responder) does not support service-time */
-	MRC_CAP_SVC_TIME_DEST_UNSUPPORTED	=  1 << 2
+	MRC_QP_CAP_SVC_TIME_DEST_UNSUPPORTED	=  1 << 2
 };
 
 /**
@@ -640,7 +638,7 @@ struct mrc_async_event {
  * Obtain the next event. All events must be acknowledged by
  * mrc_ack_async_event().
  *
- * @param context[in] - MRC context
+ * @param mrc_ctx[in] - MRC context
  * @param event[out]  - Reported event
  *
  * @return 0 on success.
