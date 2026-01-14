@@ -1,7 +1,7 @@
 /*
  * utils.h - Utility functions for MRC example applications
  *
- * Copyright (c) 2025 Microsoft Corporation
+ * Copyright (c) 2025, 2026 Microsoft Corporation
  * Licensed under MIT License
  */
 
