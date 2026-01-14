@@ -250,10 +250,10 @@ int mrc_ctl_query_port(struct mrc_context *context,
  *      - EIO Implementation specific error
  *      - EPERM  Insufficient permissions
  */
-int mrc_ctl_mod_port(struct mrc_context *context,
-		     uint8_t port_num,
-		     struct mrc_ctl_port_attr *attr,
-		     int attr_mask);
+int mrc_ctl_modify_port(struct mrc_context *context,
+			uint8_t port_num,
+			struct mrc_ctl_port_attr *attr,
+			int attr_mask);
 
 /*****************************************************************************
  * EV Format Profile
