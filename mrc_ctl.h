@@ -570,8 +570,8 @@ struct mrc_ctl_ev_profile_attr {
 
 	/* EV event mask for EV state change notifications on this profile.
 	 * Only MRC_CTL_EV_ASSUMED_BAD and MRC_CTL_EV_GOOD are supported. May be
-	 * modified when the profile is in ONLINE state if the provider advertises
-	 * MRC_CTL_OPT_CAP_EV_PROFILE_MODIFY_ONLINE capability.
+	 * modified when the profile is in ONLINE state if the provider
+	 * advertises MRC_CTL_OPT_CAP_EV_PROFILE_MODIFY_ONLINE capability.
 	 */
 	int ev_event_mask;
 
@@ -652,7 +652,8 @@ struct mrc_ctl_ev_profile_attr {
  *     - Query: STATE, MODE, FMT_ID, COUNT, MIN_ACTIVE, EVENT_MASK
  *     - EV_OP: MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY,
  *              QUERY_FIELDS
- *       If MRC_CTL_OPT_CAP_EV_PROFILE_MODIFY_ONLINE supported: EVENT_MASK, REPLACE_EV
+ *       If MRC_CTL_OPT_CAP_EV_PROFILE_MODIFY_ONLINE supported:
+ *              EVENT_MASK, REPLACE_EV
  *
  * Restrictions:
  *   On INIT -> OFFLINE, Explicit array EVs are all EV_UNPOPULATED; MUST be
