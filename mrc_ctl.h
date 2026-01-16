@@ -907,18 +907,14 @@ struct mrc_ctl_ep_req {
 	/* Destination GID; only ROCE_V2 GID type supported. */
 	union ibv_gid dgid;
 
+	/* EV format. */
+	enum mrc_ctl_ev_fmt_mode ev_fmt_mode;
+	/* EV and port. */
+	struct mrc_ctl_ev req_ev;
+
 	/* Operation-specific parameters. */
 	union {
 		struct {
-			/* EV format. */
-			enum mrc_ctl_ev_fmt_mode ev_fmt_mode;
-			/* EV and port. */
-			struct mrc_ctl_ev req_ev;
-		} ev_probe;
-
-		struct {
-			/* Port number (1-based) for transmit */
-			uint8_t port;
 			/* Port status mask (1-based). */
 			uint32_t port_status;
 		} port_status_update;
