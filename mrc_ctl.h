@@ -89,10 +89,10 @@ enum mrc_ctl_attr_opt {
 	 * is the base; last is 'base_ev_val + (ev_count - 1)'
 	 */
 	MRC_CTL_OPT_CAP_EV_EXPLICIT_RANGE		= 1 << 3,
-	/* The implementation supports EV Probe endpoint operation. */
-	MRC_CTL_OPT_CAP_EV_EP_OP_PROBE			= 1 << 4,
 	/* The implementation supports precise EV Event drop counts. */
-	MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= 1 << 5,
+	MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= 1 << 4,
+	/* The implementation supports EV Probe endpoint operation. */
+	MRC_CTL_OPT_CAP_EP_OP_EV_PROBE			= 1 << 5
 };
 
 /**
