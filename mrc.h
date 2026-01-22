@@ -44,7 +44,7 @@ extern "C" {
 enum mrc_protocol_version {
 	/* MRC version unspecified / request provider default */
 	MRC_PROTOCOL_VERSION_0	= 0,
-	MRC_PROTOCOL_VERSION_1	= (1 << 0),
+	MRC_PROTOCOL_VERSION_1	= 1 << 0,
 };
 
 struct mrc_context;
@@ -71,11 +71,11 @@ struct mrc_device_attr {
 	} wimm_attr;
 
 	struct {
-		/* Max supported MPR (units = 128 PSNs) */
+		/* Maximum supported MPR (req or rsp) (units = 128 PSNs) */
 		uint8_t max_mpr;
 		/* Allocation granularity (units = 128 PSNs) */
 		uint8_t mpr_resolution;
-		/* Non-zero if dynamic MPR is supported */
+		/* Non-zero if Dynamic MPR is supported */
 		uint8_t dynamic_mpr;
 	} mpr_attr;
 
@@ -266,10 +266,10 @@ struct mrc_qp_hint_attr {
  * @brief MRC QP hint attribute mask
  */
 enum mrc_qp_hint_attr_mask {
-	MRC_QP_HINT_NUM_QPS_PER_PEER		= (1<<0),
-	MRC_QP_HINT_NUM_SEND_PEERS		= (1<<1),
-	MRC_QP_HINT_NUM_REMOTE_RECV_PEERS	= (1<<2),
-	MRC_QP_HINT_VENDOR_CFG			= (1<<31)
+	MRC_QP_HINT_NUM_QPS_PER_PEER		= 1 << 0,
+	MRC_QP_HINT_NUM_SEND_PEERS		= 1 << 1,
+	MRC_QP_HINT_NUM_REMOTE_RECV_PEERS	= 1 << 2,
+	MRC_QP_HINT_VENDOR_CFG			= 1 << 31
 };
 
 /**
@@ -398,7 +398,7 @@ int mrc_destroy_qp(struct mrc_qp *qp);
  *
  * RTR         MRC_QP_MAX_WIMM_DEST
  *             MRC_QP_MPR_DEST
- *             MRC_QP_DYNAMIC_MPR_DEST
+ *             MRC_QP_DYNAMIC_MPR
  *
  * RTS         MRC_QP_MAX_WIMM
  *             MRC_QP_MPR
@@ -407,27 +407,27 @@ int mrc_destroy_qp(struct mrc_qp *qp);
  */
 enum mrc_qp_attr_mask {
 	/* Max WIMM as requestor */
-	MRC_QP_MAX_WIMM			= (1<<0),
+	MRC_QP_MAX_WIMM			= 1 << 0,
 	/* Max WIMM as responder */
-	MRC_QP_MAX_WIMM_DEST		= (1<<1),
-	/* Requestor MPR */
-	MRC_QP_MPR			= (1<<2),
-	/* Responder MPR */
-	MRC_QP_MPR_DEST			= (1<<3),
-	/* Responder dynamic MPR support */
-	MRC_QP_DYNAMIC_MPR_DEST		= (1<<4),
+	MRC_QP_MAX_WIMM_DEST		= 1 << 1,
+	/* MPR as requestor */
+	MRC_QP_MPR			= 1 << 2,
+	/* MPR as responder */
+	MRC_QP_MPR_DEST			= 1 << 3,
+	/* Dynamic MPR (req/rsp) */
+	MRC_QP_DYNAMIC_MPR		= 1 << 4,
 	/* QP ACK timeout */
-	MRC_QP_TIMEOUT			= (1<<5),
+	MRC_QP_TIMEOUT			= 1 << 5,
 	/* EV Profile */
-	MRC_EV_PROFILE_ID		= (1<<6),
+	MRC_EV_PROFILE_ID		= 1 << 6,
 	/* CC Profile */
-	MRC_CC_PROFILE_ID		= (1<<7),
+	MRC_CC_PROFILE_ID		= 1 << 7,
 	/* QP hint */
-	MRC_QP_HINT			= (1<<8),
+	MRC_QP_HINT			= 1 << 8,
 	/* Linear + exponential retry counter */
-	MRC_QP_RETRY_CNT		= (1<<9),
+	MRC_QP_RETRY_CNT		= 1 << 9,
 	/* Vendor specific configuration data */
-	MRC_QP_VENDOR_CFG		= (1<<31)
+	MRC_QP_VENDOR_CFG		= 1 << 31
 };
 
 /**
@@ -439,8 +439,8 @@ struct mrc_qp_attr {
 		uint8_t mpr;
 		/* Responder MPR value; unit=128 PSNs */
 		uint8_t mpr_dest;
-		/* if 1/true, enable Responder dynamic MPR support */
-		uint8_t dynamic_mpr_dest;
+		/* if 1/true, enable Dynamic MPR support */
+		uint8_t dynamic_mpr;
 	} mpr;
 
 	struct {
