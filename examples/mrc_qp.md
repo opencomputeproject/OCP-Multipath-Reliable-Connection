@@ -156,8 +156,8 @@ mrc_qp_attr = (struct mrc_qp_attr){
     .profile.cc_profile_id = cc_profile_id,
     .qp_hint               = NULL,
 };
-mrc_qp_attr_mask = (MRC_EV_PROFILE_ID |
-                    MRC_CC_PROFILE_ID |
+mrc_qp_attr_mask = (MRC_QP_EV_PROFILE_ID |
+                    MRC_QP_CC_PROFILE_ID |
                     MRC_QP_HINT);
 
 if (mrc_modify_qp(mrc_qp,
@@ -181,13 +181,17 @@ ibv_qp_attr_mask = IBV_QP_STATE;
 
 /* fill in MRC QP attributes... */
 mrc_qp_attr = (struct mrc_qp_attr){
-    .mpr.mpr_dest         = 8,
-    .mpr.dynamic_mpr_dest = 0,
-    .wimm.max_wimm_dest   = 128,
+    .mpr.mpr            = 8,
+    .mpr.mpr_dest       = 8,
+    .wimm.max_wimm      = 128,
+    .wimm.max_wimm_dest = 128,
+    .cap                = MRC_QP_CAP_DYNAMIC_MPR;
 };
-mrc_qp_attr_mask = (MRC_QP_MPR_DEST |
-                    MRC_QP_DYNAMIC_MPR_DEST |
-                    MRC_QP_MAX_WIMM_DEST);
+mrc_qp_attr_mask = (MRC_QP_MPR |
+                    MRC_QP_MPR_DEST |
+                    MRC_QP_MAX_WIMM |
+                    MRC_QP_MAX_WIMM_DEST,
+                    MRC_QP_CAP);
 
 if (mrc_modify_qp(mrc_qp,
                   &ibv_qp_attr, ibv_qp_attr_mask,
@@ -238,12 +242,12 @@ mrc_qp_attr_mask = (MRC_QP_MAX_WIMM |
                     MRC_QP_MAX_WIMM_DEST |
                     MRC_QP_MPR |
                     MRC_QP_MPR_DEST |
-                    MRC_QP_DYNAMIC_MPR_DEST |
                     MRC_QP_TIMEOUT |
-                    MRC_EV_PROFILE_ID |
-                    MRC_CC_PROFILE_ID |
+                    MRC_QP_EV_PROFILE_ID |
+                    MRC_QP_CC_PROFILE_ID |
                     MRC_QP_HINT |
                     MRC_QP_RETRY_CNT |
+                    MRC_QP_CAP |
                     MRC_QP_VENDOR_CFG);
 
 if (mrc_query_qp(mrc_qp,

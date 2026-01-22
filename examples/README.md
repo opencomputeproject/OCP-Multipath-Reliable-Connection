@@ -37,3 +37,11 @@ This directory contains example code demonstrating how to use the MRC APIs for R
         - Polling and processing events for STEV, SRv6, and SRv6+SRH
         - Understanding drop counts and event overflow
 
+## EV Expansion
+
+- Sample application that demonstrates EV expansions of various EV Format profile and EV profile configurations (`./ev_expansion/*`)
+
+## Benchmark Application
+
+- Functional MRC Application (`./benchmark/*`)
+

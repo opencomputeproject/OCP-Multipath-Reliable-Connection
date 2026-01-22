@@ -404,46 +404,6 @@ if (mrc_ctl_modify_ev_fmt_profile(mrc_ctx, srv6_fmt_profile_id,
     return ERROR;
 ```
 
-### Query an SRv6 EV ID
-
-For SRv6 EV types, you can query the EV identifier for a specific EV
-value. This operation is only available when the EV Format mode is
-`MRC_CTL_EV_FMT_MODE_SRV6`.
-
-```c
-struct mrc_ctl_ev ev;
-struct in6_addr srv6_addr;
-uint32_t ev_id;
-
-/* Build the SRv6 address to query */
-memset(&srv6_addr, 0, sizeof(srv6_addr));
-srv6_addr.s6_addr[0] = 0xde;
-srv6_addr.s6_addr[1] = 0xad;
-srv6_addr.s6_addr[2] = 0xca
-srv6_addr.s6_addr[3] = 0xfe;
-/* ... set the rest of the address (uSIDs) ... */
-
-/* Setup EV to query */
-memset(&ev, 0, sizeof(ev));
-memcpy(ev.val, &srv6_addr, sizeof(srv6_addr));
-ev.port = 1;
-
-/* Query the EV ID */
-ev_profile_attr = (struct mrc_ctl_ev_profile_attr){
-    .ev_op.op = MRC_CTL_EV_OP_QUERY_EV_ID,
-    .ev_op.query_ev_id.ev = ev,
-};
-
-attr_mask = MRC_CTL_EV_PROFILE_EV_OP;
-
-if (mrc_ctl_query_ev_profile(mrc_ctx, ev_profile_id,
-                             &ev_profile_attr, attr_mask) != 0)
-    return ERROR;
-
-ev_id = ev_profile_attr.ev_op.query_ev_id.ev_id;
-printf("SRv6 EV ID: %u\n", ev_id);
-```
-
 ## Working with SRv6+SRH EV Types
 
 For SRv6 with a Segment Routing Header (SRH), both the SRv6 address and the

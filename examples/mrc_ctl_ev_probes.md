@@ -36,7 +36,8 @@ ibv_free_device_list(dev_list);
 
 Once the device is open, the controller can query the device to learn the
 device's MRC controller capabilities. This includes available features, EV/CC
-usage limits, and port/plan information. For EV probe support, the `MRC_CTL_OPT_CAP_EV_PROBE` capability must be returned by the device.
+usage limits, and port/plane information. For EV probe support, the
+`MRC_CTL_OPT_CAP_EP_OP_EV_PROBE` capability must be returned by the device.
 
 ```c
 struct mrc_ctl_device_attr mrc_ctl_attr;
@@ -44,8 +45,8 @@ struct mrc_ctl_device_attr mrc_ctl_attr;
 if (mrc_ctl_query_device(ibv_ctx, &mrc_ctl_attr) != 0)
     return ERROR;
 
-if (!(mrc_ctl_attr.opt_attr & MRC_CTL_OPT_CAP_EV_PROBE))
-    return ERROR; /* EV probe not supported */
+if (!(mrc_ctl_attr.opt_attr & MRC_CTL_OPT_CAP_EP_OP_EV_PROBE))
+    return ERROR; /* EV probes are not supported */
 ```
 
 ## Create an MRC Context
@@ -73,46 +74,46 @@ addresses. 32b STEV values are used and the procedure is identical for SRv6
 and SRv6+SRH paths.
 
 ```c
-struct mrc_ctl_ev_probe_req p_reqs[2];
-struct mrc_ctl_ev_probe_rsp p_rsps[2];
+struct mrc_ctl_ep_req ep_reqs[2];
+struct mrc_ctl_ep_rsp ep_rsps[2];
 int i, num_rsps;
-uint32_t req_ev_val, rsp_ev_val;
+uint32_t req_ev_val;
 
-memset(p_reqs, 0, sizeof(p_reqs));
+memset(ep_reqs, 0, sizeof(ep_reqs));
+memset(ep_rsqs, 0, sizeof(ep_rsqs));
 
 /* Probe 1 */
-p_reqs[0].probe_id = 1;
-inet_pton(AF_INET6, "10.0.0.1", &p_reqs[0].sgid);
-inet_pton(AF_INET6, "10.0.0.2", &p_reqs[0].dgid);
-p_reqs[0].ev_fmt_mode = MRC_CTL_EV_FMT_MODE_STEV;
+ep_reqs[0].req_id = 1;
+inet_pton(AF_INET6, "10.0.0.1", &ep_reqs[0].sgid);
+inet_pton(AF_INET6, "10.0.0.2", &ep_reqs[0].dgid);
+ep_reqs[0].ev_fmt_mode = MRC_CTL_EV_FMT_MODE_STEV;
 req_ev_val = 0x12345678;
-memcpy(p_reqs[0].req_ev.val, &req_ev_val, sizeof(uint32_t));
-p_reqs[0].req_ev.port = 1;
-rsp_ev_val = 0xdeaddead;
-memcpy(p_reqs[0].rsp_ev, &rsp_ev_val, sizeof(uint32_t));
+memcpy(ep_reqs[0].req_ev.val, &req_ev_val, sizeof(uint32_t));
+ep_reqs[0].req_ev.port = 1;
 
 /* Probe 2 */
-p_reqs[1].probe_id = 2;
-inet_pton(AF_INET6, "10.0.0.1", &p_reqs[1].sgid);
-inet_pton(AF_INET6, "10.0.0.3", &p_reqs[1].dgid);
-p_reqs[1].ev_fmt_mode = MRC_CTL_EV_FMT_MODE_STEV;
+ep_reqs[1].req_id = 2;
+inet_pton(AF_INET6, "10.0.0.1", &ep_reqs[1].sgid);
+inet_pton(AF_INET6, "10.0.0.3", &ep_reqs[1].dgid);
+ep_reqs[1].ev_fmt_mode = MRC_CTL_EV_FMT_MODE_STEV;
 req_ev_val = 0x87654321;
-memcpy(p_reqs[1].req_ev.val, &req_ev_val, sizeof(uint32_t));
-p_reqs[1].req_ev.port = 1;
-rsp_ev_val = 0xcafecafe;
-memcpy(p_reqs[1].rsp_ev, &rsp_ev_val, sizeof(uint32_t));
+memcpy(ep_reqs[1].req_ev.val, &req_ev_val, sizeof(uint32_t));
+ep_reqs[1].req_ev.port = 1;
 
 /* Send probes with 2ms timeout */
-if (mrc_ctl_probe_ev(mrc_ctx, 0, p_reqs, 2, 2000000, p_rsps, &num_rsps) != 0)
+if (mrc_ctl_ep_batch_send_wait(mrc_ctx, 0, MRC_CTL_EP_OP_EV_PROBE,
+                               ep_reqs, 2, 2000000,
+                               ep_rsps, &num_rsps) != 0)
     return ERROR;
 
 /* Process responses */
 for (i = 0; i < num_rsps; i++) {
-    /* Match response to request using probe_id */
+    /* Match response to request using req_id */
     printf("Probe Response:\n");
-    printf("  probe_id:     %u\n",    p_rsps[i].probe_id);
-    printf("  rtt:          %u ns\n", p_rsps[i].rtt);
-    printf("  adj_svc_time: %d\n",    p_rsps[i].adj_svc_time);
+    printf("  req_id:       %u\n",    ep_rsps[i].req_id);
+    printf("  port:         %u\n",    ep_rsps[i].port);
+    printf("  rtt:          %u ns\n", ep_rsps[i].rtt);
+    printf("  adj_svc_time: %d\n",    ep_rsps[i].adj_svc_time);
 }
 
 if (num_rsps < 2) {

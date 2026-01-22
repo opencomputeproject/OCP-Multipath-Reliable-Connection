@@ -168,7 +168,7 @@ if (mrc_ctl_attr.opt_attr & MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT) {
 To clean up, destroy the CQ and MRC context.
 
 ```c
-if (mrc_destroy_cq(mrc_ctx))
+if (mrc_destroy_cq(ev_cq))
     return ERROR;
 
 if (mrc_destroy_context(mrc_ctx))

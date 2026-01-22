@@ -4,8 +4,8 @@
  */
 
 /*
- * This simple application demonstrates EV expansions for the various EV
- * Format profile and EV profile configurations.
+ * This simple application demonstrates EV expansions of various EV Format
+ * profile and EV profile configurations.
  *
  * Build: gcc ev_expansion.c -o ev_expansion
  *   Run: ./ev_expansion
@@ -428,13 +428,55 @@ void stev_exp(void)
 	EV_PROF_FREE();
 }
 
-void stev_gen(void)
+void stev_gen_1(void)
 {
 	int i;
 
 	printf("\n");
 	printf("--------------------------------------------------------\n");
-	printf("-- Structured EV Generated -----------------------------\n");
+	printf("-- Structured EV Generated 1 ---------------------------\n");
+	printf("--------------------------------------------------------\n");
+
+	EV_PROF_INIT(2, 2, MAX_EVS);
+
+	/* EV Format Profile */
+
+	_ev_fmt_profile.type = EV_FMT_TYPE_STEV;
+
+	_ev_fmt_profile.fmt_fields[0].width = 16;
+	_ev_fmt_profile.fmt_fields[1].width = 16;
+
+	/* EV Profile */
+
+	_ev_profile.type = EV_TYPE_GEN;
+
+	for (i = 0; i < 2; i++) {
+		_ev_profile.fields[i].width    = 16;
+		_ev_profile.fields[i].init_val = 0;
+		_ev_profile.fields[i].min_val  = 0;
+		_ev_profile.fields[i].max_val  = 0;
+		_ev_profile.fields[i].mask     = 0xffff;
+	}
+
+	/* create some explicit EVs */
+	for (i = 0; i < MAX_EVS; i++) {
+		uint16_t *p = (uint16_t *)&_ev_profile.evs[i];
+		p[0] = RAND(1, 0xffff);
+		p[1] = RAND(1, 0xffff);
+	}
+
+	CHECK_AND_DUMP();
+
+	EV_PROF_FREE();
+}
+
+void stev_gen_2(void)
+{
+	int i;
+
+	printf("\n");
+	printf("--------------------------------------------------------\n");
+	printf("-- Structured EV Generated 2 ---------------------------\n");
 	printf("--------------------------------------------------------\n");
 
 	EV_PROF_INIT(1, 1, MAX_EVS);
@@ -861,7 +903,8 @@ void srv6_srh_exp(void)
 
 void (*tests[])() = {
 	stev_exp,
-	stev_gen,
+	stev_gen_1,
+	stev_gen_2,
 	stev_gen_with_fixed,
 	stev_gen_with_fixed_weird_mask,
 	srv6_exp,
