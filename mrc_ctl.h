@@ -198,33 +198,45 @@ int mrc_ctl_query_device(struct ibv_context *context,
  ****************************************************************************/
 
 /**
- * @brief Port administrative disable
+ * @brief Port administrative state
  */
+
+/**
+ * @brief Port administrative state
+ */
+enum mrc_ctl_port_admin_state {
+	/* Port is administratively disabled */
+	MRC_CTL_PORT_ADMIN_DISABLED = 0,
+	/* Port is administratively enabled */
+	MRC_CTL_PORT_ADMIN_ENABLED  = 1,
+};
 
 /**
  * @brief Port attribute mask
  */
 enum mrc_ctl_port_attr_mask {
-	/* Toggle or query the administrative disable flag (0 or 1). */
-	MRC_CTL_PORT_ADMIN_DISABLED	= 1 << 0,
+	/* Toggle or query the administrative state */
+	MRC_CTL_PORT_ADMIN_STATE	= 1 << 0,
 };
 
 /**
  * @brief Port attributes
  */
 struct mrc_ctl_port_attr {
-	/* 1 if administratively disabled; 0 otherwise. Providers must report
-	 * disabled ports as IBV_PORT_DOWN in ibv_query_port().
+	/* Administrative state of the port. Providers must report disabled
+	 * ports as IBV_PORT_DOWN in ibv_query_port().
 	 */
-	uint8_t admin_disabled;
+	enum mrc_ctl_port_admin_state port_admin_state;
 };
 
 /**
  * @brief Query a port's administrative status
  *
- * @param context[in]  - MRC context
- * @param port_num[in] - Port number (1-based)
- * @param attr[out]    - Returned port attributes
+ * @param context[in]   - MRC context
+ * @param port_num[in]  - Port number (1-based)
+ * @param attr[out]     - Returned port attributes
+ * @param attr_mask[in] - Bitmask of attributes to query
+ *                        (mrc_ctl_port_attr_mask)
  *
  * @return 0 on success, -1 on failure (errno set).
  * @par Errors
@@ -233,8 +245,9 @@ struct mrc_ctl_port_attr {
  *      - EPERM  Insufficient permissions.
  */
 int mrc_ctl_query_port(struct mrc_context *context,
-		       uint8_t port_num,
-		       struct mrc_ctl_port_attr *attr);
+			   uint8_t port_num,
+			   struct mrc_ctl_port_attr *attr,
+			   int attr_mask);
 
 /**
  * @brief Modify a port's administrative status
