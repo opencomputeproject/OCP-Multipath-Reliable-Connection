@@ -192,8 +192,8 @@ struct mrc_ctl_device_attr {
  * @param context[in]    - IB Verbs context
  * @param ctl_attr[out]  - MRC Control attributes
  *
- * @return
- * Returns 0 on success. Error codes as per ibv_query_device().
+ * @return 0 on success, -1 on error (errno set).
+ *         Errors like ibv_query_device().
  */
 int mrc_ctl_query_device(struct ibv_context *context,
 			 struct mrc_ctl_device_attr *ctl_attr);
@@ -201,10 +201,6 @@ int mrc_ctl_query_device(struct ibv_context *context,
 /****************************************************************************
  * Port Administrative Control
  ****************************************************************************/
-
-/**
- * @brief Port administrative state
- */
 
 /**
  * @brief Port administrative state
@@ -398,9 +394,9 @@ int mrc_ctl_modify_ev_fmt_profile(struct mrc_context *mrc_ctx,
  *
  * If MRC_CTL_EV_FMT_OP_QUERY_FIELDS is specified, an array of empty format
  * fields (fmt_fields) must be supplied to be filled in upon return. If the
- * number of entries in the array (fmt_field_count) is not large enough,
- * then an E2BIG error is returned and the required array size is set back
- * in (fmt_field_count).
+ * number of entries in the array (`fmt_field_count`) is not large enough,
+ * the provider returns E2BIG and returns the required array size in
+ * `fmt_field_count`.
  *
  * The MRC_CTL_EV_FMT_OP_MODIFY_FIELDS operation is not allowed.
  *
@@ -629,7 +625,7 @@ struct mrc_ctl_ev_profile_attr {
 		enum mrc_ctl_ev_op op;
 		/* Array of entries */
 		struct mrc_ctl_ev_op_entry *entries;
-		/* Number of entries */
+		/* Entries array length (in/out) */
 		int entry_count;
 	} ev_op;
 
@@ -693,7 +689,7 @@ struct mrc_ctl_ev_profile_attr {
  *
  * Operation-specific notes:
  *   - EV_FIELDS_OP_MODIFY_FIELDS:
- *       If the provided array of fields exceed implementation capabilities
+ *       If the provided array of fields exceeds implementation capabilities,
  *       the provider returns E2BIG.
  *   - EV_OP_MODIFY_EV_STATE:
  *       Applies requested `entries[i].state` to `entries[i].ev` per entry.
@@ -745,8 +741,8 @@ int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
  *       Provider fills `entries[i].state` for each supplied `ev`.
  *   - EV_OP_QUERY_EV_ARRAY:
  *       Provider fills `entries[i].ev` for the profile EV array. If
- *       `ev_op.entry_count` is insufficient, E2BIG is returned and the required
- *        size is returned in `ev_op.entry_count`.
+ *       `ev_op.entry_count` is insufficient, the provider returns E2BIG and
+ *       returns the required array size in `ev_op.entry_count`.
  *
  * @param mrc_ctx[in]       - MRC context
  * @param ev_profile_id[in] - EV Profile ID
