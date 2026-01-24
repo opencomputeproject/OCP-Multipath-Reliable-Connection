@@ -47,7 +47,8 @@ extern "C" {
 /**
  * @brief Unpopulated (unset) EV entry definition.
  */
-#define MRC_CTL_EV_UNPOPULATED (struct mrc_ctl_ev){ .val = {0}, .port = 0 }
+#define MRC_CTL_EV_UNPOPULATED \
+	((struct mrc_ctl_ev){ .val = { 0 }, .port = 0 })
 
 /**
  * @brief Maximum number of bytes in an EV value
@@ -730,7 +731,8 @@ struct mrc_ctl_cc_profile_attr {
 	enum mrc_ctl_profile_state cur_profile_state;
 
 	/* Must string match a device_attr.cc.algorithms entry; NULL
-	 * disables CC. */
+	 * disables CC.
+	 */
 	const char *algorithm;
 
 	/* Algorithm-specific configuration structure. */
@@ -900,7 +902,8 @@ enum mrc_ctl_ep_op_type {
 struct mrc_ctl_ep_req {
 	/* Application-provided request ID.
 	 * Must be unique across outstanding requests; do not reuse until prior
-	 * responses have drained or fabric buffering is impossible. */
+	 * responses have drained or fabric buffering is impossible.
+	 */
 	uint16_t req_id;
 	/* Source GID; only ROCE_V2 GID type supported. */
 	union ibv_gid sgid;
