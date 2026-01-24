@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2024, 2025, 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -9,10 +9,10 @@
  * without an express license agreement from NVIDIA CORPORATION or
  * its affiliates is strictly prohibited.
  *
- * Copyright (c) 2024, 2025, Broadcom. All rights reserved. The term
+ * Copyright (c) 2024, 2025, 2026, Broadcom. All rights reserved. The term
  * Broadcom refers to Broadcom Limited and/or its subsidiaries.
  *
- * Copyright (c) 2024, 2025, Advanced Micro Devices (AMD), Inc.  All rights
+ * Copyright (c) 2024, 2025, 2026, Advanced Micro Devices (AMD), Inc.  All rights
  * reserved.
  */
 

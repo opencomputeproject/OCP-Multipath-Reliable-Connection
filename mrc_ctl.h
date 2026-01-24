@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2024, 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2024, 2025, 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: LicenseRef-NvidiaProprietary
  *
  * NVIDIA CORPORATION, its affiliates and licensors retain all intellectual
@@ -9,10 +9,10 @@
  * without an express license agreement from NVIDIA CORPORATION or
  * its affiliates is strictly prohibited.
  *
- * Copyright (c) 2024, 2025, Broadcom. All rights reserved. The term
+ * Copyright (c) 2024, 2025, 2026, Broadcom. All rights reserved. The term
  * Broadcom refers to Broadcom Limited and/or its subsidiaries.
  *
- * Copyright (c) 2024, 2025, Advanced Micro Devices (AMD), Inc.  All rights
+ * Copyright (c) 2024, 2025, 2026, Advanced Micro Devices (AMD), Inc.  All rights
  * reserved.
  */
 
@@ -47,7 +47,7 @@ extern "C" {
 /**
  * @brief Unpopulated (unset) EV entry definition.
  */
-#define MRC_CTL_EV_UNPOPULATED (struct mrc_ctl_ev){ .val = 0, .port = 0 }
+#define MRC_CTL_EV_UNPOPULATED (struct mrc_ctl_ev){ .val = {0}, .port = 0 }
 
 /**
  * @brief Maximum number of bytes in an EV value
@@ -89,10 +89,10 @@ enum mrc_ctl_attr_opt {
 	 * is the base; last is 'base_ev_val + (ev_count - 1)'
 	 */
 	MRC_CTL_OPT_CAP_EV_EXPLICIT_RANGE		= 1 << 3,
-	/* The implementation supports EV Probes. */
-	MRC_CTL_OPT_CAP_EV_PROBE			= 1 << 4,
 	/* The implementation supports precise EV Event drop counts. */
-	MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= 1 << 5,
+	MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT	= 1 << 4,
+	/* The implementation supports EV Probe endpoint operation. */
+	MRC_CTL_OPT_CAP_EP_OP_EV_PROBE			= 1 << 5
 };
 
 /**
@@ -168,10 +168,10 @@ struct mrc_ctl_device_attr {
 		const char **algorithms;
 	} cc;
 
-	/* Port mask for ports owned by this this function; each bit represents
-	 * an active port. Port numbers match ibv_query_port() (1-based).
+	/* Bitmap of physical ports owned by this function.
+	 * Bit N set => port N. Port numbers are 1-based (ibv_query_port()).
 	 */
-	uint64_t port_mask;
+	uint32_t phy_port_mask;
 
 	/* bitmap of all optional features supported (mrc_ctl_attr_opt) */
 	uint32_t opt_attr;
@@ -184,13 +184,76 @@ struct mrc_ctl_device_attr {
  * Should be called after EV generation fields are configured.
  *
  * @param context[in]    - IB Verbs context
- * @param ctl_attrs[out] - MRC Control attributes
+ * @param ctl_attr[out]  - MRC Control attributes
  *
  * @return
  * Returns 0 on success. Error codes as per ibv_query_device().
  */
 int mrc_ctl_query_device(struct ibv_context *context,
 			 struct mrc_ctl_device_attr *ctl_attr);
+
+/****************************************************************************
+ * Port Administrative Control
+ ****************************************************************************/
+
+/**
+ * @brief Port administrative disable
+ */
+
+/**
+ * @brief Port attribute mask
+ */
+enum mrc_ctl_port_attr_mask {
+	/* Toggle or query the administrative disable flag (0 or 1). */
+	MRC_CTL_PORT_ADMIN_DISABLED	= 1 << 0,
+};
+
+/**
+ * @brief Port attributes
+ */
+struct mrc_ctl_port_attr {
+	/* 1 if administratively disabled; 0 otherwise. Providers must report
+	 * disabled ports as IBV_PORT_DOWN in ibv_query_port().
+	 */
+	uint8_t admin_disabled;
+};
+
+/**
+ * @brief Query a port's administrative status
+ *
+ * @param context[in]  - MRC context
+ * @param port_num[in] - Port number (1-based)
+ * @param attr[out]    - Returned port attributes
+ *
+ * @return 0 on success, -1 on failure (errno set).
+ * @par Errors
+ *      - EINVAL Invalid argument or port.
+ *      - EIO Implementation specific error occurred.
+ *      - EPERM  Insufficient permissions.
+ */
+int mrc_ctl_query_port(struct mrc_context *context,
+		       uint8_t port_num,
+		       struct mrc_ctl_port_attr *attr);
+
+/**
+ * @brief Modify a port's administrative status
+ *
+ * @param context[in]   - MRC context
+ * @param port_num[in]  - Port number (1-based)
+ * @param attr[in]      - Port attributes to set
+ * @param attr_mask[in] - Bitmask of attributes to modify
+ *                       (mrc_ctl_port_attr_mask)
+ *
+ * @return 0 on success, -1 on failure (errno set).
+ * @par Errors
+ *      - EINVAL Invalid argument
+ *      - EIO Implementation specific error
+ *      - EPERM  Insufficient permissions
+ */
+int mrc_ctl_modify_port(struct mrc_context *context,
+			uint8_t port_num,
+			struct mrc_ctl_port_attr *attr,
+			int attr_mask);
 
 /*****************************************************************************
  * EV Format Profile
@@ -295,8 +358,8 @@ struct mrc_ctl_ev_fmt_profile_attr {
  *
  * @param mrc_ctx[in]           - MRC context
  * @param ev_fmt_profile_id[in] - EV Format Profile ID
- * @param attr[in]              - EV Profile attribute structure
- * @param attr_mask[in]         - Bitmask of EV Profile attribute mask
+ * @param attr[in]              - EV Format profile attribute structure
+ * @param attr_mask[in]         - Bitmask of EV Format profile attribute mask
  *
  * @return 0 on success, -1 on failure (errno set).
  * @par Errors
@@ -322,10 +385,10 @@ int mrc_ctl_modify_ev_fmt_profile(struct mrc_context *mrc_ctx,
  *
  * The MRC_CTL_EV_FMT_OP_MODIFY_FIELDS operation is not allowed.
  *
- * @param mrc_ctx[in]       - MRC context
- * @param ev_profile_id[in] - EV Profile ID
- * @param attr[out]         - EV Profile attribute structure
- * @param attr_mask[in]     - Bitmask of EV Profile attribute mask
+ * @param mrc_ctx[in]           - MRC context
+ * @param ev_fmt_profile_id[in] - EV Format Profile ID
+ * @param attr[out]             - EV Format profile attribute structure
+ * @param attr_mask[in]         - Bitmask of EV Format profile attribute mask
  *
  * @return 0 on success, -1 on failure (errno set).
  * @par Errors
@@ -358,7 +421,7 @@ typedef uint8_t mrc_ctl_ev_t[MRC_CTL_EV_MAX_BYTES];
  */
 struct mrc_ctl_ev {
 	mrc_ctl_ev_t val;
-	uint8_t port;
+	uint8_t port; /* (1-based) */
 };
 
 /**
@@ -395,7 +458,6 @@ enum mrc_ctl_ev_op {
 	MRC_CTL_EV_OP_MODIFY_EV_STATE,
 	MRC_CTL_EV_OP_QUERY_EV_STATE,
 	MRC_CTL_EV_OP_QUERY_EV_ARRAY,
-	MRC_CTL_EV_OP_QUERY_EV_ID,
 	MRC_CTL_EV_OP_MODIFY_FIELDS,
 	MRC_CTL_EV_OP_QUERY_FIELDS,
 };
@@ -507,9 +569,9 @@ struct mrc_ctl_ev_profile_attr {
 	uint32_t ev_min_active;
 
 	/* EV event mask for EV state change notifications on this profile.
-	 * Only EV_ASSUMED_BAD and EV_GOOD is supported. May be modified when
-	 * the profile is in ONLINE state if the provider advertises
-	 * EV_PROFILE_MODIFY_ONLINE capability.
+	 * Only MRC_CTL_EV_ASSUMED_BAD and MRC_CTL_EV_GOOD are supported. May be
+	 * modified when the profile is in ONLINE state if the provider
+	 * advertises MRC_CTL_OPT_CAP_EV_PROFILE_MODIFY_ONLINE capability.
 	 */
 	int ev_event_mask;
 
@@ -547,14 +609,6 @@ struct mrc_ctl_ev_profile_attr {
 				/* Array of EVs; pointer, length >= ev_count */
 				struct mrc_ctl_ev *ev;
 			} query_ev_array;
-
-			/* Available only if EV Format mode is MRC_CTL_EV_FMT_MODE_SRV6. */
-			struct {
-				/* EV to query */
-				struct mrc_ctl_ev ev;
-				/* EV's Identifier; output-only */
-				uint32_t ev_id;
-			} query_ev_id;
 
 			struct {
 				/* Array of fields */
@@ -596,9 +650,10 @@ struct mrc_ctl_ev_profile_attr {
  *   ONLINE state:
  *     - Modify: STATE(OFFLINE)
  *     - Query: STATE, MODE, FMT_ID, COUNT, MIN_ACTIVE, EVENT_MASK
- *     - EV_OP: MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY, QUERY_EV_ID,
+ *     - EV_OP: MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY,
  *              QUERY_FIELDS
- *       If EV_PROFILE_MODIFY_ONLINE supported: EVENT_MASK, REPLACE_EV
+ *       If MRC_CTL_OPT_CAP_EV_PROFILE_MODIFY_ONLINE supported:
+ *              EVENT_MASK, REPLACE_EV
  *
  * Restrictions:
  *   On INIT -> OFFLINE, Explicit array EVs are all EV_UNPOPULATED; MUST be
@@ -719,8 +774,8 @@ struct mrc_ctl_cc_nscc_cfg {
  *   To OFFLINE: CC_ALGORITHM
  *   To ONLINE:  CC_CONFIG
  *
- * Allowed in ONLINE state (if CC_PROFILE_MODIFY_ONLINE advertised):
- *   CC_CONFIG
+ * If MRC_CTL_OPT_CAP_CC_PROFILE_MODIFY_ONLINE is advertised:
+ *   ONLINE: CC_CONFIG
  *
  * @param mrc_ctx[in]       - MRC context
  * @param cc_profile_id[in] - CC Profile ID
@@ -826,72 +881,98 @@ int mrc_ctl_poll_ev_event(struct mrc_cq *ev_cq,
 			  struct mrc_ctl_ev_event *ev_event);
 
 /****************************************************************************
- * EV Probes
+ * Endpoint Requests
  *****************************************************************************/
 
 /**
- * @brief EV Probe Request
+ * @brief Endpoint operation type.
  */
-struct mrc_ctl_ev_probe_req {
-	/* Application provided (request) probe ID. */
-	uint16_t probe_id;
+enum mrc_ctl_ep_op_type {
+	/* Send EV Probe */
+	MRC_CTL_EP_OP_EV_PROBE,
+	/* Update/query port status */
+	MRC_CTL_EP_OP_PORT_STATUS_UPDATE
+};
+
+/**
+ * @brief Endpoint Request
+ */
+struct mrc_ctl_ep_req {
+	/* Application-provided request ID.
+	 * Must be unique across outstanding requests; do not reuse until prior
+	 * responses have drained or fabric buffering is impossible. */
+	uint16_t req_id;
 	/* Source GID; only ROCE_V2 GID type supported. */
 	union ibv_gid sgid;
 	/* Destination GID; only ROCE_V2 GID type supported. */
 	union ibv_gid dgid;
-	/* EV Format mode for req_ev and rsp_ev */
+
+	/* EV format. */
 	enum mrc_ctl_ev_fmt_mode ev_fmt_mode;
-	/* Probe request EV value and port. */
+	/* EV and port. */
 	struct mrc_ctl_ev req_ev;
-	/* Probe response EV value. */
-	mrc_ctl_ev_t rsp_ev;
+
+	/* Operation-specific parameters. */
+	union {
+		struct {
+			/* Port status mask (1-based). */
+			uint32_t port_status;
+		} port_status_update;
+	} op;
 };
 
 /**
- * @brief EV Probe Response
+ * @brief Endpoint Response
  */
-struct mrc_ctl_ev_probe_rsp {
-	/* Associated request probe ID for this response. */
-	uint16_t probe_id;
+struct mrc_ctl_ep_rsp {
+	/* Associated request ID for this response. */
+	uint16_t req_id;
+	/* Port response was received on (1-based) */
+	uint8_t port;
 	/* RTT; units = 1ns. */
 	unsigned int rtt;
-	/* 1/true if rtt has been adjusted for responder service time. */
+	/* Non-zero if rtt has been adjusted for responder service time. */
 	uint8_t adj_svc_time;
 };
 
 /**
- * @brief Send EV Probe requests and wait for responses
+ * @brief Send endpoint operation requests and wait for responses
  *
- * This non-interruptible function blocks the caller until all responses are
- * received or timeout occurs. Responses are delivered into the response
- * structure in order of arrival. Responses are not buffered between
- * invocations.
+ * Sends a batch of same-type endpoint operations and blocks until
+ * responses arrive or the timeout elapses. Responses are returned in
+ * arrival order and are not buffered between calls.
+ *
+ * `op_type` selects operation:
+ * - MRC_CTL_EP_OP_EV_PROBE: Populate `req[i].op.ev_probe`
+ * - MRC_CTL_EP_OP_PORT_STATUS_UPDATE: Populate `req[i].op.port_status_update`
  *
  * @param mrc_ctx[in]     - MRC context
- * @param req_tc[in]      - Request (DSCP) traffic class
- * @param req[in]         - An array of requests
- * @param num_req[in]     - length of request array
- * @param rsp_timeout[in] - Waiting period for responses; units = 1ns
- * @param rsp[out]        - An array of response structures
- * @param num_rsp[out]    - Number of responses returned
+ * @param req_tc[in]      - Request traffic class (DSCP)
+ * @param op_type[in]     - Endpoint operation type for this batch
+ * @param req[in]         - Array of operation requests (length = `num_req`)
+ * @param num_req[in]     - Number of requests in `req`
+ * @param rsp_timeout[in] - Response wait timeout; units = 1ns
+ * @param rsp[out]        - Array to receive responses; sized for `num_req`
+ * @param num_rsp[out]    - Number of responses returned in `rsp`
  *
  * @retval 0 on success, -1 on error (errno set).
  * @par Errors
  *      - EAGAIN Resource temporarily unavailable; retry later.
  *      - EINVAL One or more supplied arguments are invalid.
  *      - EIO Implementation specific error occurred.
- *      - ENOMEM Error allocating memory for function.
- *      - ENOTSUP Function not supported.
+ *      - ENOMEM Error allocating memory.
+ *      - ENOTSUP Operation not supported.
  *      - EPERM Process lacks sufficient permissions.
  *      - ETIMEDOUT Timeout occurred before all responses received.
  */
-int mrc_ctl_probe_ev(struct mrc_context *mrc_ctx,
-		     uint8_t req_tc,
-		     struct mrc_ctl_ev_probe_req *req,
-		     int num_req,
-		     uint32_t rsp_timeout,
-		     struct mrc_ctl_ev_probe_rsp *rsp,
-		     int *num_rsp);
+int mrc_ctl_ep_batch_send_wait(struct mrc_context *mrc_ctx,
+				uint8_t req_tc,
+				enum mrc_ctl_ep_op_type op_type,
+				struct mrc_ctl_ep_req *req,
+				int num_req,
+				uint32_t rsp_timeout,
+				struct mrc_ctl_ep_rsp *rsp,
+				int *num_rsp);
 
 #ifdef __cplusplus
 }

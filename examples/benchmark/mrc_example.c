@@ -4,7 +4,7 @@
  *  RDMA write performance benchmark using MRC API
  * Measures bandwidth and message rate across varying message sizes.
  *
- * Copyright (c) 2025 Microsoft Corporation
+ * Copyright (c) 2025, 2026 Microsoft Corporation
  * Licensed under MIT License
  *
  * EXAMPLE USAGE:
