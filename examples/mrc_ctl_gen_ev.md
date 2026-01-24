@@ -80,7 +80,11 @@ machine: `INIT -> OFFLINE -> ONLINE`.
 In this STEV example, the generation format consists of three tiers/fields:
 - **T0**: Maximum of 180 links (8 bits)
     - Since 180 isn't a power of two, values 0-179 are valid and 180-255 must
-      be denied
+      be denied. For this example the `max_val` in the EV profile is set to the
+      full width of the underlying format field. This is done to demonstrate
+      denying a set of EVs after the EV profile is created. The controller
+      could instead set the `max_val` for the EV field to 179 indicating to
+      the NIC that this field's generated values must be capped accordingly.
 - **T1**: Maximum of 16 links (4 bits)
 - **T2**: Maximum of 16 links (4 bits)
 
