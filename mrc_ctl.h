@@ -465,15 +465,21 @@ enum mrc_ctl_ev_mode {
 };
 
 /**
- * @brief Supported EV operations
+ * @brief Supported EV operations (data ops)
  */
 enum mrc_ctl_ev_op {
 	MRC_CTL_EV_OP_REPLACE_EV,
 	MRC_CTL_EV_OP_MODIFY_EV_STATE,
 	MRC_CTL_EV_OP_QUERY_EV_STATE,
 	MRC_CTL_EV_OP_QUERY_EV_ARRAY,
-	MRC_CTL_EV_OP_MODIFY_FIELDS,
-	MRC_CTL_EV_OP_QUERY_FIELDS,
+};
+
+/**
+ * @brief Supported EV field operations
+ */
+enum mrc_ctl_ev_fields_op {
+	MRC_CTL_EV_FIELDS_OP_MODIFY_FIELDS,
+	MRC_CTL_EV_FIELDS_OP_QUERY_FIELDS,
 };
 
 /**
@@ -487,7 +493,10 @@ enum mrc_ctl_ev_profile_attr_mask {
 	MRC_CTL_EV_PROFILE_COUNT	= 1 << 4,
 	MRC_CTL_EV_PROFILE_MIN_ACTIVE	= 1 << 5,
 	MRC_CTL_EV_PROFILE_EVENT_MASK	= 1 << 6,
+	/* Selects EV operation payload (ev_op) */
 	MRC_CTL_EV_PROFILE_EV_OP	= 1 << 7,
+	/* Selects EV field operation payload (ev_fields_op) */
+	MRC_CTL_EV_PROFILE_EV_FIELDS_OP	= 1 << 8,
 	MRC_CTL_EV_PROFILE_VENDOR_CFG	= 1 << 31,
 };
 
@@ -589,6 +598,7 @@ struct mrc_ctl_ev_profile_attr {
 	 */
 	int ev_event_mask;
 
+	/* EV operations: replace, modify/query state, query array */
 	struct {
 		enum mrc_ctl_ev_op op;
 
@@ -598,9 +608,10 @@ struct mrc_ctl_ev_profile_attr {
 				struct mrc_ctl_ev cur_ev;
 				/* New EV (formatted according to EV fields) */
 				struct mrc_ctl_ev new_ev;
-				/* If zero only one instance is replaced, else
-				 * allow matches are replaced. Entry selected
-				 * is implementation specific.
+				/* all_copies:
+				 *  - non-zero = replace all cur_ev with new_ev;
+				 *  - zero = replace one implementation-selected
+				 *    occurrence.
 				 */
 				int all_copies;
 			} replace_ev;
@@ -623,15 +634,20 @@ struct mrc_ctl_ev_profile_attr {
 				/* Array of EVs; pointer, length >= ev_count */
 				struct mrc_ctl_ev *ev;
 			} query_ev_array;
-
-			struct {
-				/* Array of fields */
-				struct mrc_ctl_ev_field *fields;
-				/* Field array length (in/out) */
-				int field_count;
-			} fields;
 		};
 	} ev_op;
+
+	/* EV field operations: modify/query fields */
+	struct {
+		enum mrc_ctl_ev_fields_op op;
+
+		struct {
+			/* Array of fields */
+			struct mrc_ctl_ev_field *fields;
+			/* Field array length (in/out) */
+			int field_count;
+		} fields;
+	} ev_fields_op;
 
 	/* vendor specific configuration */
 	uint8_t vendor_cfg[MRC_CTL_MAX_VENDOR_CFG_SIZE];
@@ -652,22 +668,33 @@ struct mrc_ctl_ev_profile_attr {
  *   To OFFLINE:
  *     - MODE, FMT_ID, COUNT, MODIFY_FIELDS
  *   To ONLINE:
- *     - MIN_ACTIVE, EVENT_MASK, REPLACE_EV (for EXP)
+ *     - MIN_ACTIVE, EVENT_MASK, REPLACE_EV (for EXPLICIT)
  *
  * Allowed:
  *   OFFLINE state:
  *     - Modify: STATE(ONLINE/INIT), MODE, FMT_ID, COUNT, MIN_ACTIVE,
  *               EVENT_MASK
  *     - Query: STATE, MODE, FMT_ID, COUNT, MIN_ACTIVE, EVENT_MASK
- *     - EV_OP: REPLACE_EV, MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY,
- *              MODIFY_FIELDS, QUERY_FIELDS
+ *     - EV_OP: REPLACE_EV, MODIFY_EV_STATE, QUERY_EV_STATE,
+ *                   QUERY_EV_ARRAY
+ *     - EV_FIELDS_OP: MODIFY_FIELDS, QUERY_FIELDS
  *   ONLINE state:
  *     - Modify: STATE(OFFLINE)
  *     - Query: STATE, MODE, FMT_ID, COUNT, MIN_ACTIVE, EVENT_MASK
- *     - EV_OP: MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY,
- *              QUERY_FIELDS
+ *     - EV_OP: MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY
+ *     - EV_FIELDS_OP: QUERY_FIELDS
  *       If MRC_CTL_OPT_CAP_EV_PROFILE_MODIFY_ONLINE supported:
  *              EVENT_MASK, REPLACE_EV
+ *
+ * Operation selection:
+ *   - MRC_CTL_EV_PROFILE_EV_OP and MRC_CTL_EV_PROFILE_EV_FIELDS_OP are
+ *     mutually exclusive; setting both returns EINVAL.
+ *   - It is valid for neither to be set; no EV operation is performed.
+ *
+ * Operation-specific notes:
+ *   - EV_FIELDS_OP_MODIFY_FIELDS:
+ *       If the provided array of fields exceed implementation capabilities
+ *       the provider returns E2BIG.
  *
  * Restrictions:
  *   On INIT -> OFFLINE, Explicit array EVs are all EV_UNPOPULATED; MUST be
@@ -681,6 +708,7 @@ struct mrc_ctl_ev_profile_attr {
  *
  * @return 0 on success, -1 on error (errno set).
  * @par Errors
+ *      - E2BIG  Supplied array length exceeds implementation capabilities.
  *      - EINVAL One or more supplied arguments are invalid.
  *      - ENOENT EV not found.
  *      - EIO Implementation specific error occurred.
@@ -697,10 +725,20 @@ int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
  *
  * Query an EV profile configuration.
  *
- * If MRC_CTL_EV_OP_QUERY_FIELDS is specified, an array of empty fields must
- * be supplied to be filled in upon return. If the number of entries in the
- * array (field_count) is not large enough, then an E2BIG error is returned
- * and the required array size is set back in (field_count).
+ * Operation selection:
+ *   - MRC_CTL_EV_PROFILE_EV_OP and MRC_CTL_EV_PROFILE_EV_FIELDS_OP are
+ *     mutually exclusive; setting both returns EINVAL.
+ *   - It is valid for neither to be set; no EV operation is performed.
+ *
+ * Operation-specific notes:
+ *   - EV_FIELDS_OP_QUERY_FIELDS:
+ *       Supply an array of empty fields to be filled in. If
+ *       `fields.field_count` is insufficient, the provider returns E2BIG and
+ *       sets back the required array size in `fields.field_count`.
+ *   - EV_OP_QUERY_EV_ARRAY:
+ *       Supply an array of EVs sized for `ev_count`. If the supplied array
+ *       length is insufficient, the provider returns E2BIG. The required size
+ *       is `ev_count`.
  *
  * @param mrc_ctx[in]       - MRC context
  * @param ev_profile_id[in] - EV Profile ID
@@ -709,6 +747,7 @@ int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
  *
  * @return 0 on success, -1 on error (errno set).
  * @par Errors
+ *      - E2BIG  Insufficient supplied array length for requested operation.
  *      - EINVAL One or more supplied arguments are invalid.
  *      - ENOENT EV not found.
  *      - EIO Implementation specific error occurred.
