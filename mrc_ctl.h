@@ -519,7 +519,7 @@ struct mrc_ctl_ev_field {
  */
 enum mrc_ctl_ev_op_flags {
 	/* For REPLACE_EV: replace all occurrences of `ev` with `ev_new` */
-	MRC_CTL_EV_OP_ALL_COPIES    = 1 << 0,
+	MRC_CTL_EV_OP_F_ALL_COPIES  = 1 << 0,
 };
 
 /**
@@ -694,7 +694,7 @@ struct mrc_ctl_ev_profile_attr {
  *   - EV_OP_MODIFY_EV_STATE:
  *       Applies requested `entries[i].state` to `entries[i].ev` per entry.
  *   - EV_OP_REPLACE_EV:
- *       Use `ev_op.entries[i].flags & MRC_CTL_EV_OP_ALL_COPIES` to
+ *       Use `ev_op.entries[i].flags & MRC_CTL_EV_OP_F_ALL_COPIES` to
  *       request replacement of all occurrences for that entry; otherwise a
  *       single implementation-selected occurrence is replaced.
  *
