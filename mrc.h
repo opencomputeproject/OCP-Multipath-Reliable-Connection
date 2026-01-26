@@ -461,8 +461,6 @@ struct mrc_qp_attr {
 		uint8_t mpr;
 		/* Responder MPR value; unit=128 PSNs */
 		uint8_t mpr_dest;
-		/* if 1/true, enable Dynamic MPR support */
-		uint8_t dynamic_mpr;
 	} mpr;
 
 	struct {
