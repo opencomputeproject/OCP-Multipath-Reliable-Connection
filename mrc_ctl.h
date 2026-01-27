@@ -335,13 +335,10 @@ struct mrc_ctl_ev_fmt_profile_attr {
 
 	struct {
 		enum mrc_ctl_ev_fmt_op op;
-
-		struct {
-			/* Array of format fields */
-			struct mrc_ctl_ev_fmt_field *fmt_fields;
-			/* Format field array length (in/out) */
-			int fmt_field_count;
-		} fmt_fields;
+		/* Array of format fields */
+		struct mrc_ctl_ev_fmt_field *fmt_fields;
+		/* Format field array length (in/out) */
+		int fmt_field_count;
 	} ev_fmt_op;
 
 	/* vendor specific configuration */
