@@ -525,10 +525,17 @@ enum mrc_ctl_ev_op_flags {
  * @brief Unified EV operation entry
  *
  * Field requirements per operation (selected via `ev_op.op`):
- * - REPLACE_EV: ev (input), ev_new (input); flags optional; state ignored.
- * - MODIFY_EV_STATE: ev (input), state (input); ev_new ignored; flags ignored.
- * - QUERY_EV_STATE: ev (input), state (output); ev_new ignored; flags ignored.
- * - QUERY_EV_ARRAY: ev (output-only); ev_new/state/flags ignored.
+ *
+ *   +-------------------+-----+--------+-------+-------+
+ *   | Operation         | ev  | ev_new | state | flags |
+ *   +-------------------+-----+--------+-------+-------+
+ *   | REPLACE_EV        | R   | R      | R     | O     |
+ *   | MODIFY_EV_STATE   | R   | I      | R     | O     |
+ *   | QUERY_EV_STATE    | R   | I      | P     | I     |
+ *   | QUERY_EV_ARRAY    | R   | I      | P     | I     |
+ *   +-------------------+-----+--------+-------+-------+
+ *
+ *   Legend: R=Required, O=Optional, P=Output (Produced), I=Ignored
  */
 struct mrc_ctl_ev_op_entry {
 	/* Subject EV */
