@@ -532,7 +532,7 @@ enum mrc_ctl_ev_op_flags {
  *   | REPLACE_EV        | R   | R      | R     | O     |
  *   | MODIFY_EV_STATE   | R   | I      | R     | O     |
  *   | QUERY_EV_STATE    | R   | I      | P     | I     |
- *   | QUERY_EV_ARRAY    | R   | I      | P     | I     |
+ *   | QUERY_EV_ARRAY    | P   | I      | P     | I     |
  *   +-------------------+-----+--------+-------+-------+
  *
  *   Legend: R=Required, O=Optional, P=Output (Produced), I=Ignored
@@ -1035,7 +1035,7 @@ int mrc_ctl_ep_batch_send_wait(struct mrc_context *mrc_ctx,
 			       uint8_t req_tc,
 			       enum mrc_ctl_ep_op_type op_type,
 			       struct mrc_ctl_ep_req *req,
-			       nt num_req,
+			       int num_req,
 			       uint32_t rsp_timeout,
 			       struct mrc_ctl_ep_rsp *rsp,
 			       int *num_rsp);
