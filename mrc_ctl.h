@@ -531,10 +531,14 @@ enum mrc_ctl_ev_op_flags {
  * - QUERY_EV_ARRAY: ev (output-only); ev_new/state/flags ignored.
  */
 struct mrc_ctl_ev_op_entry {
-	struct mrc_ctl_ev ev;       /* Subject EV */
-	struct mrc_ctl_ev ev_new;   /* Replacement EV */
-	enum mrc_ctl_ev_state state;/* State */
-	uint32_t flags;             /* Entry flags */
+	/* Subject EV */
+	struct mrc_ctl_ev ev;
+	/* Replacement EV */
+	struct mrc_ctl_ev ev_new;
+	/* State */
+	enum mrc_ctl_ev_state state;
+	/* Entry flags */
+	uint32_t flags;
 };
 
 /**
