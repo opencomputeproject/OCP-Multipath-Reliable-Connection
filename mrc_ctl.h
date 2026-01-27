@@ -463,6 +463,8 @@ enum mrc_ctl_ev_mode {
 };
 
 /**
+ * @brief Supported EV Operations
+ * 
  */
 enum mrc_ctl_ev_op {
 	MRC_CTL_EV_OP_REPLACE_EV,
