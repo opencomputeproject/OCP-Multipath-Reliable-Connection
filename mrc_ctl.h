@@ -680,12 +680,12 @@ struct mrc_ctl_ev_profile_attr {
  *   - MRC_CTL_EV_PROFILE_EV_OP and MRC_CTL_EV_PROFILE_EV_FIELDS_OP are
  *     mutually exclusive; setting both returns EINVAL.
  *   - It is valid for neither to be set; no EV operation is performed.
-
+ *
  *   EV_OP rules:
  *   - EV operation must be selected via `ev_op.op`; applies to all entries.
  *   - Success semantics are per-entry: error returns on first failing entry;
- *       partial success is possible. After an error, query the EV array to
- *       determine the definitive state of all EVs.
+ *     partial success is possible. After an error, query the EV array to
+ *     determine the definitive state of all EVs.
  *
  * Operation-specific notes:
  *   - EV_FIELDS_OP_MODIFY_FIELDS:
@@ -1025,13 +1025,13 @@ struct mrc_ctl_ep_rsp {
  *      - ETIMEDOUT Timeout occurred before all responses received.
  */
 int mrc_ctl_ep_batch_send_wait(struct mrc_context *mrc_ctx,
-				uint8_t req_tc,
-				enum mrc_ctl_ep_op_type op_type,
-				struct mrc_ctl_ep_req *req,
-				int num_req,
-				uint32_t rsp_timeout,
-				struct mrc_ctl_ep_rsp *rsp,
-				int *num_rsp);
+			       uint8_t req_tc,
+			       enum mrc_ctl_ep_op_type op_type,
+			       struct mrc_ctl_ep_req *req,
+			       nt num_req,
+			       uint32_t rsp_timeout,
+			       struct mrc_ctl_ep_rsp *rsp,
+			       int *num_rsp);
 
 #ifdef __cplusplus
 }
