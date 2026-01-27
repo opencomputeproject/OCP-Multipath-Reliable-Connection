@@ -674,7 +674,7 @@ struct mrc_ctl_ev_profile_attr {
  *     - EV_OP: MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY
  *     - EV_FIELDS_OP: QUERY_FIELDS
  *       If MRC_CTL_OPT_CAP_EV_PROFILE_MODIFY_ONLINE supported:
- *              EVENT_MASK, REPLACE_EV
+ *              EVENT_MASK, REPLACE_EV, MODIFY_FIELDS
  *
  * Operation selection:
  *   - MRC_CTL_EV_PROFILE_EV_OP and MRC_CTL_EV_PROFILE_EV_FIELDS_OP are
