@@ -629,13 +629,10 @@ struct mrc_ctl_ev_profile_attr {
 	/* EV field operations: modify/query fields */
 	struct {
 		enum mrc_ctl_ev_fields_op op;
-
-		struct {
-			/* Array of fields */
-			struct mrc_ctl_ev_field *fields;
-			/* Field array length (in/out) */
-			int field_count;
-		} fields;
+		/* Array of fields */
+		struct mrc_ctl_ev_field *fields;
+		/* Field array length (in/out) */
+		int field_count;
 	} ev_fields_op;
 
 	/* vendor specific configuration */
