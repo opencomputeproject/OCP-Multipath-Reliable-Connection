@@ -246,9 +246,9 @@ struct mrc_ctl_port_attr {
  *      - EPERM  Insufficient permissions.
  */
 int mrc_ctl_query_port(struct mrc_context *context,
-			   uint8_t port_num,
-			   struct mrc_ctl_port_attr *attr,
-			   int attr_mask);
+		       uint8_t port_num,
+		       struct mrc_ctl_port_attr *attr,
+		       int attr_mask);
 
 /**
  * @brief Modify a port's administrative status
