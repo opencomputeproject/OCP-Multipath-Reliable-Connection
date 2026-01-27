@@ -152,6 +152,11 @@ struct mrc_ctl_device_attr {
 		 * mrc_ctl_ev_mode enum.
 		 */
 		uint32_t ev_mode_mask;
+
+		/* Maximum number of entries accepted in a single EV_OP batch.
+		 * A value of 0 indicates no explicit cap.
+		 */
+		uint32_t ev_op_max_entries;
 	} ev;
 
 	/* CC attributes */
@@ -187,8 +192,8 @@ struct mrc_ctl_device_attr {
  * @param context[in]    - IB Verbs context
  * @param ctl_attr[out]  - MRC Control attributes
  *
- * @return
- * Returns 0 on success. Error codes as per ibv_query_device().
+ * @return 0 on success, -1 on error (errno set).
+ *         Errors like ibv_query_device().
  */
 int mrc_ctl_query_device(struct ibv_context *context,
 			 struct mrc_ctl_device_attr *ctl_attr);
@@ -198,33 +203,41 @@ int mrc_ctl_query_device(struct ibv_context *context,
  ****************************************************************************/
 
 /**
- * @brief Port administrative disable
+ * @brief Port administrative state
  */
+enum mrc_ctl_port_admin_state {
+	/* Port is administratively disabled */
+	MRC_CTL_PORT_ADMIN_DISABLED = 0,
+	/* Port is administratively enabled */
+	MRC_CTL_PORT_ADMIN_ENABLED  = 1,
+};
 
 /**
  * @brief Port attribute mask
  */
 enum mrc_ctl_port_attr_mask {
-	/* Toggle or query the administrative disable flag (0 or 1). */
-	MRC_CTL_PORT_ADMIN_DISABLED	= 1 << 0,
+	/* Toggle or query the administrative state */
+	MRC_CTL_PORT_ADMIN_STATE	= 1 << 0,
 };
 
 /**
  * @brief Port attributes
  */
 struct mrc_ctl_port_attr {
-	/* 1 if administratively disabled; 0 otherwise. Providers must report
-	 * disabled ports as IBV_PORT_DOWN in ibv_query_port().
+	/* Administrative state of the port. Providers must report disabled
+	 * ports as IBV_PORT_DOWN in ibv_query_port().
 	 */
-	uint8_t admin_disabled;
+	enum mrc_ctl_port_admin_state port_admin_state;
 };
 
 /**
  * @brief Query a port's administrative status
  *
- * @param context[in]  - MRC context
- * @param port_num[in] - Port number (1-based)
- * @param attr[out]    - Returned port attributes
+ * @param context[in]   - MRC context
+ * @param port_num[in]  - Port number (1-based)
+ * @param attr[out]     - Returned port attributes
+ * @param attr_mask[in] - Bitmask of attributes to query
+ *                        (mrc_ctl_port_attr_mask)
  *
  * @return 0 on success, -1 on failure (errno set).
  * @par Errors
@@ -234,7 +247,8 @@ struct mrc_ctl_port_attr {
  */
 int mrc_ctl_query_port(struct mrc_context *context,
 		       uint8_t port_num,
-		       struct mrc_ctl_port_attr *attr);
+		       struct mrc_ctl_port_attr *attr,
+		       int attr_mask);
 
 /**
  * @brief Modify a port's administrative status
@@ -321,13 +335,10 @@ struct mrc_ctl_ev_fmt_profile_attr {
 
 	struct {
 		enum mrc_ctl_ev_fmt_op op;
-
-		struct {
-			/* Array of format fields */
-			struct mrc_ctl_ev_fmt_field *fmt_fields;
-			/* Format field array length (in/out) */
-			int fmt_field_count;
-		} fmt_fields;
+		/* Array of format fields */
+		struct mrc_ctl_ev_fmt_field *fmt_fields;
+		/* Format field array length (in/out) */
+		int fmt_field_count;
 	} ev_fmt_op;
 
 	/* vendor specific configuration */
@@ -380,9 +391,9 @@ int mrc_ctl_modify_ev_fmt_profile(struct mrc_context *mrc_ctx,
  *
  * If MRC_CTL_EV_FMT_OP_QUERY_FIELDS is specified, an array of empty format
  * fields (fmt_fields) must be supplied to be filled in upon return. If the
- * number of entries in the array (fmt_field_count) is not large enough,
- * then an E2BIG error is returned and the required array size is set back
- * in (fmt_field_count).
+ * number of entries in the array (`fmt_field_count`) is not large enough,
+ * the provider returns E2BIG and returns the required array size in
+ * `fmt_field_count`.
  *
  * The MRC_CTL_EV_FMT_OP_MODIFY_FIELDS operation is not allowed.
  *
@@ -452,15 +463,21 @@ enum mrc_ctl_ev_mode {
 };
 
 /**
- * @brief Supported EV operations
+ * @brief Supported EV Operations
  */
 enum mrc_ctl_ev_op {
 	MRC_CTL_EV_OP_REPLACE_EV,
 	MRC_CTL_EV_OP_MODIFY_EV_STATE,
 	MRC_CTL_EV_OP_QUERY_EV_STATE,
 	MRC_CTL_EV_OP_QUERY_EV_ARRAY,
-	MRC_CTL_EV_OP_MODIFY_FIELDS,
-	MRC_CTL_EV_OP_QUERY_FIELDS,
+};
+
+/**
+ * @brief Supported EV field operations
+ */
+enum mrc_ctl_ev_fields_op {
+	MRC_CTL_EV_FIELDS_OP_MODIFY_FIELDS,
+	MRC_CTL_EV_FIELDS_OP_QUERY_FIELDS,
 };
 
 /**
@@ -475,6 +492,7 @@ enum mrc_ctl_ev_profile_attr_mask {
 	MRC_CTL_EV_PROFILE_MIN_ACTIVE	= 1 << 5,
 	MRC_CTL_EV_PROFILE_EVENT_MASK	= 1 << 6,
 	MRC_CTL_EV_PROFILE_EV_OP	= 1 << 7,
+	MRC_CTL_EV_PROFILE_EV_FIELDS_OP	= 1 << 8,
 	MRC_CTL_EV_PROFILE_VENDOR_CFG	= 1 << 31,
 };
 
@@ -492,6 +510,41 @@ struct mrc_ctl_ev_field {
 	uint32_t max_val;
 	/* Mask bits detail where EV bits are overlaid on the field value. */
 	uint32_t mask;
+};
+
+/**
+ * @brief EV operation entry flags
+ */
+enum mrc_ctl_ev_op_flags {
+	/* For REPLACE_EV: replace all occurrences of `ev` with `ev_new` */
+	MRC_CTL_EV_OP_F_ALL_COPIES  = 1 << 0,
+};
+
+/**
+ * @brief Unified EV operation entry
+ *
+ * Field requirements per operation (selected via `ev_op.op`):
+ *
+ *   +-------------------+-----+--------+-------+-------+
+ *   | Operation         | ev  | ev_new | state | flags |
+ *   +-------------------+-----+--------+-------+-------+
+ *   | REPLACE_EV        | R   | R      | R     | O     |
+ *   | MODIFY_EV_STATE   | R   | I      | R     | O     |
+ *   | QUERY_EV_STATE    | R   | I      | P     | I     |
+ *   | QUERY_EV_ARRAY    | P   | I      | P     | I     |
+ *   +-------------------+-----+--------+-------+-------+
+ *
+ *   Legend: R=Required, O=Optional, P=Output (Produced), I=Ignored
+ */
+struct mrc_ctl_ev_op_entry {
+	/* Subject EV */
+	struct mrc_ctl_ev ev;
+	/* Replacement EV */
+	struct mrc_ctl_ev ev_new;
+	/* State */
+	enum mrc_ctl_ev_state state;
+	/* Entry flags */
+	uint32_t flags;
 };
 
 /**
@@ -576,49 +629,23 @@ struct mrc_ctl_ev_profile_attr {
 	 */
 	int ev_event_mask;
 
+	/* EV operations: replace, modify/query state, query array */
 	struct {
 		enum mrc_ctl_ev_op op;
-
-		union {
-			struct {
-				/* Current EV; Match occurs on val and port */
-				struct mrc_ctl_ev cur_ev;
-				/* New EV (formatted according to EV fields) */
-				struct mrc_ctl_ev new_ev;
-				/* If zero only one instance is replaced, else
-				 * allow matches are replaced. Entry selected
-				 * is implementation specific.
-				 */
-				int all_copies;
-			} replace_ev;
-
-			struct {
-				/* EV to modify */
-				struct mrc_ctl_ev ev;
-				/* EV's new state */
-				enum mrc_ctl_ev_state state;
-			} modify_ev_state;
-
-			struct {
-				/* EV to query */
-				struct mrc_ctl_ev ev;
-				/* EV's current state; output-only */
-				enum mrc_ctl_ev_state state;
-			} query_ev_state;
-
-			struct {
-				/* Array of EVs; pointer, length >= ev_count */
-				struct mrc_ctl_ev *ev;
-			} query_ev_array;
-
-			struct {
-				/* Array of fields */
-				struct mrc_ctl_ev_field *fields;
-				/* Field array length (in/out) */
-				int field_count;
-			} fields;
-		};
+		/* Array of entries */
+		struct mrc_ctl_ev_op_entry *entries;
+		/* Entries array length (in/out) */
+		int entry_count;
 	} ev_op;
+
+	/* EV field operations: modify/query fields */
+	struct {
+		enum mrc_ctl_ev_fields_op op;
+		/* Array of fields */
+		struct mrc_ctl_ev_field *fields;
+		/* Field array length (in/out) */
+		int field_count;
+	} ev_fields_op;
 
 	/* vendor specific configuration */
 	uint8_t vendor_cfg[MRC_CTL_MAX_VENDOR_CFG_SIZE];
@@ -639,22 +666,43 @@ struct mrc_ctl_ev_profile_attr {
  *   To OFFLINE:
  *     - MODE, FMT_ID, COUNT, MODIFY_FIELDS
  *   To ONLINE:
- *     - MIN_ACTIVE, EVENT_MASK, REPLACE_EV (for EXP)
+ *     - MIN_ACTIVE, EVENT_MASK, REPLACE_EV (for EXPLICIT)
  *
  * Allowed:
  *   OFFLINE state:
- *     - Modify: STATE(ONLINE/INIT), MODE, FMT_ID, COUNT, MIN_ACTIVE,
- *               EVENT_MASK
+ *     - Modify: STATE(ONLINE/INIT), MODE, FMT_ID, COUNT, MIN_ACTIVE, EVENT_MASK
  *     - Query: STATE, MODE, FMT_ID, COUNT, MIN_ACTIVE, EVENT_MASK
- *     - EV_OP: REPLACE_EV, MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY,
- *              MODIFY_FIELDS, QUERY_FIELDS
+ *     - EV_OP: REPLACE_EV, MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY
+ *     - EV_FIELDS_OP: MODIFY_FIELDS, QUERY_FIELDS
  *   ONLINE state:
  *     - Modify: STATE(OFFLINE)
  *     - Query: STATE, MODE, FMT_ID, COUNT, MIN_ACTIVE, EVENT_MASK
- *     - EV_OP: MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY,
- *              QUERY_FIELDS
+ *     - EV_OP: MODIFY_EV_STATE, QUERY_EV_STATE, QUERY_EV_ARRAY
+ *     - EV_FIELDS_OP: QUERY_FIELDS
  *       If MRC_CTL_OPT_CAP_EV_PROFILE_MODIFY_ONLINE supported:
- *              EVENT_MASK, REPLACE_EV
+ *              EVENT_MASK, REPLACE_EV, MODIFY_FIELDS
+ *
+ * Operation selection:
+ *   - MRC_CTL_EV_PROFILE_EV_OP and MRC_CTL_EV_PROFILE_EV_FIELDS_OP are
+ *     mutually exclusive; setting both returns EINVAL.
+ *   - It is valid for neither to be set; no EV operation is performed.
+ *
+ *   EV_OP rules:
+ *   - EV operation must be selected via `ev_op.op`; applies to all entries.
+ *   - Success semantics are per-entry: error returns on first failing entry;
+ *     partial success is possible. After an error, query the EV array to
+ *     determine the definitive state of all EVs.
+ *
+ * Operation-specific notes:
+ *   - EV_FIELDS_OP_MODIFY_FIELDS:
+ *       If the provided array of fields exceeds implementation capabilities,
+ *       the provider returns E2BIG.
+ *   - EV_OP_MODIFY_EV_STATE:
+ *       Applies requested `entries[i].state` to `entries[i].ev` per entry.
+ *   - EV_OP_REPLACE_EV:
+ *       Use `ev_op.entries[i].flags & MRC_CTL_EV_OP_F_ALL_COPIES` to
+ *       request replacement of all occurrences for that entry; otherwise a
+ *       single implementation-selected occurrence is replaced.
  *
  * Restrictions:
  *   On INIT -> OFFLINE, Explicit array EVs are all EV_UNPOPULATED; MUST be
@@ -668,6 +716,7 @@ struct mrc_ctl_ev_profile_attr {
  *
  * @return 0 on success, -1 on error (errno set).
  * @par Errors
+ *      - E2BIG  Supplied array length exceeds implementation capabilities.
  *      - EINVAL One or more supplied arguments are invalid.
  *      - ENOENT EV not found.
  *      - EIO Implementation specific error occurred.
@@ -684,10 +733,22 @@ int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
  *
  * Query an EV profile configuration.
  *
- * If MRC_CTL_EV_OP_QUERY_FIELDS is specified, an array of empty fields must
- * be supplied to be filled in upon return. If the number of entries in the
- * array (field_count) is not large enough, then an E2BIG error is returned
- * and the required array size is set back in (field_count).
+ * Operation selection:
+ *   - MRC_CTL_EV_PROFILE_EV_OP and MRC_CTL_EV_PROFILE_EV_FIELDS_OP are
+ *     mutually exclusive; setting both returns EINVAL.
+ *   - It is valid for neither to be set; no EV operation is performed.
+ *
+ * Operation-specific notes:
+ *   - EV_FIELDS_OP_QUERY_FIELDS:
+ *       Supply an array of empty fields to be filled in. If
+ *       `fields.field_count` is insufficient, the provider returns E2BIG and
+ *       returns the required array size in `fields.field_count`.
+ *   - EV_OP_QUERY_EV_STATE:
+ *       Provider fills `entries[i].state` for each supplied `ev`.
+ *   - EV_OP_QUERY_EV_ARRAY:
+ *       Provider fills `entries[i].ev` for the profile EV array. If
+ *       `ev_op.entry_count` is insufficient, the provider returns E2BIG and
+ *       returns the required array size in `ev_op.entry_count`.
  *
  * @param mrc_ctx[in]       - MRC context
  * @param ev_profile_id[in] - EV Profile ID
@@ -696,6 +757,7 @@ int mrc_ctl_modify_ev_profile(struct mrc_context *mrc_ctx,
  *
  * @return 0 on success, -1 on error (errno set).
  * @par Errors
+ *      - E2BIG  Insufficient supplied array length for requested operation.
  *      - EINVAL One or more supplied arguments are invalid.
  *      - ENOENT EV not found.
  *      - EIO Implementation specific error occurred.
@@ -969,13 +1031,13 @@ struct mrc_ctl_ep_rsp {
  *      - ETIMEDOUT Timeout occurred before all responses received.
  */
 int mrc_ctl_ep_batch_send_wait(struct mrc_context *mrc_ctx,
-				uint8_t req_tc,
-				enum mrc_ctl_ep_op_type op_type,
-				struct mrc_ctl_ep_req *req,
-				int num_req,
-				uint32_t rsp_timeout,
-				struct mrc_ctl_ep_rsp *rsp,
-				int *num_rsp);
+			       uint8_t req_tc,
+			       enum mrc_ctl_ep_op_type op_type,
+			       struct mrc_ctl_ep_req *req,
+			       int num_req,
+			       uint32_t rsp_timeout,
+			       struct mrc_ctl_ep_rsp *rsp,
+			       int *num_rsp);
 
 #ifdef __cplusplus
 }
