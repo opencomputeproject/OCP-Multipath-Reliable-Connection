@@ -87,8 +87,6 @@ struct mrc_device_attr {
 		uint8_t max_mpr;
 		/* Allocation granularity (units = 128 PSNs) */
 		uint8_t mpr_resolution;
-		/* Non-zero if Dynamic MPR is supported */
-		uint8_t dynamic_mpr;
 	} mpr_attr;
 
 	struct {
@@ -463,8 +461,6 @@ struct mrc_qp_attr {
 		uint8_t mpr;
 		/* Responder MPR value; unit=128 PSNs */
 		uint8_t mpr_dest;
-		/* if 1/true, enable Dynamic MPR support */
-		uint8_t dynamic_mpr;
 	} mpr;
 
 	struct {
