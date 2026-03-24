@@ -829,6 +829,7 @@ int mrc_ctl_query_cc_profile(struct mrc_context *mrc_ctx,
 struct mrc_ctl_ev_event {
 	uint64_t profile_id;
 	struct mrc_ctl_ev ev;
+	enum mrc_ctl_ev_state state;
 	/* If MRC_CTL_OPT_CAP_EV_EVENT_PRECISE_DROP_CNT is set, this field
 	 * contains the number of EV Events dropped between the previous and
 	 * current event delivered to the queue. If not set, this field is
