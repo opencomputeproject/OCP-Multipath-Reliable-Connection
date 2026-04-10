@@ -36,7 +36,7 @@
 #define MRC_API_VER_LATEST              MRC_API_VER(0xFF, 0xFF, 0xFFFF)
 
 /* API versions */
-#define MRC_API_CURRENT_VERSION         MRC_API_VER(1, 0, 0)
+#define MRC_API_CURRENT_VERSION         MRC_API_VER(1, 0, 1)
 #define MRC_API_LAST_SUPPORTED_VERSION  MRC_API_VER(0, 0, 0)
 
 /* Version selection macros */
