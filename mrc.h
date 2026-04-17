@@ -115,11 +115,40 @@ int mrc_query_device(struct ibv_context *context,
 		     int *supported);
 
 /**
+ * @brief Query supported API versions
+ *
+ * Query the library for the API versions it supports. May be called before
+ * mrc_create_context() so the application can verify compatibility with the
+ * library's supported API version range and the provider's API version.
+ *
+ * Versions are encoded with the MRC_API_VER(MAJOR, MINOR, SUBMINOR) macros
+ * (see mrc_api_ver.h).
+ *
+ * @param current_version[out]         - Current API version supported
+ * @param last_supported_version[out]  - Oldest API version still supported
+ * @param vendor_version[out]          - Vendor API version supported
+ *
+ * @return void
+ */
+void mrc_query_version(uint32_t *current_version,
+		      uint32_t *last_supported_version,
+		      uint32_t *vendor_version);
+
+/**
  * @brief Application-provided context initialization attributes.
+ *
+ * For the API version fields, the value zero implies
+ * that the application has not provided any information
+ * on the version it is using. The provider can assume the
+ * version of its choice in an implementation specific manner,
+ * although it is preferred that it defaults to the latest
+ * version supported.
  */
 struct mrc_context_attr {
 	/* API version used */
 	uint32_t mrc_api_version_used;
+	/* Vendor (provider) API version used */
+	uint32_t mrc_vendor_api_version_used;
 };
 
 /**

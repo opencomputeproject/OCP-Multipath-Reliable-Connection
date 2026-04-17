@@ -19,6 +19,22 @@
 #ifndef _MRC_API_VER_H_
 #define _MRC_API_VER_H_
 
+/*
+ * Versioning follows semantic versioning (MAJOR.MINOR.SUBMINOR):
+ *
+ *   MAJOR    - Incremented on incompatible API/ABI changes. Upgrading across
+ *              major versions will likely break existing code and requires
+ *              manual migration.
+ *
+ *   MINOR    - Incremented when backward-compatible functionality is added.
+ *              Safe to update; existing code continues to work without
+ *              modification.
+ *
+ *   SUBMINOR - Incremented for backward-compatible bug fixes, security patches,
+ *              and internal-only changes. Safest to update; no behavioral
+ *              changes to the public API.
+ */
+
 /* Version field bit offsets */
 #define MRC_API_VER_MAJOR_OFFSET        24
 #define MRC_API_VER_MINOR_OFFSET        16
@@ -55,6 +71,35 @@
 #elif MRC_API_VER_USED == MRC_API_LAST_SUPPORTED_VERSION
     #warning "MRC_API_VER_USED is equal to MRC_API_LAST_SUPPORTED \
 version, may become obsolete"
+#endif
+
+/*
+ * Vendor-specific API versioning
+ *
+ * These macros track a vendor-defined API surface that evolves independently
+ * of the core MRC API.  The same MAJOR.MINOR.SUBMINOR semantics apply.
+ */
+
+/* Vendor API versions */
+#define MRC_VENDOR_API_CURRENT_VERSION         MRC_API_VER(1, 0, 0)
+#define MRC_VENDOR_API_LAST_SUPPORTED_VERSION  MRC_API_VER(0, 0, 0)
+
+/* Vendor API version selection macros */
+#ifndef MRC_VENDOR_API_VER_USED
+    #define MRC_VENDOR_API_VER_USED MRC_VENDOR_API_CURRENT_VERSION
+#elif MRC_VENDOR_API_VER_USED == MRC_API_VER_LATEST
+    #undef MRC_VENDOR_API_VER_USED
+    #define MRC_VENDOR_API_VER_USED MRC_VENDOR_API_CURRENT_VERSION
+#endif
+
+/* Vendor API version validation */
+#if MRC_VENDOR_API_VER_USED > MRC_VENDOR_API_CURRENT_VERSION
+    #error "MRC_VENDOR_API_VER_USED is greater than MRC_VENDOR_API_CURRENT_VERSION"
+#elif MRC_VENDOR_API_VER_USED < MRC_VENDOR_API_LAST_SUPPORTED_VERSION
+    #error "MRC_VENDOR_API_VER_USED is less than MRC_VENDOR_API_LAST_SUPPORTED_VERSION"
+#elif MRC_VENDOR_API_VER_USED == MRC_VENDOR_API_LAST_SUPPORTED_VERSION
+    #warning "MRC_VENDOR_API_VER_USED is equal to MRC_VENDOR_API_LAST_SUPPORTED_VERSION, \
+may become obsolete"
 #endif
 
 #endif /* _MRC_API_VER_H_ */
