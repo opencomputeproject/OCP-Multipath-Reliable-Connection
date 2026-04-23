@@ -34,6 +34,7 @@
 #include <infiniband/verbs.h>
 
 #include <mrc.h>
+#include <mrc_ctl_api_ver.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -197,6 +198,31 @@ struct mrc_ctl_device_attr {
  */
 int mrc_ctl_query_device(struct ibv_context *context,
 			 struct mrc_ctl_device_attr *ctl_attr);
+
+/**
+ * @brief Query supported control API versions
+ *
+ * Query the library for the control API versions it supports. May be called
+ * before mrc_create_context() so the application can verify compatibility
+ * with the library's supported control API version range and the provider's
+ * control API version.
+ *
+ * The control API is versioned independently from the main MRC API, so the
+ * values returned here may differ from those returned by mrc_query_version().
+ *
+ * Versions are encoded with the MRC_CTL_API_VER(MAJOR, MINOR, SUBMINOR) macro
+ * (see mrc_ctl_api_ver.h).
+ *
+ * @param current_version[out]         - Current control API version supported
+ * @param last_supported_version[out]  - Oldest control API version still
+ *                                       supported
+ * @param vendor_version[out]          - Vendor control API version supported
+ *
+ * @return void
+ */
+void mrc_ctl_query_version(uint32_t *current_version,
+			  uint32_t *last_supported_version,
+			  uint32_t *vendor_version);
 
 /****************************************************************************
  * Port Administrative Control
@@ -900,8 +926,8 @@ struct mrc_ctl_ev_event {
 	 * event, and 0 otherwise.
 	 */
 	uint32_t drop_count;
-#if MRC_API_VER_USED >= MRC_API_VER(1, 0, 1)
-	/* This field is only populated if mrc_api_version_used >= 1.0.1. */
+#if MRC_CTL_API_VER_USED >= MRC_CTL_API_VER(1, 0, 1)
+	/* This field is only populated if mrc_ctl_api_version_used >= 1.0.1. */
 	enum mrc_ctl_ev_state state;
 #endif
 };
