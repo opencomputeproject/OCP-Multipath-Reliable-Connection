@@ -17,3 +17,6 @@ The software APIs are broken into two different categories:Application API and C
 * **Capability Discovery:** Queries the device for vendor-specific MRC capabilities to guide how EV and CC profiles should be safely configured.
 
 **Integration Notes:** The MRC library relies on `libibverbs` for the initial device discovery and `ibv_context` management when opening devices. Furthermore, the user application (using `mrc.h`) and the privileged controller (using `mrc_ctl.h`) are expected to communicate out-of-band so the user application knows which EV and CC profiles have been configured and can associate them with its QPs during initialization
+
+Examples are in the following directory.
+[API Examples](examples/README.md)
