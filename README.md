@@ -1,5 +1,4 @@
-**This repository is a companion to OCP Multipath Reliable Connection Specification.**  
-**FIXME \- add link when published.**
+**This repository is a companion to [OCP Multipath Reliable Connection Specification](https://www.opencompute.org/documents/ocp-mrc-1-0-pdf)**  
 
 The software APIs are broken into two different categories:Application API and Controller API. 
 
