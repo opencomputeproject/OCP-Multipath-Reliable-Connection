@@ -217,12 +217,14 @@ int mrc_ctl_query_device(struct ibv_context *context,
  * @param last_supported_version[out]  - Oldest control API version still
  *                                       supported
  * @param vendor_version[out]          - Vendor control API version supported
+ * @param last_supported_vendor_version[out] - Oldest vendor control API version supported
  *
  * @return void
  */
 void mrc_ctl_query_version(uint32_t *current_version,
 			  uint32_t *last_supported_version,
-			  uint32_t *vendor_version);
+			  uint32_t *vendor_version,
+			  uint32_t *last_supported_vendor_version);
 
 /****************************************************************************
  * Port Administrative Control
