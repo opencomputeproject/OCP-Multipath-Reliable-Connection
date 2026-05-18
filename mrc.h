@@ -105,11 +105,22 @@ struct mrc_device_attr {
  * The value returned in `supported` is 0 when MRC support is not
  * available.
  *
+ * Applications using API version (1,0,1) or higher are expected
+ * to use mrc_query_device_ex(). The library will assume (1, 0, 0)
+ * semantics when mrc_query_device() is used.
+ *
  * @param context[in]     - Verbs context
+ * @param mcontext[in]	  - MRC context
  * @param attr[out]       - MRC attributes
  * @param supported[out]  - Non-zero if MRC supported
  * @return 0 on success, -1 on failure (errno set)
  */
+#if MRC_API_VER_USED >= MRC_API_VER(1, 0, 1)
+int mrc_query_device_ex(struct ibv_context *context,
+			struct mrc_context *mcontext,
+			struct mrc_device_attr *attr,
+			int *supported);
+#endif
 int mrc_query_device(struct ibv_context *context,
 		     struct mrc_device_attr *attr,
 		     int *supported);
