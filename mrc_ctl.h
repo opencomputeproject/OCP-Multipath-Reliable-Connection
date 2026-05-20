@@ -190,12 +190,24 @@ struct mrc_ctl_device_attr {
  * Query the device to check MRC support and other attributes.
  * Should be called after EV generation fields are configured.
  *
+ * Controller applications using API version (1,0,1) or higher are expected
+ * to use mrc_ctl_query_device_ex(). The library will assume (1, 0, 0)
+ * semantics when mrc_ctl_query_device() is used.
+ *
  * @param context[in]    - IB Verbs context
+ * @param mcontext[in]	 - MRC context
  * @param ctl_attr[out]  - MRC Control attributes
+ * @param supported[out] - Non-zero if MRC is supported
  *
  * @return 0 on success, -1 on error (errno set).
  *         Errors like ibv_query_device().
  */
+#if MRC_CTL_API_VER_USED >= MRC_CTL_API_VER(1, 0, 1)
+int mrc_ctl_query_device_ex(struct ibv_context *context,
+			    struct mrc_context *mcontext,
+			    struct mrc_ctl_device_attr *ctl_attr,
+			    int *supported);
+#endif
 int mrc_ctl_query_device(struct ibv_context *context,
 			 struct mrc_ctl_device_attr *ctl_attr);
 
